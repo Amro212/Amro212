@@ -91,7 +91,6 @@ export class RetroComputerScene {
         this.buildBaseUnit();
         this.buildMonitor();
         this.buildKeyboard();
-        this.buildMouse();
         this.buildCables();
 
         // Position the whole group — slightly raised so nothing clips
@@ -202,95 +201,151 @@ export class RetroComputerScene {
     }
 
     private buildKeyboard(): void {
-        // Base Unit width = 2.4. Keyboard width = 2.2 < 2.4
-        const kbGeo = new RoundedBoxGeometry(2.2, 0.12, 0.8, 4, 0.04);
-        const kbMat = new THREE.MeshStandardMaterial({ color: 0xc8c3b9, roughness: 0.9, metalness: 0.05 });
-        const keyboard = new THREE.Mesh(kbGeo, kbMat);
-        keyboard.position.set(0, 0.06, 1.7);
-        keyboard.rotation.x = -0.08;
-        keyboard.castShadow = true;
-        this.computerGroup.add(keyboard);
+        // ── Keyboard Case ──────────────────────────────────────────────
+        // Retro-style case with raised back edge (wedge shape)
+        const caseW = 2.2;
+        const caseD = 0.85;
+        const caseH = 0.14;
+        const caseGeo = new RoundedBoxGeometry(caseW, caseH, caseD, 4, 0.04);
+        const caseMat = new THREE.MeshStandardMaterial({
+            color: 0xc8c3b9, roughness: 0.85, metalness: 0.05
+        });
+        const kbCase = new THREE.Mesh(caseGeo, caseMat);
+        kbCase.position.set(0, 0.07, 1.7);
+        kbCase.rotation.x = -0.06;
+        kbCase.castShadow = true;
+        kbCase.receiveShadow = true;
+        this.computerGroup.add(kbCase);
 
-        // Main alpha block
-        this.buildKeyBlock(-0.95, 1.45, 5, 13, 0.11);
-        // Nav block
-        this.buildKeyBlock(0.35, 1.45, 5, 3, 0.11);
-        // Numpad
-        this.buildKeyBlock(0.85, 1.45, 5, 4, 0.11);
+        // ── Materials ──────────────────────────────────────────────────
+        // Alpha keys — light warm cream
+        const alphaCapMat = new THREE.MeshStandardMaterial({
+            color: 0xe8e3d5, roughness: 0.75, metalness: 0.02
+        });
+        // Modifier keys — darker warm grey
+        const modCapMat = new THREE.MeshStandardMaterial({
+            color: 0xb0aa9e, roughness: 0.8, metalness: 0.03
+        });
 
-        // Add a wide spacebar manually
-        const spaceGeo = new RoundedBoxGeometry(0.6, 0.06, 0.09, 2, 0.01);
-        const spaceMat = new THREE.MeshStandardMaterial({ color: 0xe3decb, roughness: 0.8 });
-        const space = new THREE.Mesh(spaceGeo, spaceMat);
-        space.position.set(-0.45, 0.14, 1.97);
-        space.rotation.x = -0.08;
-        space.castShadow = true;
-        this.computerGroup.add(space);
-    }
+        // ── Key Dimensions ─────────────────────────────────────────────
+        const U = 0.115;           // 1U key pitch (key width + gap)
+        const keyH = 0.065;        // key cap body height
+        const keyD = 0.10;         // key cap depth (front→back)
+        const gap = 0.012;         // gap between keys
+        const keyTopInset = 0.015; // inset for sculpted top
+        const kbRotX = -0.06;      // match case tilt
+        const baseY = 0.145;       // key placement Y
 
-    private buildKeyBlock(startX: number, startZ: number, rows: number, cols: number, keyWidth: number): void {
-        const keySpacingX = keyWidth + 0.02;
-        const keySpacingZ = 0.13;
+        // Origin for the keyboard layout (top-left corner of Esc key)
+        const originX = -1.02;
+        const originZ = 1.35;
 
-        const keyGeo = new RoundedBoxGeometry(keyWidth, 0.06, 0.09, 2, 0.01);
-        const alphaMat = new THREE.MeshStandardMaterial({ color: 0xe3decb, roughness: 0.8 });
-        const modMat = new THREE.MeshStandardMaterial({ color: 0xa8a49c, roughness: 0.8 });
+        // Helper: create a single key at grid position with width in units
+        const addKey = (col: number, row: number, widthU: number, isMod: boolean) => {
+            const w = widthU * U - gap;
+            const xOffset = col * U + (widthU * U) / 2;
+            const zOffset = row * (keyD + gap * 0.5);
 
-        for (let r = 0; r < rows; r++) {
-            // skip spacebar placeholder row for alpha block if we wanted, let's just leave it empty by reducing count or continuing
-            if (cols > 5 && r === 4) continue;
+            // Key body
+            const bodyGeo = new RoundedBoxGeometry(w, keyH, keyD, 2, 0.012);
+            const bodyMat = isMod ? modCapMat : alphaCapMat;
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.set(
+                originX + xOffset,
+                baseY,
+                originZ + zOffset
+            );
+            body.rotation.x = kbRotX;
+            body.castShadow = true;
+            this.computerGroup.add(body);
 
-            for (let c = 0; c < cols; c++) {
-                const isMod = c === 0 || c === cols - 1 || r === 0;
-                const mat = isMod ? modMat : alphaMat;
-                const key = new THREE.Mesh(keyGeo, mat);
-                key.position.set(startX + c * keySpacingX, 0.14, startZ + r * keySpacingZ);
-                key.rotation.x = -0.08;
-                key.castShadow = true;
-                this.computerGroup.add(key);
-            }
-        }
-    }
+            // Sculpted top face (slightly inset, flat) for the keycap dish look
+            const topW = w - keyTopInset * 2;
+            const topD = keyD - keyTopInset * 2;
+            const topGeo = new RoundedBoxGeometry(topW, 0.01, topD, 2, 0.006);
+            const topMat = isMod
+                ? new THREE.MeshStandardMaterial({ color: 0xbab4a8, roughness: 0.7, metalness: 0.02 })
+                : new THREE.MeshStandardMaterial({ color: 0xf0ece0, roughness: 0.65, metalness: 0.01 });
+            const top = new THREE.Mesh(topGeo, topMat);
+            top.position.set(
+                originX + xOffset,
+                baseY + keyH / 2 + 0.003,
+                originZ + zOffset
+            );
+            top.rotation.x = kbRotX;
+            this.computerGroup.add(top);
+        };
 
-    private buildMouse(): void {
-        const mouseGeo = new RoundedBoxGeometry(0.35, 0.15, 0.5, 4, 0.08);
-        const mouseMat = new THREE.MeshStandardMaterial({ color: 0xd4cfc8, roughness: 0.7 });
-        const mouse = new THREE.Mesh(mouseGeo, mouseMat);
-        mouse.position.set(1.4, 0.075, 1.7);
-        mouse.rotation.y = -0.1;
-        mouse.castShadow = true;
-        this.computerGroup.add(mouse);
+        // ── ROW 0: Function Row (Esc, gap, F1–F4, gap, F5–F8, gap, F9–F12, gap, PrtSc, ScrLk, Pause) ──
 
-        // Mouse buttons
-        const btnGeo = new RoundedBoxGeometry(0.14, 0.04, 0.2, 2, 0.02);
-        const btnMat = new THREE.MeshStandardMaterial({ color: 0xc8c3b9, roughness: 0.8 });
 
-        const leftBtn = new THREE.Mesh(btnGeo, btnMat);
-        leftBtn.position.set(1.31, 0.15, 1.55);
-        leftBtn.rotation.y = -0.1;
-        this.computerGroup.add(leftBtn);
+        addKey(0, 0, 1, true);              // Esc
 
-        const rightBtn = new THREE.Mesh(btnGeo, btnMat);
-        rightBtn.position.set(1.49, 0.15, 1.55);
-        rightBtn.rotation.y = -0.1;
-        this.computerGroup.add(rightBtn);
+        // F1–F4
+        for (let i = 0; i < 4; i++) addKey(1.5 + i, 0, 1, true);
+        // F5–F8
+        for (let i = 0; i < 4; i++) addKey(6 + i, 0, 1, true);
+        // F9–F12
+        for (let i = 0; i < 4; i++) addKey(10.5 + i, 0, 1, true);
+
+        // PrtSc, ScrLk, Pause
+        addKey(15, 0, 1, true);
+        addKey(16, 0, 1, true);
+        addKey(17, 0, 1, true);
+
+        // ── ROW 1: Number Row (`, 1-0, -, =, Backspace, | Ins, Home, PgUp) ──
+        const row1 = 1.15; // extra gap after function row
+        for (let i = 0; i < 13; i++) addKey(i, row1, 1, i === 0); // ` through =
+        addKey(13, row1, 2, true);           // Backspace (2U)
+
+        addKey(15.5, row1, 1, true);         // Ins
+        addKey(16.5, row1, 1, true);         // Home
+        addKey(17.5, row1, 1, true);         // PgUp
+
+        // ── ROW 2: QWERTY row (Tab, Q-], \, | Del, End, PgDn) ──
+        const row2 = row1 + 1;
+        addKey(0, row2, 1.5, true);          // Tab (1.5U)
+        for (let i = 0; i < 12; i++) addKey(1.5 + i, row2, 1, false); // Q through ]
+        addKey(13.5, row2, 1.5, true);       // \ (1.5U)
+
+        addKey(15.5, row2, 1, true);         // Del
+        addKey(16.5, row2, 1, true);         // End
+        addKey(17.5, row2, 1, true);         // PgDn
+
+        // ── ROW 3: Home row (Caps, A-', Enter) ──
+        const row3 = row2 + 1;
+        addKey(0, row3, 1.75, true);         // CapsLock (1.75U)
+        for (let i = 0; i < 11; i++) addKey(1.75 + i, row3, 1, false); // A through '
+        addKey(12.75, row3, 2.25, true);     // Enter (2.25U)
+
+        // ── ROW 4: Shift row (LShift, Z-/, RShift, | Up) ──
+        const row4 = row3 + 1;
+        addKey(0, row4, 2.25, true);         // Left Shift (2.25U)
+        for (let i = 0; i < 10; i++) addKey(2.25 + i, row4, 1, false); // Z through /
+        addKey(12.25, row4, 2.75, true);     // Right Shift (2.75U)
+
+        addKey(16.5, row4, 1, true);         // Up Arrow
+
+        // ── ROW 5: Bottom row (Ctrl, Win, Alt, Space, Alt, Fn, Menu, Ctrl, | Left, Down, Right) ──
+        const row5 = row4 + 1;
+        addKey(0, row5, 1.25, true);         // Left Ctrl
+        addKey(1.25, row5, 1.25, true);      // Win/Super
+        addKey(2.5, row5, 1.25, true);       // Left Alt
+        addKey(3.75, row5, 6.25, false);     // Spacebar (6.25U)
+        addKey(10, row5, 1.25, true);        // Right Alt
+        addKey(11.25, row5, 1.25, true);     // Fn
+        addKey(12.5, row5, 1.25, true);      // Menu
+        addKey(13.75, row5, 1.25, true);     // Right Ctrl
+
+        addKey(15.5, row5, 1, true);         // Left Arrow
+        addKey(16.5, row5, 1, true);         // Down Arrow
+        addKey(17.5, row5, 1, true);         // Right Arrow
     }
 
     private buildCables(): void {
         const mat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
 
-        // Mouse cable
-        const mouseCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(1.35, 0.05, 1.45),
-            new THREE.Vector3(1.2, 0.02, 1.1),
-            new THREE.Vector3(0.5, 0.02, 0.9),
-            new THREE.Vector3(0.0, 0.1, 0.9) // Entering base unit
-        ]);
-        const mouseCableGeo = new THREE.TubeGeometry(mouseCurve, 20, 0.015, 8, false);
-        const mouseCable = new THREE.Mesh(mouseCableGeo, mat);
-        this.computerGroup.add(mouseCable);
-
-        // Keyboard cable
+        // Keyboard cable (exits back-center of keyboard, curves into base unit)
         const kbCurve = new THREE.CatmullRomCurve3([
             new THREE.Vector3(0, 0.06, 1.3),
             new THREE.Vector3(-0.2, 0.02, 1.1),
