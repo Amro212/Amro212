@@ -429,18 +429,6 @@ ol {
   min-height: 100vh;
 }
 
-/* Smooth gradient transition INTO the projects section */
-.projects::before {
-  content: '';
-  position: absolute;
-  top: -60px;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(to bottom, transparent, var(--projects-bg));
-  pointer-events: none;
-  z-index: 1;
-}
 
 .projects__header {
   text-align: center;
@@ -642,16 +630,6 @@ ol {
   justify-content: center;
 }
 
-.contact::before {
-  content: '';
-  position: absolute;
-  top: -60px;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(to bottom, transparent, var(--contact-bg));
-  pointer-events: none;
-}
 
 .contact__heading {
   font-family: var(--font-pixel);

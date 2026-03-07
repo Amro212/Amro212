@@ -493,6 +493,12 @@ export class Terminal {
         this.ctx.fillText(this.inputEl.value, cursorX, y);
         cursorX += this.ctx.measureText(this.inputEl.value).width;
 
+        // Blinking Cursor
+        if (Date.now() % 1000 < 500) {
+            this.ctx.fillStyle = '#00ffcc';
+            this.ctx.fillText('█', cursorX, y);
+        }
+
         // Scanlines overlay
         this.ctx.fillStyle = 'rgba(0,0,0,0.15)';
         for (let sy = 0; sy < h; sy += 3) {
