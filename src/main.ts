@@ -305,62 +305,38 @@ function initTextReveals(): void {
   const revealElements = document.querySelectorAll<HTMLElement>('.reveal-text');
 
   revealElements.forEach((el) => {
-    // 1. Split text into words and characters structurally
     const text = (el.textContent || '').trim();
-    if (!text) return; // Skip if somehow still empty
-
-    el.innerHTML = ''; // Clear original text
+    if (!text) return;
 
     // Accessibility: keep the original text readable by screen readers
     el.setAttribute('aria-label', text);
+    el.innerHTML = ''; // Start empty
 
-    const words = text.split(/\s+/); // Split on any whitespace
-    const charsContainer: HTMLElement[] = [];
+    // Create a container for the typed text
+    const textSpan = document.createElement('span');
+    el.appendChild(textSpan);
 
-    words.forEach((word) => {
-      const wordSpan = document.createElement('span');
-      wordSpan.className = 'reveal-word';
-      wordSpan.style.display = 'inline-block';
-      wordSpan.style.overflow = 'hidden';
-      wordSpan.style.verticalAlign = 'bottom';
-      // Preserve spaces between words
-      wordSpan.style.marginRight = '0.25em';
-
-      const chars = word.split('');
-      chars.forEach((char) => {
-        const charSpan = document.createElement('span');
-        charSpan.className = 'reveal-char';
-        charSpan.style.display = 'inline-block';
-        charSpan.innerText = char;
-        wordSpan.appendChild(charSpan);
-        charsContainer.push(charSpan);
-      });
-
-      el.appendChild(wordSpan);
-    });
-
-    // 2. Animate the characters with GSAP ScrollTrigger
-    gsap.fromTo(
-      charsContainer,
-      {
-        y: '100%',
-        rotation: 3,
-        opacity: 0
-      },
-      {
-        y: '0%',
-        rotation: 0,
-        opacity: 1,
-        duration: 0.8,
-        ease: 'power4.out',
-        stagger: 0.015,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 85%', // Trigger when top of element hits 85% down viewport
-          toggleActions: 'play none none none' // Only play once
-        }
+    ScrollTrigger.create({
+      trigger: el,
+      start: 'top 85%',
+      once: true,
+      onEnter: () => {
+        // Animate the length property to simulate typewriter effect
+        const obj = { length: 0 };
+        gsap.to(obj, {
+          length: text.length,
+          // Calculate duration based on text length - slowed down from 0.02
+          duration: text.length * 0.05,
+          ease: 'none',
+          onUpdate: () => {
+            textSpan.textContent = text.substring(0, Math.floor(obj.length));
+          },
+          onComplete: () => {
+            // Keep cursor blinking indefinitely after typing is done
+          }
+        });
       }
-    );
+    });
   });
 }
 

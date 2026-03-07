@@ -136,34 +136,93 @@ export class RetroComputerScene {
     }
 
     private buildMonitor(): void {
-        // Monitor Body
-        const monitorGeo = new RoundedBoxGeometry(1.8, 1.5, 1.2, 4, 0.08);
-        const monitorMat = new THREE.MeshStandardMaterial({ color: 0xd4cfc8, roughness: 0.6, metalness: 0.05 });
-        const monitor = new THREE.Mesh(monitorGeo, monitorMat);
-        monitor.position.set(0, 1.6, 0.2);
-        monitor.castShadow = true;
-        monitor.receiveShadow = true;
-        this.computerGroup.add(monitor);
+        const beigeMat = new THREE.MeshStandardMaterial({ color: 0xc8c3b9, roughness: 0.85, metalness: 0.05 });
+        const darkTrimMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8, metalness: 0.1 });
+        const tubeMat = new THREE.MeshStandardMaterial({ color: 0xbdb7ab, roughness: 0.9, metalness: 0.02 });
 
-        // Monitor tube / back
-        const tubeGeo = new RoundedBoxGeometry(1.4, 1.1, 0.6, 4, 0.1);
-        const tubeMat = new THREE.MeshStandardMaterial({ color: 0xc4bfb8, roughness: 0.7 });
+        // 1. Monitor Rear Housing (The tapered/smaller back 'tube')
+        const tubeW = 1.5;
+        const tubeH = 1.3;
+        const tubeD = 0.7;
+        const tubeGeo = new RoundedBoxGeometry(tubeW, tubeH, tubeD, 4, 0.08);
         const tube = new THREE.Mesh(tubeGeo, tubeMat);
-        tube.position.set(0, 1.6, -0.6);
+        tube.position.set(0, 1.64, -0.05);
         tube.castShadow = true;
         this.computerGroup.add(tube);
 
-        // Bezel
-        const bezelGeo = new RoundedBoxGeometry(1.82, 1.52, 0.05, 4, 0.02);
-        const bezelMat = new THREE.MeshStandardMaterial({ color: 0xb8b2a8, roughness: 0.7 });
-        const bezel = new THREE.Mesh(bezelGeo, bezelMat);
-        bezel.position.set(0, 1.6, 0.8);
-        this.computerGroup.add(bezel);
+        // 2. Air vents on the sides of the rear housing
+        const ventW = tubeW + 0.04; // Slightly wider to intersect and show on sides
+        const ventH = 0.015;
+        const ventD = 0.4;
+        const ventGeo = new THREE.BoxGeometry(ventW, ventH, ventD);
+        const ventMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        for (let i = 0; i < 7; i++) {
+            const vent = new THREE.Mesh(ventGeo, ventMat);
+            vent.position.set(0, 1.44 + i * 0.06, -0.10);
+            this.computerGroup.add(vent);
+        }
 
-        // CRT Screen
-        const screenGeo = new THREE.PlaneGeometry(1.5, 1.1);
+        // 3. Central Seam Divider
+        const seamGeo = new RoundedBoxGeometry(1.8, 1.55, 0.05, 4, 0.02);
+        const seam = new THREE.Mesh(seamGeo, darkTrimMat);
+        seam.position.set(0, 1.64, 0.30);
+        this.computerGroup.add(seam);
+
+        // 4. Main Front Housing (Chunky beige casing)
+        const mainW = 1.95;
+        const mainH = 1.65;
+        const mainD = 0.5;
+        const mainGeo = new RoundedBoxGeometry(mainW, mainH, mainD, 4, 0.08);
+        const mainBody = new THREE.Mesh(mainGeo, beigeMat);
+        mainBody.position.set(0, 1.64, 0.55);
+        mainBody.castShadow = true;
+        mainBody.receiveShadow = true;
+        this.computerGroup.add(mainBody);
+
+        // 5. Inner Dark Grey Bezel Frame
+        const innerBezelW = 1.6;
+        const innerBezelH = 1.2;
+        const innerBezelD = 0.06;
+        const innerBezelGeo = new RoundedBoxGeometry(innerBezelW, innerBezelH, innerBezelD, 4, 0.02);
+        const innerBezel = new THREE.Mesh(innerBezelGeo, darkTrimMat);
+        innerBezel.position.set(0, 1.64, 0.79);
+        this.computerGroup.add(innerBezel);
+
+        // Frame to make the cavernous set-in CRT look (beige)
+        const frameD = 0.15;
+        const frameThick = 0.175; // (1.95 - 1.6) / 2 = 0.175
+        const topBotW = innerBezelW + frameThick * 2;
+
+        // Top Frame (beige)
+        const tFrameGeo = new THREE.BoxGeometry(topBotW, frameThick, frameD);
+        const tFrame = new THREE.Mesh(tFrameGeo, beigeMat);
+        tFrame.position.set(0, 1.64 + innerBezelH / 2 + frameThick / 2, 0.87);
+        this.computerGroup.add(tFrame);
+
+        // Bottom Frame (beige)
+        const bFrameGeo = new THREE.BoxGeometry(topBotW, frameThick, frameD);
+        const bFrame = new THREE.Mesh(bFrameGeo, beigeMat);
+        bFrame.position.set(0, 1.64 - innerBezelH / 2 - frameThick / 2, 0.87);
+        this.computerGroup.add(bFrame);
+
+        // Left Frame (beige)
+        const lFrameGeo = new THREE.BoxGeometry(frameThick, innerBezelH, frameD);
+        const lFrame = new THREE.Mesh(lFrameGeo, beigeMat);
+        lFrame.position.set(-innerBezelW / 2 - frameThick / 2, 1.64, 0.87);
+        this.computerGroup.add(lFrame);
+
+        // Right Frame (beige)
+        const rFrameGeo = new THREE.BoxGeometry(frameThick, innerBezelH, frameD);
+        const rFrame = new THREE.Mesh(rFrameGeo, beigeMat);
+        rFrame.position.set(innerBezelW / 2 + frameThick / 2, 1.64, 0.87);
+        this.computerGroup.add(rFrame);
+
+        // 6. CRT Screen (Set exactly at original position to preserve coordinate projection)
+        const screenW = 1.5;
+        const screenH = 1.1;
+        const screenGeo = new THREE.PlaneGeometry(screenW, screenH);
         const screenMat = new THREE.MeshStandardMaterial({
-            color: 0x111111, roughness: 0.2, metalness: 0.3,
+            color: 0x111111, roughness: 0.2, metalness: 0.4,
             emissive: 0x00ffcc, emissiveIntensity: 0.15,
         });
         const screen = new THREE.Mesh(screenGeo, screenMat);
@@ -171,33 +230,47 @@ export class RetroComputerScene {
         this.screenMesh = screen;
         this.computerGroup.add(screen);
 
-        const glowGeo = new THREE.PlaneGeometry(1.45, 1.05);
+        const glowGeo = new THREE.PlaneGeometry(screenW * 0.95, screenH * 0.95);
         const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.06 });
         const glowOverlay = new THREE.Mesh(glowGeo, glowMat);
-        glowOverlay.position.set(0, 1.65, 0.84);
+        glowOverlay.position.set(0, 1.65, 0.835);
         this.computerGroup.add(glowOverlay);
 
-        // Power button on monitor
-        const monBtnGeo = new RoundedBoxGeometry(0.06, 0.06, 0.02, 2, 0.01);
-        const monBtnMat = new THREE.MeshStandardMaterial({ color: 0x44cc44 });
-        const monBtn = new THREE.Mesh(monBtnGeo, monBtnMat);
-        monBtn.position.set(0.7, 0.95, 0.83);
-        this.computerGroup.add(monBtn);
-
-        // Stand base
-        const standBaseGeo = new RoundedBoxGeometry(0.8, 0.05, 0.8, 4, 0.02);
-        const standBaseMat = new THREE.MeshStandardMaterial({ color: 0xd4cfc8, roughness: 0.6 });
-        const standBase = new THREE.Mesh(standBaseGeo, standBaseMat);
-        standBase.position.set(0, 0.52, 0.2);
+        // 7. Base Stand (Retro rectangular swivel stand instead of round)
+        const standBaseW = 1.2;
+        const standBaseD = 1.2;
+        const standBaseGeo = new RoundedBoxGeometry(standBaseW, 0.06, standBaseD, 4, 0.02);
+        const standBase = new THREE.Mesh(standBaseGeo, beigeMat);
+        standBase.position.set(0, 0.62, 0.35);
         this.computerGroup.add(standBase);
 
-        // Neck
-        const neckGeo = new THREE.CylinderGeometry(0.15, 0.25, 0.35, 16);
-        const neckMat = new THREE.MeshStandardMaterial({ color: 0xc5bfb5, roughness: 0.5 });
+        // Short rigid neck
+        const neckGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.15, 16);
+        const neckMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.7 });
         const neck = new THREE.Mesh(neckGeo, neckMat);
-        neck.position.set(0, 0.7, 0.2);
+        neck.position.set(0, 0.69, 0.35);
         neck.castShadow = true;
         this.computerGroup.add(neck);
+
+        // 8. Bottom Stepped Casing (Detail below main monitor body)
+        const stepGeo = new RoundedBoxGeometry(mainW * 0.6, 0.06, 0.6, 4, 0.02);
+        const step = new THREE.Mesh(stepGeo, beigeMat);
+        step.position.set(0, 1.64 - mainH / 2 - 0.03, 0.40);
+        this.computerGroup.add(step);
+
+        // 9. Buttons / Details
+        const pwrGeo = new RoundedBoxGeometry(0.08, 0.04, 0.02, 2, 0.01);
+        const pwrMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const pwr = new THREE.Mesh(pwrGeo, pwrMat);
+        pwr.position.set(mainW / 2 - 0.3, 1.64 - mainH / 2 + 0.12, 0.80);
+        this.computerGroup.add(pwr);
+
+        const ledGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.01, 8);
+        const ledMat = new THREE.MeshBasicMaterial({ color: 0x44ff44 });
+        const led = new THREE.Mesh(ledGeo, ledMat);
+        led.rotation.x = Math.PI / 2;
+        led.position.set(mainW / 2 - 0.45, 1.64 - mainH / 2 + 0.12, 0.805);
+        this.computerGroup.add(led);
     }
 
     private buildKeyboard(): void {

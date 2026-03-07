@@ -195,10 +195,10 @@ const HELP_TEXT: TerminalOutput[] = [
     { text: '' },
     { text: '  ls               List directory contents' },
     { text: '  cd  <path>       Change directory' },
-    { text: '  jump <section>   Jump to project section' },
+    { text: '  cat <section>   cat to project section' },
     { text: '' },
     { text: '  Tip: Navigate with cd projects/', className: 'term-dim' },
-    { text: '  then use jump <project-name>', className: 'term-dim' },
+    { text: '  then use cat <project-name>', className: 'term-dim' },
 ];
 
 const WELCOME_LINES: TerminalOutput[] = [
@@ -210,8 +210,8 @@ const WELCOME_LINES: TerminalOutput[] = [
     { text: "I'm [Name], a Computer Engineer." },
     { text: 'Ready to build hardware & software solutions.' },
     { text: '' },
-    { text: ' * Available commands: ls, cd, jump', className: 'term-dim' },
-    { text: ' * Example: jump <project-name>', className: 'term-dim' },
+    { text: ' * Available commands: ls, cd, cat', className: 'term-dim' },
+    { text: ' * Example: cat <project-name>', className: 'term-dim' },
     { text: '' },
 ];
 
@@ -359,11 +359,11 @@ export class Terminal {
         switch (cmd) {
             case 'ls': this.cmdLs(args[0]); break;
             case 'cd': this.cmdCd(args[0]); break;
-            case 'jump': this.cmdJump(args[0]); break;
+            case 'cat': this.cmdcat(args[0]); break;
             case 'help': this.printLines(HELP_TEXT); break; // Keep help silently available
             default:
                 this.printLine({ text: `bash: ${cmd}: command not found`, className: 'term-error' });
-                this.printLine({ text: 'Available commands: ls, cd, jump', className: 'term-dim' });
+                this.printLine({ text: 'Available commands: ls, cd, cat', className: 'term-dim' });
         }
     }
 
@@ -396,9 +396,9 @@ export class Terminal {
         this.cwd = target.absPath;
     }
 
-    private cmdJump(target?: string): void {
+    private cmdcat(target?: string): void {
         if (!target) {
-            this.printLine({ text: 'jump: missing section name', className: 'term-error' });
+            this.printLine({ text: 'cat: missing section name', className: 'term-error' });
             return;
         }
 
@@ -413,10 +413,10 @@ export class Terminal {
             if (['about', 'contact', 'skills', 'home', 'projects'].includes(slug)) {
                 const el = document.getElementById(slug);
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
-                this.printLine({ text: `Jumping to ${cleanTarget}...`, className: 'term-dim' });
+                this.printLine({ text: `cating to ${cleanTarget}...`, className: 'term-dim' });
                 return;
             }
-            this.printLine({ text: `jump: section '${target}' not found`, className: 'term-error' });
+            this.printLine({ text: `cat: section '${target}' not found`, className: 'term-error' });
             return;
         }
         this.scrollToProject(project.title);
@@ -440,7 +440,7 @@ export class Terminal {
 
     private autocomplete(): void {
         // basic autocomplete
-        const commands = ['ls', 'cd', 'jump', 'help'];
+        const commands = ['ls', 'cd', 'cat', 'help'];
         const matches = commands.filter(c => c.startsWith(this.inputEl.value));
         if (matches.length === 1) this.inputEl.value = matches[0] + ' ';
     }
@@ -492,12 +492,6 @@ export class Terminal {
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fillText(this.inputEl.value, cursorX, y);
         cursorX += this.ctx.measureText(this.inputEl.value).width;
-
-        // Blinking Cursor
-        if (Date.now() % 1000 < 500) {
-            this.ctx.fillStyle = '#00ffcc';
-            this.ctx.fillText('█', cursorX, y);
-        }
 
         // Scanlines overlay
         this.ctx.fillStyle = 'rgba(0,0,0,0.15)';
