@@ -323,11 +323,11 @@ export class Terminal {
 
                 let color = 'transparent';
                 if (brightness > threshold * 1.2) {
-                    color = '#72ffb7';
+                    color = '#d8ffe4';
                 } else if (brightness > threshold * 0.6) {
-                    color = '#2ad790';
+                    color = '#a4e8be';
                 } else if (brightness > threshold * 0.2) {
-                    color = '#0b5a3b';
+                    color = '#2f8e65';
                 }
 
                 if (color !== 'transparent') {
@@ -347,8 +347,8 @@ export class Terminal {
     }
 
     private parseOutput(output: TerminalOutput): { text: string, color: string }[] {
-        let color = '#72ffb7';
-        if (output.className === 'term-dim') color = 'rgba(114, 255, 183, 0.56)';
+        let color = '#d8ffe4';
+        if (output.className === 'term-dim') color = 'rgba(216, 255, 228, 0.58)';
         if (output.className === 'term-bright') color = '#ffffff';
         if (output.className === 'term-error') color = '#ff5b5b';
         if (output.className === 'term-echo') color = '#b8b2a8';
@@ -365,10 +365,10 @@ export class Terminal {
         while ((match = spanRegex.exec(output.text)) !== null) {
             if (match[1]) {
                 const className = match[1];
-                let c = '#72ffb7';
-                if (className.includes('term-dir')) c = '#4ce7a6';
+                let c = '#d8ffe4';
+                if (className.includes('term-dir')) c = '#b8f2d0';
                 if (className.includes('term-file')) c = '#d4cfc8';
-                if (className.includes('term-dim')) c = 'rgba(114, 255, 183, 0.56)';
+                if (className.includes('term-dim')) c = 'rgba(216, 255, 228, 0.58)';
                 if (className.includes('term-bright')) c = '#ffffff';
                 segments.push({ text: match[2], color: c });
             } else if (match[3]) {
@@ -522,7 +522,7 @@ export class Terminal {
         const h = this.canvas.height;
 
         // Background
-        this.ctx.fillStyle = '#04110a';
+        this.ctx.fillStyle = '#03120b';
         this.ctx.fillRect(0, 0, w, h);
 
         // Portrait Dither (Top Right)
@@ -560,17 +560,17 @@ export class Terminal {
 
         // Draw input prompt
         const prompt = `user@ce-linux:${formatCwd(this.cwd)}$ `;
-        this.ctx.fillStyle = '#72ffb7';
+        this.ctx.fillStyle = '#d8ffe4';
         this.ctx.fillText(prompt, PADDING, y);
         let cursorX = PADDING + this.ctx.measureText(prompt).width;
 
-        this.ctx.fillStyle = '#ecfff0';
+        this.ctx.fillStyle = '#f5fff7';
         this.ctx.fillText(this.inputEl.value, cursorX, y);
         cursorX += this.ctx.measureText(this.inputEl.value).width;
 
         // Blinking Cursor
         if (Date.now() % 1000 < 500) {
-            this.ctx.fillStyle = '#72ffb7';
+            this.ctx.fillStyle = '#d8ffe4';
             this.ctx.fillText('█', cursorX, y);
         }
 
@@ -581,8 +581,8 @@ export class Terminal {
         }
 
         // Medium static effect (adding random noise pixels)
-        this.ctx.fillStyle = 'rgba(170, 255, 214, 0.025)';
-        for (let i = 0; i < 220; i++) {
+        this.ctx.fillStyle = 'rgba(216, 255, 228, 0.016)';
+        for (let i = 0; i < 160; i++) {
             const nx = Math.random() * w;
             const ny = Math.random() * h;
             this.ctx.fillRect(nx, ny, 2, 2);
@@ -619,15 +619,15 @@ export class Terminal {
 
                     if (isHead) {
                         ctx.fillStyle = dist < 0.1
-                            ? (dither ? '#72ffb7' : '#2ad790')
-                            : (innerDither ? '#72ffb7' : '#187a57');
+                            ? (dither ? '#d8ffe4' : '#a4e8be')
+                            : (innerDither ? '#d8ffe4' : '#4daf84');
                     } else {
-                        ctx.fillStyle = dither ? '#4ce7a6' : '#0b5a3b';
+                        ctx.fillStyle = dither ? '#b8f2d0' : '#2f8e65';
                     }
                     ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
                 } else {
                     if (Math.random() < 0.02) {
-                        ctx.fillStyle = 'rgba(114, 255, 183, 0.06)';
+                        ctx.fillStyle = 'rgba(216, 255, 228, 0.04)';
                         ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
                     }
                 }
@@ -635,4 +635,6 @@ export class Terminal {
         }
     }
 }
+
+
 

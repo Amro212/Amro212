@@ -12,7 +12,6 @@ import {
     postPassFragmentShader,
     postPassVertexShader,
     screenSurfaceVertexShader,
-    synthwaveBackdropFragmentShader,
     synthwaveGridFragmentShader,
     synthwaveGridVertexShader,
 } from './sceneShaders';
@@ -34,20 +33,14 @@ export class RetroComputerScene {
     private screenGlowMesh!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
     private crtMaterial!: THREE.ShaderMaterial;
     private glassMaterial!: THREE.ShaderMaterial;
-    private backdropMaterial!: THREE.ShaderMaterial;
     private gridMaterial!: THREE.ShaderMaterial;
     private screenTexture: THREE.CanvasTexture | null = null;
     private animationId: number | null = null;
     private readonly clock = new THREE.Clock();
     private readonly lookTarget = new THREE.Vector3();
     private readonly backgroundStart = new THREE.Color(0x08020d);
-    private readonly backgroundEnd = new THREE.Color(0x2a0b2f);
+    private readonly backgroundEnd = new THREE.Color(0x16071a);
     private readonly backgroundScratch = new THREE.Color();
-
-    private readonly backdropUniforms = {
-        uTime: { value: 0 },
-        uScroll: { value: 0 },
-    };
 
     private readonly gridUniforms = {
         uTime: { value: 0 },
@@ -74,7 +67,7 @@ export class RetroComputerScene {
 
     // Camera system
     private readonly CAMERA_FOV = 80;
-    private readonly CAM_Z_START = 1.60;
+    private readonly CAM_Z_START = 1.75;
     private readonly CAM_Z_END = 5.0;
     private readonly MODEL_Y_START = 0;
     private readonly MODEL_Y_END = 0;
@@ -110,14 +103,13 @@ export class RetroComputerScene {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.18;
+        this.renderer.toneMappingExposure = 1.08;
         this.container.appendChild(this.renderer.domElement);
 
         this.computerGroup = new THREE.Group();
         this.buildComputer();
         this.scene.add(this.computerGroup);
 
-        this.addBackdrop();
         this.addLights();
         this.addFloor();
         this.composer = this.setupComposer();
@@ -269,7 +261,7 @@ export class RetroComputerScene {
         const glowMat = new THREE.MeshBasicMaterial({
             color: 0x69ffc7,
             transparent: true,
-            opacity: 0.11,
+            opacity: 0.045,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             toneMapped: false,
@@ -465,23 +457,6 @@ export class RetroComputerScene {
         this.scene.add(rimLight);
     }
 
-    private addBackdrop(): void {
-        this.backdropMaterial = new THREE.ShaderMaterial({
-            uniforms: this.backdropUniforms,
-            vertexShader: screenSurfaceVertexShader,
-            fragmentShader: synthwaveBackdropFragmentShader,
-            depthWrite: false,
-            depthTest: false,
-            side: THREE.DoubleSide,
-            toneMapped: false,
-        });
-
-        const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(88, 58), this.backdropMaterial);
-        backdrop.position.set(0, 10.5, -30);
-        backdrop.renderOrder = -20;
-        this.scene.add(backdrop);
-    }
-
     private addFloor(): void {
         this.gridMaterial = new THREE.ShaderMaterial({
             uniforms: this.gridUniforms,
@@ -538,10 +513,10 @@ export class RetroComputerScene {
 
     private applyPostProfile(bloomPass: UnrealBloomPass): void {
         const isCompact = this.isCompactViewport();
-        bloomPass.strength = isCompact ? 0.4 : 0.65;
-        bloomPass.radius = isCompact ? 0.45 : 0.55;
-        bloomPass.threshold = isCompact ? 0.22 : 0.18;
-        this.postUniforms.uAberration.value = isCompact ? 0.00115 : 0.0018;
+        bloomPass.strength = isCompact ? 0.34 : 0.52;
+        bloomPass.radius = isCompact ? 0.4 : 0.5;
+        bloomPass.threshold = isCompact ? 0.28 : 0.24;
+        this.postUniforms.uAberration.value = isCompact ? 0.0009 : 0.00135;
     }
 
     private getPixelRatio(): number {
@@ -653,17 +628,15 @@ export class RetroComputerScene {
         this.lookTarget.set(0, this.computerGroup.position.y + 1.6, 0);
         this.camera.lookAt(this.lookTarget);
 
-        this.backgroundScratch.copy(this.backgroundStart).lerp(this.backgroundEnd, 0.15 + this.scrollProgress * 0.5);
+        this.backgroundScratch.copy(this.backgroundStart).lerp(this.backgroundEnd, 0.08 + this.scrollProgress * 0.18);
         this.renderer.setClearColor(this.backgroundScratch, 1);
 
-        this.backdropUniforms.uTime.value = elapsed;
-        this.backdropUniforms.uScroll.value = easedT;
         this.gridUniforms.uTime.value = elapsed;
         this.crtUniforms.uTime.value = elapsed;
         this.glassUniforms.uTime.value = elapsed;
 
-        this.screenGlowMesh.material.opacity = 0.09 + Math.sin(elapsed * 2.6) * 0.018;
-        this.screenGlowMesh.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.004);
+        this.screenGlowMesh.material.opacity = 0.04 + Math.sin(elapsed * 2.6) * 0.008;
+        this.screenGlowMesh.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.0015);
 
         this.composer.render();
     };
@@ -715,5 +688,6 @@ export class RetroComputerScene {
         this.container.removeChild(this.renderer.domElement);
     }
 }
+
 
 

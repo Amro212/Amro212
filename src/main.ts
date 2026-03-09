@@ -395,23 +395,31 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollHandlers();
   initTerminal();
 
-  // Hide loading screen once all assets/styles are ready,
-  // plus a short aesthetic delay to let the user see the terminal text
+  // Overlap the loader fade with the hero reveal so the model eases in
+  // instead of popping in after the boot screen disappears.
   window.addEventListener('load', () => {
     setTimeout(() => {
       const loader = document.getElementById('loading-screen');
       const appContent = document.getElementById('app-content');
 
       if (appContent) {
-        appContent.style.opacity = '1';
         appContent.style.visibility = 'visible';
+        requestAnimationFrame(() => {
+          appContent.style.opacity = '1';
+          document.body.classList.add('scene-ready');
+        });
       }
 
       if (loader) {
-        loader.style.opacity = '0';
-        loader.style.visibility = 'hidden';
-        setTimeout(() => loader.remove(), 600); // Remove from DOM after transition
+        requestAnimationFrame(() => {
+          loader.style.opacity = '0';
+          loader.style.visibility = 'hidden';
+          loader.style.transform = 'scale(1.02)';
+          loader.style.filter = 'blur(10px)';
+          loader.style.pointerEvents = 'none';
+        });
+        setTimeout(() => loader.remove(), 900);
       }
-    }, 400);
+    }, 320);
   });
 });
