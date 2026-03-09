@@ -228,6 +228,8 @@ export class Terminal {
     private onRenderCallback: () => void;
     private inputEl: HTMLInputElement;
 
+    private portraitImg: HTMLImageElement | null = null;
+    private processedPortraitCanvas: HTMLCanvasElement | null = null;
     private readonly CHAR_H = 30;
 
     constructor(containerSelector: string, onRender: () => void) {
@@ -264,8 +266,76 @@ export class Terminal {
         // Initialize greeting
         this.printLines(WELCOME_LINES);
 
+        // Setup Portrait Image
+        this.setupPortrait('/portrait.jpg'); // PLACEHOLDER: User should place their image here
+
         // Start Render Loop
         this.render();
+    }
+
+    private setupPortrait(src: string): void {
+        this.portraitImg = new Image();
+        this.portraitImg.crossOrigin = 'anonymous';
+        this.portraitImg.src = src;
+        this.portraitImg.onload = () => {
+            this.processPortrait();
+        };
+    }
+
+    private processPortrait(): void {
+        if (!this.portraitImg) return;
+
+        const w = 240;
+        const h = 288;
+        const pixelSize = 4;
+        const cols = Math.floor(w / pixelSize);
+        const rows = Math.floor(h / pixelSize);
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = cols;
+        tempCanvas.height = rows;
+        const tempCtx = tempCanvas.getContext('2d')!;
+        tempCtx.drawImage(this.portraitImg, 0, 0, cols, rows);
+
+        const imageData = tempCtx.getImageData(0, 0, cols, rows);
+        const data = imageData.data;
+
+        this.processedPortraitCanvas = document.createElement('canvas');
+        this.processedPortraitCanvas.width = w;
+        this.processedPortraitCanvas.height = h;
+        const pCtx = this.processedPortraitCanvas.getContext('2d')!;
+
+        // Simple 2x2 Bayer Matrix for dithering
+        const bayer = [
+            [0, 2],
+            [3, 1]
+        ];
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const idx = (y * cols + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+                const threshold = (bayer[y % 2][x % 2] + 0.5) / 4;
+
+                let color = 'transparent';
+                if (brightness > threshold * 1.2) {
+                    color = '#00ffcc';
+                } else if (brightness > threshold * 0.6) {
+                    color = '#00b894';
+                } else if (brightness > threshold * 0.2) {
+                    color = '#006e52';
+                }
+
+                if (color !== 'transparent') {
+                    pCtx.fillStyle = color;
+                    pCtx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                }
+            }
+        }
     }
 
     public getCanvas(): HTMLCanvasElement {
@@ -456,7 +526,12 @@ export class Terminal {
         this.ctx.fillRect(0, 0, w, h);
 
         // Portrait Dither (Top Right)
-        this.drawDitheredPortrait(this.ctx, w - 280, 40, 240, 288);
+        if (this.processedPortraitCanvas) {
+            this.ctx.drawImage(this.processedPortraitCanvas, w - 280, 40);
+        } else {
+            // Fallback to the procedural one if image hasn't loaded
+            this.drawDitheredPortrait(this.ctx, w - 280, 40, 240, 288);
+        }
 
         // Draw Buffer
         this.ctx.font = 'bold 24px monospace';
