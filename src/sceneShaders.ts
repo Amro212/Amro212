@@ -87,8 +87,8 @@ void main() {
   vec3 minorColor = vec3(0.120, 0.820, 1.200);
   vec3 majorColor = vec3(0.420, 1.320, 1.800);
   vec3 color = base;
-  color += minorColor * minor * 0.34 * distanceFade * edgeFade * pulse;
-  color += majorColor * major * 0.80 * distanceFade * edgeFade;
+  color += minorColor * minor * 0.28 * distanceFade * edgeFade * pulse;
+  color += majorColor * major * 0.68 * distanceFade * edgeFade;
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -123,19 +123,19 @@ void main() {
   texel.g = texture2D(uTexture, uv).g;
   texel.b = texture2D(uTexture, uv - aberration).b;
 
-  float scanline = 0.972 + 0.028 * sin(uv.y * uResolution.y * 1.1 + uTime * 22.0);
-  float mask = 0.99 + 0.01 * sin(uv.x * uResolution.x * 0.42);
-  float flicker = 0.992 + 0.008 * sin(uTime * 16.0) * sin(uTime * 5.8);
+  float scanline = 0.976 + 0.024 * sin(uv.y * uResolution.y * 1.05 + uTime * 20.0);
+  float mask = 0.992 + 0.008 * sin(uv.x * uResolution.x * 0.4);
+  float flicker = 0.994 + 0.006 * sin(uTime * 14.0) * sin(uTime * 5.2);
 
-  float phosphor = smoothstep(0.06, 0.9, texel.g + texel.b * 0.24);
+  float phosphor = smoothstep(0.08, 0.88, texel.g + texel.b * 0.22);
   vec3 color = texel;
-  color *= mix(vec3(0.86, 0.95, 0.88), vec3(0.95, 1.03, 0.92), phosphor);
+  color *= mix(vec3(0.8, 0.88, 0.82), vec3(0.89, 0.96, 0.87), phosphor);
   color *= scanline * mask * flicker;
-  color += vec3(0.004, 0.026, 0.012) * phosphor;
+  color += vec3(0.002, 0.012, 0.005) * phosphor;
 
   float vignette = 1.0 - smoothstep(0.42, 0.96, dist);
-  color *= 0.76 + vignette * 0.28;
-  color += vec3(0.0, 0.02, 0.01) * (1.0 - vignette) * 0.2;
+  color *= 0.82 + vignette * 0.18;
+  color += vec3(0.0, 0.01, 0.005) * (1.0 - vignette) * 0.12;
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -212,4 +212,6 @@ void main() {
   gl_FragColor = vec4(color, 1.0);
 }
 `;
+
+
 

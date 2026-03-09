@@ -513,10 +513,10 @@ export class RetroComputerScene {
 
     private applyPostProfile(bloomPass: UnrealBloomPass): void {
         const isCompact = this.isCompactViewport();
-        bloomPass.strength = isCompact ? 0.34 : 0.52;
-        bloomPass.radius = isCompact ? 0.4 : 0.5;
-        bloomPass.threshold = isCompact ? 0.28 : 0.24;
-        this.postUniforms.uAberration.value = isCompact ? 0.0009 : 0.00135;
+        bloomPass.strength = isCompact ? 0.26 : 0.38;
+        bloomPass.radius = isCompact ? 0.35 : 0.42;
+        bloomPass.threshold = isCompact ? 0.34 : 0.3;
+        this.postUniforms.uAberration.value = isCompact ? 0.00075 : 0.0011;
     }
 
     private getPixelRatio(): number {
@@ -635,8 +635,8 @@ export class RetroComputerScene {
         this.crtUniforms.uTime.value = elapsed;
         this.glassUniforms.uTime.value = elapsed;
 
-        this.screenGlowMesh.material.opacity = 0.04 + Math.sin(elapsed * 2.6) * 0.008;
-        this.screenGlowMesh.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.0015);
+        this.screenGlowMesh.material.opacity = 0.018 + Math.sin(elapsed * 2.6) * 0.004;
+        this.screenGlowMesh.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.0008);
 
         this.composer.render();
     };
@@ -688,6 +688,7 @@ export class RetroComputerScene {
         this.container.removeChild(this.renderer.domElement);
     }
 }
+
 
 
 
