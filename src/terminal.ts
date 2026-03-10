@@ -193,6 +193,7 @@ export class Terminal {
   private processedPortraitCanvas: HTMLCanvasElement | null = null;
   private readonly CHAR_H = 30;
   private readonly FRAME_INTERVAL_MS = 1000 / 18;
+  private readonly STATIC_WAVE_CYCLE_MS = 1150;
   private lastFrameTime = 0;
 
   constructor(containerSelector: string, onRender: () => void) {
@@ -584,6 +585,8 @@ export class Terminal {
       this.ctx.fillRect(0, scanlineY, width, 1);
     }
 
+    this.drawStaticWave(timestamp, width, height);
+
     this.ctx.fillStyle = 'rgba(206, 231, 215, 0.01)';
     for (let i = 0; i < 36; i++) {
       const noiseX = Math.floor(Math.random() * width);
@@ -594,6 +597,30 @@ export class Terminal {
     this.onRenderCallback();
   };
 
+    private drawStaticWave(timestamp: number, width: number, height: number): void {
+    const progress = (timestamp % this.STATIC_WAVE_CYCLE_MS) / this.STATIC_WAVE_CYCLE_MS;
+    const pulse = Math.sin(progress * Math.PI);
+    const centerY = progress * (height + 140) - 70;
+    const radius = 22 + pulse * 26;
+
+    for (let offset = -radius; offset <= radius; offset += 2) {
+      const y = Math.round(centerY + offset);
+      if (y < 0 || y >= height) continue;
+
+      const distance = Math.abs(offset) / radius;
+      const alpha = (1 - distance * distance) * (0.04 + pulse * 0.08);
+      this.ctx.fillStyle = `rgba(206, 231, 215, ${alpha.toFixed(3)})`;
+      this.ctx.fillRect(0, y, width, 2);
+    }
+
+    this.ctx.fillStyle = `rgba(206, 231, 215, ${(0.015 + pulse * 0.035).toFixed(3)})`;
+    for (let i = 0; i < 26; i++) {
+      const noiseX = Math.floor(((i * 97) + timestamp * 0.18) % width);
+      const noiseY = Math.round(centerY + Math.sin(i * 0.9 + timestamp * 0.01) * radius * 0.65);
+      if (noiseY < 0 || noiseY >= height) continue;
+      this.ctx.fillRect(noiseX, noiseY, 3, 2);
+    }
+  }
   private drawDitheredPortrait(
     ctx: CanvasRenderingContext2D,
     dx: number,
@@ -637,4 +664,6 @@ export class Terminal {
     }
   }
 }
+
+
 
