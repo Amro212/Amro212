@@ -576,7 +576,7 @@ export class Terminal {
 
     if (Date.now() % 1000 < 500) {
       this.ctx.fillStyle = '#cee7d7';
-      this.ctx.fillText('¦', cursorX, y);
+      this.ctx.fillRect(cursorX, y - 20, 12, 24);
     }
 
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -637,3 +637,4 @@ export class Terminal {
     }
   }
 }
+
