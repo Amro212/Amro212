@@ -1,30 +1,63 @@
 import './style.css';
-import { RetroComputerScene } from './scene';
 import { projects, type Project } from './projects';
-import { Terminal } from './terminal';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 
-// Register GSAP Plugins
-gsap.registerPlugin(ScrollTrigger);
+type RetroComputerScene = import('./scene').RetroComputerScene;
 
-// ─────────────────────────────────────────
-// 1. Initialize Three.js Scene
-// ─────────────────────────────────────────
+type AnimationModules = {
+  gsap: typeof import('gsap').default;
+  ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger;
+  Lenis: typeof import('lenis').default;
+};
+
 let retroScene: RetroComputerScene | null = null;
+let animationModules: AnimationModules | null = null;
+let animationModulesPromise: Promise<AnimationModules> | null = null;
+let sceneInitPromise: Promise<void> | null = null;
+let terminalInitPromise: Promise<void> | null = null;
+let smoothScrollInitialized = false;
+let magneticElementsInitialized = false;
+let textRevealsInitialized = false;
+let parallaxInitialized = false;
+let projectCardRevealTriggers: Array<{ kill: () => void }> = [];
 
-function initScene(): void {
-  try {
-    retroScene = new RetroComputerScene('three-container');
-  } catch (e) {
-    console.warn('Three.js scene failed to initialize:', e);
+function loadAnimationModules(): Promise<AnimationModules> {
+  if (!animationModulesPromise) {
+    animationModulesPromise = Promise.all([
+      import('gsap'),
+      import('gsap/ScrollTrigger'),
+      import('lenis'),
+    ]).then(([gsapModule, scrollTriggerModule, lenisModule]) => {
+      const modules: AnimationModules = {
+        gsap: gsapModule.default,
+        ScrollTrigger: scrollTriggerModule.ScrollTrigger,
+        Lenis: lenisModule.default,
+      };
+
+      modules.gsap.registerPlugin(modules.ScrollTrigger);
+      animationModules = modules;
+      return modules;
+    });
   }
+
+  return animationModulesPromise;
 }
 
-// ─────────────────────────────────────────
-// 2. Navigation
-// ─────────────────────────────────────────
+function initScene(): Promise<void> {
+  if (!sceneInitPromise) {
+    sceneInitPromise = import('./scene')
+      .then(({ RetroComputerScene }) => {
+        try {
+          retroScene = new RetroComputerScene('three-container');
+        } catch (error) {
+          console.warn('Three.js scene failed to initialize:', error);
+        }
+      })
+      .then(() => undefined);
+  }
+
+  return sceneInitPromise;
+}
+
 function initNavigation(): void {
   const hamburger = document.getElementById('nav-hamburger');
   const mobileMenu = document.getElementById('mobile-menu');
@@ -45,22 +78,20 @@ function initNavigation(): void {
   });
 }
 
-// ─────────────────────────────────────────
-// 4. Projects Rendering
-// ─────────────────────────────────────────
-function renderProjects(filter: string = 'all'): void {
+function renderProjects(filter = 'all'): void {
   const grid = document.getElementById('projects-grid');
   if (!grid) return;
 
   const filtered =
     filter === 'all'
       ? projects
-      : projects.filter((p) => p.category === filter);
+      : projects.filter((project) => project.category === filter);
 
-  grid.innerHTML = filtered.map((p) => createProjectCard(p)).join('');
+  grid.innerHTML = filtered.map((project) => createProjectCard(project)).join('');
 
-  // Re-observe for scroll animations
-  observeRevealElements();
+  if (animationModules) {
+    observeRevealElements(animationModules);
+  }
 }
 
 function createProjectCard(project: Project): string {
@@ -93,40 +124,37 @@ function createProjectCard(project: Project): string {
 
 function initProjectFilters(): void {
   const buttons = document.querySelectorAll('.projects__side-btn');
-  buttons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      buttons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const filter = (btn as HTMLElement).dataset.filter || 'all';
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      buttons.forEach((currentButton) => currentButton.classList.remove('active'));
+      button.classList.add('active');
+      const filter = (button as HTMLElement).dataset.filter || 'all';
       renderProjects(filter);
     });
   });
 }
 
-// ─────────────────────────────────────────
-// 5. Smooth Scrolling (Lenis + GSAP)
-// ─────────────────────────────────────────
-function initSmoothScroll(): void {
-  const lenis = new Lenis({
+function initSmoothScroll(modules: AnimationModules): void {
+  if (smoothScrollInitialized) return;
+  smoothScrollInitialized = true;
+
+  const lenis = new modules.Lenis({
     duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
+    easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     orientation: 'vertical',
     gestureOrientation: 'vertical',
     smoothWheel: true,
   });
 
-  lenis.on('scroll', ScrollTrigger.update);
+  lenis.on('scroll', modules.ScrollTrigger.update);
 
-  gsap.ticker.add((time) => {
+  modules.gsap.ticker.add((time) => {
     lenis.raf(time * 1000);
   });
 
-  gsap.ticker.lagSmoothing(0);
+  modules.gsap.ticker.lagSmoothing(0);
 }
 
-// ─────────────────────────────────────────
-// 6. Scroll Handling (Three.js Sync)
-// ─────────────────────────────────────────
 function initScrollHandlers(): void {
   const threeContainer = document.getElementById('three-container');
   const blurOverlay = document.getElementById('three-blur-overlay');
@@ -134,136 +162,148 @@ function initScrollHandlers(): void {
   const projectsSideNav = document.getElementById('projects-side-nav');
   const projectsSection = document.getElementById('projects');
   const body = document.body;
+  let pendingFrame = false;
+  let lastBackground = '';
+  let canvas: HTMLCanvasElement | null = null;
 
-  window.addEventListener('scroll', () => {
+  const update = () => {
+    pendingFrame = false;
+
     const scrollY = window.scrollY;
     const windowHeight = window.innerHeight;
 
-    // ----- Three.js scroll sync -----
     if (threeContainer && retroScene) {
       const containerTop = threeContainer.offsetTop;
       const containerHeight = threeContainer.offsetHeight;
-      const scrollRange = containerHeight - windowHeight;
+      const scrollRange = Math.max(1, containerHeight - windowHeight);
       const progress = (scrollY - containerTop) / scrollRange;
       retroScene.setScrollProgress(progress);
 
-      // ----- Progressive blur on the 3D model -----
-      // Phase 1: Blur ramps up from 0 to initialMax within three-container (progress 0.65→1.0)
-      // Phase 2: Blur continues increasing through about section (14→30px)
-      // Phase 3: Canvas fades out near the end of about section
       if (blurOverlay) {
-        const blurStart = 0.65;      // When blur begins (65% through three-container scroll)
-        const initialMaxBlur = 14;   // Blur at end of three-container range
-        const finalMaxBlur = 30;     // Maximum blur deep in the about section
-
-        // Calculate how far past three-container we are (into about section)
+        const blurStart = 0.65;
+        const initialMaxBlur = 14;
+        const finalMaxBlur = 30;
         const containerEnd = containerTop + containerHeight;
         const pastContainer = scrollY - (containerEnd - windowHeight);
+        const overlayStyle = blurOverlay.style as CSSStyleDeclaration & { webkitBackdropFilter?: string };
 
         if (progress <= blurStart) {
-          // Before blur zone — no blur
-          blurOverlay.style.backdropFilter = 'blur(0px)';
-          (blurOverlay.style as any).webkitBackdropFilter = 'blur(0px)';
-          blurOverlay.style.opacity = '0';
-        } else if (progress < 1.0) {
-          // Phase 1: Within three-container, ramp blur from 0 to initialMaxBlur
-          const blurProgress = (progress - blurStart) / (1.0 - blurStart);
+          overlayStyle.backdropFilter = 'blur(0px)';
+          overlayStyle.webkitBackdropFilter = 'blur(0px)';
+          overlayStyle.opacity = '0';
+        } else if (progress < 1) {
+          const blurProgress = (progress - blurStart) / (1 - blurStart);
           const eased = blurProgress * blurProgress;
           const blurValue = eased * initialMaxBlur;
-          blurOverlay.style.backdropFilter = `blur(${blurValue.toFixed(1)}px)`;
-          (blurOverlay.style as any).webkitBackdropFilter = `blur(${blurValue.toFixed(1)}px)`;
-          blurOverlay.style.opacity = '1';
+          const blurCss = `blur(${blurValue.toFixed(1)}px)`;
+          overlayStyle.backdropFilter = blurCss;
+          overlayStyle.webkitBackdropFilter = blurCss;
+          overlayStyle.opacity = '1';
         } else {
-          // Phase 2: Past three-container, continue increasing blur through about section
-          // Calculate how far into the about section we are
           const aboutHeight = aboutSection ? aboutSection.offsetHeight : windowHeight;
           const aboutProgress = Math.min(1, pastContainer / aboutHeight);
           const blurValue = initialMaxBlur + (finalMaxBlur - initialMaxBlur) * aboutProgress;
-          blurOverlay.style.backdropFilter = `blur(${blurValue.toFixed(1)}px)`;
-          (blurOverlay.style as any).webkitBackdropFilter = `blur(${blurValue.toFixed(1)}px)`;
-          blurOverlay.style.opacity = '1';
+          const blurCss = `blur(${blurValue.toFixed(1)}px)`;
+          overlayStyle.backdropFilter = blurCss;
+          overlayStyle.webkitBackdropFilter = blurCss;
+          overlayStyle.opacity = '1';
         }
 
-        // Fade the canvas out towards end of about section so it doesn't bleed into projects
-        const canvas = threeContainer.querySelector('canvas') as HTMLCanvasElement;
-        if (canvas) {
-          if (projectsSection) {
-            const projectsTop = projectsSection.offsetTop;
-            const fadeStart = projectsTop - windowHeight * 1.5;
-            const fadeEnd = projectsTop - windowHeight * 0.5;
+        if (!canvas || !canvas.isConnected) {
+          canvas = threeContainer.querySelector('canvas') as HTMLCanvasElement | null;
+        }
 
-            if (scrollY <= fadeStart) {
-              canvas.style.opacity = '1';
-            } else if (scrollY >= fadeEnd) {
-              canvas.style.opacity = '0';
-              blurOverlay.style.opacity = '0';
-            } else {
-              const fadeProgress = (scrollY - fadeStart) / (fadeEnd - fadeStart);
-              canvas.style.opacity = `${(1 - fadeProgress).toFixed(2)}`;
-            }
+        if (canvas && projectsSection) {
+          const projectsTop = projectsSection.offsetTop;
+          const fadeStart = projectsTop - windowHeight * 1.5;
+          const fadeEnd = projectsTop - windowHeight * 0.5;
+
+          if (scrollY <= fadeStart) {
+            canvas.style.opacity = '1';
+          } else if (scrollY >= fadeEnd) {
+            canvas.style.opacity = '0';
+            overlayStyle.opacity = '0';
+          } else {
+            const fadeProgress = (scrollY - fadeStart) / (fadeEnd - fadeStart);
+            canvas.style.opacity = `${(1 - fadeProgress).toFixed(2)}`;
           }
         }
       }
 
-      // Update body background to match Three.js background
       const bgColor = retroScene.getBackgroundColor();
-      const r = Math.round(bgColor.r * 255);
-      const g = Math.round(bgColor.g * 255);
-      const b = Math.round(bgColor.b * 255);
-      body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      const nextBackground = `rgb(${Math.round(bgColor.r * 255)}, ${Math.round(bgColor.g * 255)}, ${Math.round(
+        bgColor.b * 255,
+      )})`;
 
+      if (nextBackground !== lastBackground) {
+        body.style.backgroundColor = nextBackground;
+        lastBackground = nextBackground;
+      }
     }
 
-    // ----- Projects side nav visibility -----
     if (projectsSideNav && projectsSection) {
       const sectionTop = projectsSection.offsetTop;
       const sectionBottom = sectionTop + projectsSection.offsetHeight;
       const inView = scrollY + windowHeight > sectionTop + 100 && scrollY < sectionBottom;
       projectsSideNav.classList.toggle('visible', inView);
     }
-  });
+  };
+
+  const queueUpdate = () => {
+    if (pendingFrame) return;
+    pendingFrame = true;
+    requestAnimationFrame(update);
+  };
+
+  window.addEventListener('scroll', queueUpdate, { passive: true });
+  window.addEventListener('resize', queueUpdate);
+  queueUpdate();
 }
 
-// ─────────────────────────────────────────
-// 7. Universal Magnetic Elements
-// ─────────────────────────────────────────
-function initMagneticElements(): void {
+function initMagneticElements(modules: AnimationModules): void {
+  if (magneticElementsInitialized) return;
+  magneticElementsInitialized = true;
+
   const magnetics = document.querySelectorAll<HTMLElement>('[data-magnetic]');
 
-  magnetics.forEach((el) => {
-    // Optional inner content to drag further
-    const content = el.querySelector<HTMLElement>('[data-magnetic-content]') || el;
+  magnetics.forEach((element) => {
+    const content = element.querySelector<HTMLElement>('[data-magnetic-content]') || element;
+    const xTo = modules.gsap.quickTo(element, 'x', {
+      duration: 1,
+      ease: 'elastic.out(1, 0.3)',
+    });
+    const yTo = modules.gsap.quickTo(element, 'y', {
+      duration: 1,
+      ease: 'elastic.out(1, 0.3)',
+    });
+    const contentXTo = modules.gsap.quickTo(content, 'x', {
+      duration: 0.8,
+      ease: 'power4.out',
+    });
+    const contentYTo = modules.gsap.quickTo(content, 'y', {
+      duration: 0.8,
+      ease: 'power4.out',
+    });
 
-    // Create highly optimized spring physics followers
-    const xTo = gsap.quickTo(el, 'x', { duration: 1, ease: 'elastic.out(1, 0.3)' });
-    const yTo = gsap.quickTo(el, 'y', { duration: 1, ease: 'elastic.out(1, 0.3)' });
+    element.addEventListener('mousemove', (event) => {
+      const rect = element.getBoundingClientRect();
+      const x = event.clientX - rect.left - rect.width / 2;
+      const y = event.clientY - rect.top - rect.height / 2;
 
-    const contentXTo = gsap.quickTo(content, 'x', { duration: 0.8, ease: 'power4.out' });
-    const contentYTo = gsap.quickTo(content, 'y', { duration: 0.8, ease: 'power4.out' });
-
-    el.addEventListener('mousemove', (e) => {
-      const rect = el.getBoundingClientRect();
-      const hw = rect.width / 2;
-      const hh = rect.height / 2;
-
-      const x = e.clientX - rect.left - hw;
-      const y = e.clientY - rect.top - hh;
-
-      // Move the container slightly
       xTo(x * 0.4);
       yTo(y * 0.4);
 
-      // Move the inner content more for parallax depth
-      if (content !== el) {
+      if (content !== element) {
         contentXTo(x * 0.6);
         contentYTo(y * 0.6);
       }
     });
 
-    el.addEventListener('mouseleave', () => {
+    element.addEventListener('mouseleave', () => {
       xTo(0);
       yTo(0);
-      if (content !== el) {
+
+      if (content !== element) {
         contentXTo(0);
         contentYTo(0);
       }
@@ -271,147 +311,152 @@ function initMagneticElements(): void {
   });
 }
 
-// ─────────────────────────────────────────
-// 8. Scroll Reveal Observer & Stagger (Projects)
-// ─────────────────────────────────────────
-function observeRevealElements(): void {
-  // We use GSAP batch to animate project cards in groups as they enter
-  const cards = gsap.utils.toArray<HTMLElement>('.project-card');
+function observeRevealElements(modules: AnimationModules): void {
+  projectCardRevealTriggers.forEach((trigger) => trigger.kill());
+  projectCardRevealTriggers = [];
 
-  // Set initial invisible state manually rather than CSS to ensure ScrollTrigger handles it
-  gsap.set(cards, { y: 60, opacity: 0 });
+  const cards = modules.gsap.utils.toArray<HTMLElement>('.project-card');
+  if (cards.length === 0) return;
 
-  ScrollTrigger.batch(cards, {
+  modules.gsap.set(cards, { y: 60, opacity: 0 });
+
+  projectCardRevealTriggers = modules.ScrollTrigger.batch(cards, {
     start: 'top 85%',
     onEnter: (elements) => {
-      gsap.to(elements, {
+      modules.gsap.to(elements, {
         y: 0,
         opacity: 1,
         stagger: 0.15,
         duration: 0.8,
         ease: 'power3.out',
-        overwrite: true
+        overwrite: true,
       });
     },
-    // Optional: animate out when scrolling back up past them, or just leave them
-    once: true // Only animate in once
-  });
+    once: true,
+  }) as Array<{ kill: () => void }>;
+
+  modules.ScrollTrigger.refresh();
 }
 
-// ─────────────────────────────────────────
-// 9. Advanced Text Stagger Reveals (GSAP)
-// ─────────────────────────────────────────
-function initTextReveals(): void {
+function initTextReveals(modules: AnimationModules): void {
+  if (textRevealsInitialized) return;
+  textRevealsInitialized = true;
+
   const revealElements = document.querySelectorAll<HTMLElement>('.reveal-text');
 
-  revealElements.forEach((el) => {
-    const text = (el.textContent || '').trim();
+  revealElements.forEach((element) => {
+    const text = (element.textContent || '').trim();
     if (!text) return;
 
-    // Accessibility: keep the original text readable by screen readers
-    el.setAttribute('aria-label', text);
-    el.innerHTML = ''; // Start empty
+    element.setAttribute('aria-label', text);
+    element.innerHTML = '';
 
-    // Create a container for the typed text
     const textSpan = document.createElement('span');
-    el.appendChild(textSpan);
+    element.appendChild(textSpan);
 
-    ScrollTrigger.create({
-      trigger: el,
+    modules.ScrollTrigger.create({
+      trigger: element,
       start: 'top 85%',
       once: true,
       onEnter: () => {
-        // Animate the length property to simulate typewriter effect
-        const obj = { length: 0 };
-        gsap.to(obj, {
+        const state = { length: 0 };
+
+        modules.gsap.to(state, {
           length: text.length,
-          // Calculate duration based on text length - slowed down from 0.02
           duration: text.length * 0.05,
           ease: 'none',
           onUpdate: () => {
-            textSpan.textContent = text.substring(0, Math.floor(obj.length));
+            textSpan.textContent = text.substring(0, Math.floor(state.length));
           },
-          onComplete: () => {
-            // Keep cursor blinking indefinitely after typing is done
-          }
         });
-      }
+      },
     });
   });
 }
 
-// ─────────────────────────────────────────
-// 10. Interactive Terminal on Canvas
-// ─────────────────────────────────────────
-function initTerminal(): void {
-  if (retroScene) {
-    try {
-      const terminal = new Terminal('#crt-terminal-container', () => {
-        // Trigger texture update in scene when terminal rerenders
-        retroScene!.updateTexture();
-      });
-      retroScene.setScreenCanvas(terminal.getCanvas());
-    } catch (e) {
-      console.warn('Terminal failed to initialize:', e);
-    }
-  }
+function initTerminal(): Promise<void> {
+  if (terminalInitPromise) return terminalInitPromise;
+
+  terminalInitPromise = Promise.all([initScene(), import('./terminal')])
+    .then(([, terminalModule]) => {
+      if (!retroScene) return;
+
+      try {
+        const terminal = new terminalModule.Terminal('#crt-terminal-container', () => {
+          retroScene?.updateTexture();
+        });
+
+        retroScene.setScreenCanvas(terminal.getCanvas());
+      } catch (error) {
+        console.warn('Terminal failed to initialize:', error);
+      }
+    })
+    .then(() => undefined);
+
+  return terminalInitPromise;
 }
-// (Removed legacy addRevealClasses function)
-// ─────────────────────────────────────────
-// 11. Section Parallax (GSAP Scrub)
-// ─────────────────────────────────────────
-function initParallax(): void {
+
+function initParallax(modules: AnimationModules): void {
+  if (parallaxInitialized) return;
+  parallaxInitialized = true;
+
   const parallaxElements = document.querySelectorAll<HTMLElement>('[data-parallax]');
+  parallaxElements.forEach((element) => {
+    const speed = parseFloat(element.getAttribute('data-parallax') || '1');
 
-  parallaxElements.forEach((el) => {
-    const speed = parseFloat(el.getAttribute('data-parallax') || '1');
-
-    gsap.to(el, {
-      yPercent: speed * 30, // Move up/down by up to 30% of its height based on speed attribute
+    modules.gsap.to(element, {
+      yPercent: speed * 30,
       ease: 'none',
       scrollTrigger: {
-        trigger: el,
-        start: 'top bottom', // Start when top of element hits bottom of viewport
-        end: 'bottom top',   // End when bottom of element hits top of viewport
-        scrub: true          // Tie directly to scrollbar position
-      }
+        trigger: element,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+      },
     });
   });
 }
 
-// ─────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────
+async function initAnimationStack(): Promise<void> {
+  const modules = await loadAnimationModules();
+  initSmoothScroll(modules);
+  initMagneticElements(modules);
+  initTextReveals(modules);
+  initParallax(modules);
+  observeRevealElements(modules);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  initSmoothScroll();
-  initMagneticElements();
-  initTextReveals();
-  initParallax();
-  initScene();
   initNavigation();
   renderProjects();
   initProjectFilters();
-  observeRevealElements();
   initScrollHandlers();
-  initTerminal();
 
-  // Hide loading screen once all assets/styles are ready,
-  // plus a short aesthetic delay to let the user see the terminal text
+  void Promise.all([initAnimationStack(), initScene(), initTerminal()]);
+
   window.addEventListener('load', () => {
     setTimeout(() => {
       const loader = document.getElementById('loading-screen');
       const appContent = document.getElementById('app-content');
 
       if (appContent) {
-        appContent.style.opacity = '1';
         appContent.style.visibility = 'visible';
+        requestAnimationFrame(() => {
+          appContent.style.opacity = '1';
+          document.body.classList.add('scene-ready');
+        });
       }
 
       if (loader) {
-        loader.style.opacity = '0';
-        loader.style.visibility = 'hidden';
-        setTimeout(() => loader.remove(), 600); // Remove from DOM after transition
+        requestAnimationFrame(() => {
+          loader.style.opacity = '0';
+          loader.style.visibility = 'hidden';
+          loader.style.transform = 'scale(1.02)';
+          loader.style.filter = 'blur(10px)';
+          loader.style.pointerEvents = 'none';
+        });
+        setTimeout(() => loader.remove(), 900);
       }
-    }, 400);
+    }, 320);
   });
 });
