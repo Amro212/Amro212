@@ -58,6 +58,7 @@ void main() {
 
 export const synthwaveGridFragmentShader = `
 uniform float uTime;
+uniform float uOpacity;
 varying vec3 vWorldPosition;
 
 float gridLine(float value, float scale, float width) {
@@ -90,7 +91,7 @@ void main() {
   color += minorColor * minor * 0.28 * distanceFade * edgeFade * pulse;
   color += majorColor * major * 0.68 * distanceFade * edgeFade;
 
-  gl_FragColor = vec4(color, 1.0);
+  gl_FragColor = vec4(color, uOpacity);
 }
 `;
 

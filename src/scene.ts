@@ -34,6 +34,7 @@ export class RetroComputerScene {
     private crtMaterial!: THREE.ShaderMaterial;
     private glassMaterial!: THREE.ShaderMaterial;
     private gridMaterial!: THREE.ShaderMaterial;
+    private shadowFloorMat!: THREE.ShadowMaterial;
     private screenTexture: THREE.CanvasTexture | null = null;
     private animationId: number | null = null;
     private readonly clock = new THREE.Clock();
@@ -44,6 +45,7 @@ export class RetroComputerScene {
 
     private readonly gridUniforms = {
         uTime: { value: 0 },
+        uOpacity: { value: 0 },
     };
 
     private readonly crtUniforms = {
@@ -217,27 +219,29 @@ export class RetroComputerScene {
 
         const frameD = 0.15;
         const frameThick = 0.175;
+        const frameR = 0.01; // subtle chamfer radius
         const topBotW = innerBezelW + frameThick * 2;
 
-        const tFrameGeo = new THREE.BoxGeometry(topBotW, frameThick, frameD);
+        const tFrameGeo = new RoundedBoxGeometry(topBotW, frameThick, frameD, 3, frameR);
         const tFrame = new THREE.Mesh(tFrameGeo, beigeMat);
         tFrame.position.set(0, 1.64 + innerBezelH / 2 + frameThick / 2, 0.87);
         tFrame.castShadow = true;
         this.computerGroup.add(tFrame);
 
-        const bFrameGeo = new THREE.BoxGeometry(topBotW, frameThick, frameD);
+        const bFrameGeo = new RoundedBoxGeometry(topBotW, frameThick, frameD, 3, frameR);
         const bFrame = new THREE.Mesh(bFrameGeo, beigeMat);
         bFrame.position.set(0, 1.64 - innerBezelH / 2 - frameThick / 2, 0.87);
         bFrame.castShadow = true;
         this.computerGroup.add(bFrame);
 
-        const lFrameGeo = new THREE.BoxGeometry(frameThick, innerBezelH, frameD);
+        const sideH = innerBezelH + frameThick * 2; // overlap behind top/bottom to close corner gaps
+        const lFrameGeo = new RoundedBoxGeometry(frameThick, sideH, frameD, 3, frameR);
         const lFrame = new THREE.Mesh(lFrameGeo, beigeMat);
         lFrame.position.set(-innerBezelW / 2 - frameThick / 2, 1.64, 0.87);
         lFrame.castShadow = true;
         this.computerGroup.add(lFrame);
 
-        const rFrameGeo = new THREE.BoxGeometry(frameThick, innerBezelH, frameD);
+        const rFrameGeo = new RoundedBoxGeometry(frameThick, sideH, frameD, 3, frameR);
         const rFrame = new THREE.Mesh(rFrameGeo, beigeMat);
         rFrame.position.set(innerBezelW / 2 + frameThick / 2, 1.64, 0.87);
         rFrame.castShadow = true;
@@ -465,6 +469,7 @@ export class RetroComputerScene {
             side: THREE.DoubleSide,
             depthWrite: false,
             toneMapped: false,
+            transparent: true,
         });
 
         const gridFloor = new THREE.Mesh(new THREE.PlaneGeometry(72, 72), this.gridMaterial);
@@ -473,9 +478,9 @@ export class RetroComputerScene {
         gridFloor.renderOrder = -5;
         this.scene.add(gridFloor);
 
-        const shadowFloorMat = new THREE.ShadowMaterial({ opacity: 0.18 });
-        shadowFloorMat.color.set(0x150512);
-        const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), shadowFloorMat);
+        this.shadowFloorMat = new THREE.ShadowMaterial({ opacity: 0 });
+        this.shadowFloorMat.color.set(0x150512);
+        const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), this.shadowFloorMat);
         shadowFloor.rotation.x = -Math.PI / 2;
         shadowFloor.position.y = -0.495;
         shadowFloor.receiveShadow = true;
@@ -593,7 +598,8 @@ export class RetroComputerScene {
 
     /** Interpolate background color for page sync while the canvas uses a shader backdrop */
     getBackgroundColor(): THREE.Color {
-        return this.backgroundStart.clone().lerp(this.backgroundEnd, 0.15 + this.scrollProgress * 0.5);
+        const target = this.backgroundStart.clone().lerp(this.backgroundEnd, 0.15 + this.scrollProgress * 0.5);
+        return new THREE.Color(0x000000).lerp(target, this.scrollProgress);
     }
 
     /** Aspect-ratio-aware portrait offset */
@@ -628,10 +634,13 @@ export class RetroComputerScene {
         this.lookTarget.set(0, this.computerGroup.position.y + 1.6, 0);
         this.camera.lookAt(this.lookTarget);
 
-        this.backgroundScratch.copy(this.backgroundStart).lerp(this.backgroundEnd, 0.08 + this.scrollProgress * 0.18);
+        const baseBg = this.backgroundStart.clone().lerp(this.backgroundEnd, 0.08 + this.scrollProgress * 0.18);
+        this.backgroundScratch.setHex(0x000000).lerp(baseBg, this.scrollProgress);
         this.renderer.setClearColor(this.backgroundScratch, 1);
 
         this.gridUniforms.uTime.value = elapsed;
+        this.gridUniforms.uOpacity.value = this.scrollProgress;
+        if (this.shadowFloorMat) this.shadowFloorMat.opacity = this.scrollProgress * 0.18;
         this.crtUniforms.uTime.value = elapsed;
         this.glassUniforms.uTime.value = elapsed;
 
