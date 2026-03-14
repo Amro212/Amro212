@@ -263,7 +263,7 @@ export class RetroComputerScene {
 
         const glowGeo = new THREE.PlaneGeometry(screenW * 0.96, screenH * 0.96);
         const glowMat = new THREE.MeshBasicMaterial({
-            color: 0x69ffc7,
+            color: 0xffb000,
             transparent: true,
             opacity: 0.045,
             blending: THREE.AdditiveBlending,

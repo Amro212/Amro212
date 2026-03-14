@@ -128,15 +128,18 @@ void main() {
   float mask = 0.992 + 0.008 * sin(uv.x * uResolution.x * 0.4);
   float flicker = 0.994 + 0.006 * sin(uTime * 14.0) * sin(uTime * 5.2);
 
-  float phosphor = smoothstep(0.08, 0.88, texel.g + texel.b * 0.22);
+  float phosphor = smoothstep(0.08, 0.88, texel.r * 0.8 + texel.g * 0.2);
   vec3 color = texel;
-  color *= mix(vec3(0.8, 0.88, 0.82), vec3(0.89, 0.96, 0.87), phosphor);
+  color *= mix(vec3(0.9, 0.82, 0.6), vec3(1.0, 0.94, 0.7), phosphor);
   color *= scanline * mask * flicker;
-  color += vec3(0.002, 0.012, 0.005) * phosphor;
+  color += vec3(0.02, 0.008, 0.0) * phosphor;
 
   float vignette = 1.0 - smoothstep(0.42, 0.96, dist);
   color *= 0.82 + vignette * 0.18;
-  color += vec3(0.0, 0.01, 0.005) * (1.0 - vignette) * 0.12;
+  color += vec3(0.015, 0.005, 0.0) * (1.0 - vignette) * 0.12;
+
+  float noise = fract(sin(dot(uv + vec2(uTime, uTime * 0.5), vec2(12.9898, 78.233))) * 43758.5453);
+  color += vec3(0.08, 0.05, 0.0) * noise * 0.45;
 
   gl_FragColor = vec4(color, 1.0);
 }

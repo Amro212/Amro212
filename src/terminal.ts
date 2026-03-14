@@ -169,13 +169,14 @@ const HELP_TEXT: TerminalOutput[] = [
 ];
 
 const WELCOME_LINES: TerminalOutput[] = [
-  { text: '===========================================', className: 'term-dim' },
-  { text: '  SYSTEM INITIALIZATION SUCCESSFUL', className: 'term-bright' },
-  { text: '===========================================', className: 'term-dim' },
+  { text: 'Hi there!', className: 'term-bright term-header' },
+  { text: '<span class="term-inverted term-header"> I\'m Amro Abed Moosa </span>' },
   { text: '' },
-  { text: 'Welcome to the CE-Linux terminal.', className: 'term-bright' },
-  { text: "I'm [Name], a Computer Engineer." },
-  { text: 'Available commands: ls, cd, cat, help', className: 'term-dim' },
+  { text: 'A Computer Engineer', className: 'term-bright' },
+  { text: '' },
+  { text: '' },
+  { text: 'Welcome to CE-Linux 1.0 LTS', className: 'term-bright' },
+  { text: '>> Scroll or type "help" to get started', className: 'term-dim' },
   { text: '' },
 ];
 
@@ -186,7 +187,7 @@ export class Terminal {
   private historyIndex = -1;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private buffer: Array<Array<{ text: string; color: string }>> = [];
+  private buffer: Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> = [];
   private onRenderCallback: () => void;
   private inputEl: HTMLInputElement;
   private portraitImg: HTMLImageElement | null = null;
@@ -279,11 +280,11 @@ export class Terminal {
 
         let color = 'transparent';
         if (brightness > threshold * 1.2) {
-          color = '#cee7d7';
+          color = '#ffcc00';
         } else if (brightness > threshold * 0.6) {
-          color = '#a4e8be';
+          color = '#ffb000';
         } else if (brightness > threshold * 0.2) {
-          color = '#2f8e65';
+          color = '#cc8800';
         }
 
         if (color !== 'transparent') {
@@ -302,31 +303,42 @@ export class Terminal {
     this.lastFrameTime = 0;
   }
 
-  private parseOutput(output: TerminalOutput): Array<{ text: string; color: string }> {
-    let color = '#cee7d7';
-    if (output.className === 'term-dim') color = 'rgba(206, 231, 215, 0.56)';
-    if (output.className === 'term-bright') color = '#ffffff';
-    if (output.className === 'term-error') color = '#ff5b5b';
-    if (output.className === 'term-echo') color = '#b8b2a8';
+  private parseOutput(output: TerminalOutput): Array<{ text: string; color: string; inverted?: boolean; large?: boolean }> {
+    let color = '#ffbd33';
+    let isOutputLarge = false;
+    if (output.className?.includes('term-header')) isOutputLarge = true;
+    if (output.className?.includes('term-dim')) color = 'rgba(255, 189, 51, 0.56)';
+    if (output.className?.includes('term-bright')) color = '#ffeb99';
+    if (output.className?.includes('term-error')) color = '#ff5b5b';
+    if (output.className?.includes('term-echo')) color = '#b8b2a8';
 
-    const segments: Array<{ text: string; color: string }> = [];
+    const segments: Array<{ text: string; color: string; inverted?: boolean; large?: boolean }> = [];
     const spanRegex = /<span class="([^"]+)">([^<]*)<\/span>|([^<]+)/g;
     let match: RegExpExecArray | null;
 
     if (!output.text.includes('<span')) {
-      return [{ text: output.text, color }];
+      return [{ text: output.text, color, large: isOutputLarge }];
     }
 
     while ((match = spanRegex.exec(output.text)) !== null) {
       if (match[1]) {
-        let segmentColor = '#cee7d7';
-        if (match[1].includes('term-dir')) segmentColor = '#a9d1bc';
-        if (match[1].includes('term-file')) segmentColor = '#d4cfc8';
-        if (match[1].includes('term-dim')) segmentColor = 'rgba(206, 231, 215, 0.56)';
-        if (match[1].includes('term-bright')) segmentColor = '#ffffff';
-        segments.push({ text: match[2], color: segmentColor });
+        let segmentColor = '#ffbd33';
+        let inverted = false;
+        let large = isOutputLarge;
+        if (match[1].includes('term-dir')) segmentColor = '#ffaa00';
+        if (match[1].includes('term-file')) segmentColor = '#ffdd88';
+        if (match[1].includes('term-dim')) segmentColor = 'rgba(255, 189, 51, 0.56)';
+        if (match[1].includes('term-bright')) segmentColor = '#ffeb99';
+        if (match[1].includes('term-inverted')) {
+          segmentColor = '#ffbd33';
+          inverted = true;
+        }
+        if (match[1].includes('term-header')) {
+          large = true;
+        }
+        segments.push({ text: match[2], color: segmentColor, inverted, large });
       } else if (match[3]) {
-        segments.push({ text: match[3], color });
+        segments.push({ text: match[3], color, large: isOutputLarge });
       }
     }
 
@@ -540,7 +552,7 @@ export class Terminal {
 
     const width = this.canvas.width;
     const height = this.canvas.height;
-    this.ctx.fillStyle = '#03120b';
+    this.ctx.fillStyle = '#0a0601';
     this.ctx.fillRect(0, 0, width, height);
 
     if (this.processedPortraitCanvas) {
@@ -558,25 +570,41 @@ export class Terminal {
 
     for (let i = startIdx; i < this.buffer.length; i++) {
       let x = padding;
+      const isLargeLine = this.buffer[i].some((c) => c.large);
+      const lineH = isLargeLine ? 48 : this.CHAR_H;
+      if (isLargeLine) y += 8;
+
       for (const chunk of this.buffer[i]) {
-        this.ctx.fillStyle = chunk.color;
+        this.ctx.font = chunk.large ? 'bold 44px monospace' : 'bold 24px monospace';
+        const textWidth = this.ctx.measureText(chunk.text).width;
+        if (chunk.inverted) {
+          this.ctx.fillStyle = chunk.color;
+          const rectH = chunk.large ? 48 : this.CHAR_H - 2;
+          const rectY = chunk.large ? y - 36 : y - this.CHAR_H + 8;
+          this.ctx.fillRect(x, rectY, textWidth, rectH);
+          this.ctx.fillStyle = '#0a0601';
+        } else {
+          this.ctx.fillStyle = chunk.color;
+        }
         this.ctx.fillText(chunk.text, x, y);
-        x += this.ctx.measureText(chunk.text).width;
+        x += textWidth;
       }
-      y += this.CHAR_H;
+      y += lineH - (isLargeLine ? 8 : 0);
     }
 
-    const prompt = `user@ce-linux:${formatCwd(this.cwd)}$ `;
-    this.ctx.fillStyle = '#cee7d7';
+    this.ctx.font = 'bold 24px monospace';
+
+    const prompt = `user:~$ `;
+    this.ctx.fillStyle = '#ffbd33';
     this.ctx.fillText(prompt, padding, y);
     let cursorX = padding + this.ctx.measureText(prompt).width;
 
-    this.ctx.fillStyle = '#eef8f0';
+    this.ctx.fillStyle = '#ffeb99';
     this.ctx.fillText(this.inputEl.value, cursorX, y);
     cursorX += this.ctx.measureText(this.inputEl.value).width;
 
     if (Date.now() % 1000 < 500) {
-      this.ctx.fillStyle = '#cee7d7';
+      this.ctx.fillStyle = '#ffbd33';
       this.ctx.fillRect(cursorX, y - 20, 12, 24);
     }
 
@@ -587,17 +615,17 @@ export class Terminal {
 
     this.drawStaticWave(timestamp, width, height);
 
-    this.ctx.fillStyle = 'rgba(206, 231, 215, 0.01)';
-    for (let i = 0; i < 36; i++) {
+    this.ctx.fillStyle = 'rgba(255, 189, 51, 0.04)';
+    for (let i = 0; i < 900; i++) {
       const noiseX = Math.floor(Math.random() * width);
       const noiseY = Math.floor(Math.random() * height);
-      this.ctx.fillRect(noiseX, noiseY, 2, 2);
+      this.ctx.fillRect(noiseX, noiseY, 4, 4);
     }
 
     this.onRenderCallback();
   };
 
-    private drawStaticWave(timestamp: number, width: number, height: number): void {
+  private drawStaticWave(timestamp: number, width: number, height: number): void {
     const progress = (timestamp % this.STATIC_WAVE_CYCLE_MS) / this.STATIC_WAVE_CYCLE_MS;
     const pulse = Math.sin(progress * Math.PI);
     const centerY = progress * (height + 200) - 100;
@@ -609,11 +637,11 @@ export class Terminal {
 
       const distance = Math.abs(offset) / radius;
       const alpha = (1 - distance * distance) * (0.08 + pulse * 0.14);
-      this.ctx.fillStyle = `rgba(120, 255, 170, ${alpha.toFixed(3)})`;
+      this.ctx.fillStyle = `rgba(255, 189, 51, ${alpha.toFixed(3)})`;
       this.ctx.fillRect(0, y, width, 2);
     }
 
-    this.ctx.fillStyle = `rgba(140, 255, 190, ${(0.045 + pulse * 0.065).toFixed(3)})`;
+    this.ctx.fillStyle = `rgba(255, 170, 0, ${(0.045 + pulse * 0.065).toFixed(3)})`;
     for (let i = 0; i < 42; i++) {
       const noiseX = Math.floor(((i * 131) + timestamp * 0.12) % width);
       const noiseY = Math.round(centerY + Math.sin(i * 0.75 + timestamp * 0.006) * radius * 0.8);
@@ -622,7 +650,7 @@ export class Terminal {
       this.ctx.fillRect(noiseX, noiseY, blockSize, blockSize);
     }
 
-    this.ctx.fillStyle = `rgba(70, 220, 120, ${(0.02 + pulse * 0.04).toFixed(3)})`;
+    this.ctx.fillStyle = `rgba(220, 120, 0, ${(0.02 + pulse * 0.04).toFixed(3)})`;
     this.ctx.fillRect(0, Math.round(centerY - radius * 0.18), width, 1);
     this.ctx.fillRect(0, Math.round(centerY + radius * 0.18), width, 1);
   }
@@ -656,13 +684,13 @@ export class Terminal {
 
           if (isHead) {
             ctx.fillStyle =
-              dist < 0.1 ? (dither ? '#cee7d7' : '#a4e8be') : innerDither ? '#cee7d7' : '#4daf84';
+              dist < 0.1 ? (dither ? '#ffcc00' : '#ffb000') : innerDither ? '#ffcc00' : '#cc8800';
           } else {
-            ctx.fillStyle = dither ? '#a9d1bc' : '#2f8e65';
+            ctx.fillStyle = dither ? '#ffaa00' : '#cc7700';
           }
           ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
         } else if (Math.random() < 0.02) {
-          ctx.fillStyle = 'rgba(216, 255, 228, 0.04)';
+          ctx.fillStyle = 'rgba(255, 204, 0, 0.04)';
           ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
         }
       }
