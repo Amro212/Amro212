@@ -26,15 +26,16 @@ function buildFileSystem(): FSNode {
       '  About Me',
       '===========================================',
       '',
-      'Graduate computer engineering student with a',
-      'focus on hardware and software systems.',
+      'Amro Abedmoosa',
+      '4th-year Computer Engineering student',
+      'University of Guelph | Expected May 2026',
+      'GPA: 3.3 / 4.0 | Scholarships/Bursaries: $6,000',
       '',
       'Focus areas:',
+      '  - Software Engineering and Automation',
+      '  - AI Workflow Integration (n8n + LLM APIs)',
       '  - Embedded Systems and FPGA Design',
-      '  - Digital Signal Processing',
-      '  - Computer Architecture',
-      '  - Machine Learning at the Edge',
-      '  - Full-Stack Development',
+      '  - IT Support and Technical Operations',
     ].join('\n'),
   };
 
@@ -46,9 +47,9 @@ function buildFileSystem(): FSNode {
       '  Contact Info',
       '===========================================',
       '',
-      'Email:    you@example.com',
-      'LinkedIn: linkedin.com/in/yourprofile',
-      'GitHub:   github.com/yourhandle',
+      'Open to full-time new-grad roles (2026).',
+      'Target roles: software, embedded, AI automation, IT systems.',
+      'Contact details: update with your active email + LinkedIn URL.',
     ].join('\n'),
   };
 
@@ -60,12 +61,12 @@ function buildFileSystem(): FSNode {
       '  Technical Skills',
       '===========================================',
       '',
-      'Languages:    C/C++, Python, Rust, TypeScript',
-      'HDL:          Verilog, SystemVerilog, VHDL',
-      'Hardware:     FPGA, ARM Cortex-M, STM32, PCB',
-      'Frameworks:   React, Node.js, TensorFlow Lite',
-      'Tools:        KiCad, Vivado, Git, Docker',
-      'Protocols:    MQTT, SPI, UART, AXI-Stream',
+      'Languages:    Python, Java, SQL, VHDL, Verilog, JavaScript',
+      'AI/ML:        OpenAI API, ElevenLabs, LangChain, TensorFlow',
+      'Automation:   n8n, API integrations, workflow scripting',
+      'Embedded:     FPGA design, Vivado HLS, RISC-V (Ripes)',
+      'Web/IT:       WordPress, web content systems, technical support',
+      'Tools:        Git, Google Cloud OAuth workflows, Telegram bot integration',
     ].join('\n'),
   };
 
@@ -158,7 +159,7 @@ type TerminalOutput = { text: string; className?: string };
 
 const HELP_TEXT: TerminalOutput[] = [
   { text: '===========================================', className: 'term-dim' },
-  { text: '  CE-Linux 1.0 Available Commands', className: 'term-bright' },
+  { text: '  AMRO-OS 1.0 Available Commands', className: 'term-bright' },
   { text: '===========================================', className: 'term-dim' },
   { text: '' },
   { text: '  ls              List directory contents' },
@@ -173,8 +174,8 @@ const WELCOME_LINES: TerminalOutput[] = [
   { text: '  SYSTEM INITIALIZATION SUCCESSFUL', className: 'term-bright' },
   { text: '===========================================', className: 'term-dim' },
   { text: '' },
-  { text: 'Welcome to the CE-Linux terminal.', className: 'term-bright' },
-  { text: "I'm [Name], a Computer Engineer." },
+  { text: 'Welcome to the Amro-OS terminal.', className: 'term-bright' },
+  { text: "I'm Amro Abedmoosa, a Computer Engineering student." },
   { text: 'Available commands: ls, cd, cat, help', className: 'term-dim' },
   { text: '' },
 ];
@@ -346,7 +347,7 @@ export class Terminal {
       const command = this.inputEl.value.trim();
       this.inputEl.value = '';
 
-      const prompt = `user@ce-linux:${formatCwd(this.cwd)}$ `;
+      const prompt = `user@amro-os:${formatCwd(this.cwd)}$ `;
       this.printLine({ text: prompt + command, className: 'term-echo' });
 
       if (command) {
@@ -566,7 +567,7 @@ export class Terminal {
       y += this.CHAR_H;
     }
 
-    const prompt = `user@ce-linux:${formatCwd(this.cwd)}$ `;
+    const prompt = `user@amro-os:${formatCwd(this.cwd)}$ `;
     this.ctx.fillStyle = '#cee7d7';
     this.ctx.fillText(prompt, padding, y);
     let cursorX = padding + this.ctx.measureText(prompt).width;
