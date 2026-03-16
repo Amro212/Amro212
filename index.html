@@ -4,9 +4,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio — Graduate Computer Engineering</title>
+  <title>Amro Abedmoosa | Software and Automation Portfolio</title>
   <meta name="description"
-    content="Portfolio of a graduate computer engineering student — embedded systems, FPGA design, RISC-V, and more." />
+    content="Portfolio of Amro Abedmoosa, a University of Guelph Computer Engineering student graduating May 2026, focused on software engineering, AI automation, and embedded systems." />
+  <meta property="og:title" content="Amro Abedmoosa | Software and Automation Portfolio" />
+  <meta property="og:description"
+    content="New-grad portfolio featuring AI workflow automation, practical software projects, and embedded systems work." />
+  <meta name="keywords"
+    content="Amro Abedmoosa, University of Guelph, computer engineering, software engineering, AI automation, Python, n8n, embedded systems, new grad" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -14,7 +19,6 @@
     rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <style>
-    /* Inlined keyframes for the loader */
     @keyframes pulse-text {
       0% {
         opacity: 0.6;
@@ -47,7 +51,6 @@
 </head>
 
 <body style="background-color: #08020d; margin: 0; overflow-x: hidden;">
-  <!-- Terminal Loading Screen (Bulletproof Inline Styles) -->
   <div id="loading-screen"
     style="position: fixed; inset: 0; z-index: 99999; background-color: #08020d; display: flex; align-items: center; justify-content: center; transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease, transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), filter 0.85s ease;">
     <div style="font-family: 'Courier New', Courier, monospace; color: #75fcff; text-align: center; width: 300px;">
@@ -62,10 +65,9 @@
     </div>
   </div>
 
-  <!-- Hidden Wrapper to prevent FOUC of HTML content -->
-  <div id="app-content" style="opacity: 0; visibility: hidden; transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease;">
+  <div id="app-content"
+    style="opacity: 0; visibility: hidden; transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease;">
 
-    <!-- Navigation -->
     <nav id="main-nav" class="nav">
       <div data-magnetic style="display: inline-block; padding: 10px;">
         <button id="nav-hamburger" class="nav__hamburger" aria-label="Toggle menu" data-magnetic-content>
@@ -74,99 +76,125 @@
       </div>
       <div class="nav__social">
         <div data-magnetic style="display: inline-block; padding: 10px;">
-          <a href="https://linkedin.com" target="_blank" rel="noopener" aria-label="LinkedIn" class="nav__social-link"
-            data-magnetic-content>
+          <a href="#contact" aria-label="Contact" class="nav__social-link" data-magnetic-content>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path
-                d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z" />
             </svg>
           </a>
         </div>
         <div data-magnetic style="display: inline-block; padding: 10px;">
-          <a href="https://github.com" target="_blank" rel="noopener" aria-label="GitHub" class="nav__social-link"
-            data-magnetic-content>
+          <a href="#projects" aria-label="Projects" class="nav__social-link" data-magnetic-content>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                d="M10 3H5a2 2 0 0 0-2 2v5h2V5h5V3zm9 0h-5v2h5v5h2V5a2 2 0 0 0-2-2zM5 14H3v5a2 2 0 0 0 2 2h5v-2H5v-5zm16 0h-2v5h-5v2h5a2 2 0 0 0 2-2v-5zM8 8h8v8H8z" />
             </svg>
           </a>
         </div>
       </div>
     </nav>
 
-    <!-- Mobile Menu Overlay -->
     <div id="mobile-menu" class="mobile-menu">
       <a href="#home" class="mobile-menu__link">Home</a>
       <a href="#about" class="mobile-menu__link">About</a>
       <a href="#skills" class="mobile-menu__link">Skills</a>
+      <a href="#experience" class="mobile-menu__link">Experience</a>
       <a href="#projects" class="mobile-menu__link">Projects</a>
       <a href="#contact" class="mobile-menu__link">Contact</a>
     </div>
 
-    <!-- Hidden Terminal Container for Keystroke Capture -->
     <section id="home"
       style="position: absolute; pointer-events: none; opacity: 0; width: 1px; height: 1px; overflow: hidden;">
       <div id="crt-terminal-container"></div>
     </section>
 
-    <!-- 3D Computer Canvas -->
     <div id="three-container" class="three-container"></div>
-
-    <!-- Blur overlay for 3D model transition -->
     <div id="three-blur-overlay" class="three-blur-overlay"></div>
 
-    <!-- About Section -->
     <section id="about" class="about">
-      <h2 class="about__heading reveal-text" data-parallax="0.3">Hi there</h2>
+      <h2 class="about__heading reveal-text" data-parallax="0.3">Amro Abedmoosa</h2>
       <div class="about__content">
-        <p>My name is [Your Name], I'm a graduate computer engineering student with a passion for
-          bridging the gap
-          between
-          hardware and software. My work spans embedded systems, FPGA design, digital signal processing, and full-stack
-          development.</p>
-        <p>In addition to my engineering focus, I'm deeply interested in machine learning at the
-          edge, computer
-          architecture, and building tools that make complex systems more accessible.</p>
-        <p>Below are details of some of the projects I have developed throughout my academic and
-          professional journey.
-        </p>
+        <p><strong>Computer Engineering student at the University of Guelph, graduating May 2026.</strong></p>
+        <p>I am a 5th-year student focused on software engineering and AI automation, with additional hands-on work in
+          embedded systems. I like building practical systems that solve concrete workflow problems and are easy for
+          people to use.</p>
+        <div class="info-cards">
+          <article class="info-card">
+            <h3>Current focus</h3>
+            <p>Full-time new-grad software and automation roles.</p>
+          </article>
+          <article class="info-card">
+            <h3>Strong domain</h3>
+            <p>AI workflow tools, API integration, and Python automation.</p>
+          </article>
+          <article class="info-card">
+            <h3>Technical range</h3>
+            <p>Software systems, embedded logic design, and web implementation.</p>
+          </article>
+        </div>
       </div>
     </section>
 
-    <!-- Skills Section -->
     <section id="skills" class="about" style="padding-top: 4rem;">
       <h2 class="about__heading reveal-text">Skills</h2>
       <div class="about__content">
-        <ul
-          style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-          <li>
-            <strong style="color: var(--color-primary); font-family: 'JetBrains Mono', monospace;">Languages</strong>
-            <p>C/C++, Python, Rust, TypeScript</p>
+        <ul class="skill-grid">
+          <li class="skill-group">
+            <strong>Languages</strong>
+            <p>Python, Java, SQL, JavaScript, VHDL, Verilog, HTML/CSS</p>
           </li>
-          <li>
-            <strong style="color: var(--color-primary); font-family: 'JetBrains Mono', monospace;">Hardware</strong>
-            <p>FPGA, ARM Cortex-M, STM32, PCB Design</p>
+          <li class="skill-group">
+            <strong>Software and AI Automation</strong>
+            <p>n8n, OpenAI API, ElevenLabs, LangChain, Flask, TensorFlow, Telegram integrations</p>
           </li>
-          <li>
-            <strong style="color: var(--color-primary); font-family: 'JetBrains Mono', monospace;">HDL & Design</strong>
-            <p>Verilog, SystemVerilog, VHDL, KiCad, Vivado</p>
+          <li class="skill-group">
+            <strong>Systems and Embedded</strong>
+            <p>FPGA workflows, Vivado HLS, RISC-V modeling in Ripes, digital logic and timing</p>
           </li>
-          <li>
-            <strong style="color: var(--color-primary); font-family: 'JetBrains Mono', monospace;">Software &
-              Frameworks</strong>
-            <p>React, Node.js, TensorFlow Lite, Docker, Git</p>
+          <li class="skill-group">
+            <strong>Web and Platform Work</strong>
+            <p>WordPress content systems, scripting, OAuth-based flows, user-focused page updates</p>
           </li>
         </ul>
+        <div class="skill-pill-row">
+          <span class="skill-pill">Python automation</span>
+          <span class="skill-pill">AI workflows</span>
+          <span class="skill-pill">API integration</span>
+          <span class="skill-pill">n8n orchestration</span>
+          <span class="skill-pill">Embedded logic</span>
+          <span class="skill-pill">Technical product building</span>
+        </div>
       </div>
     </section>
 
-    <!-- Projects Section -->
+    <section id="experience" class="about" style="padding-top: 4rem;">
+      <h2 class="about__heading reveal-text">Experience</h2>
+      <div class="about__content">
+        <div class="experience-list">
+          <article class="experience-item">
+            <h3>Web and IT Support Coordinator | University of Guelph | Summer 2024</h3>
+            <p>Worked on undergraduate and graduate College of Arts pages. Helped shape clearer page structure during
+              site updates and improved how users moved from old content paths to the new experience.</p>
+          </article>
+          <article class="experience-item">
+            <h3>Project Support Experience | Sandbox Software Solutions</h3>
+            <p>Supported web and technical coordination tasks, including content migration and automation-adjacent
+              implementation support in client-facing workflows.</p>
+          </article>
+          <article class="experience-item">
+            <h3>Technical Operations Exposure | Dufferin County</h3>
+            <p>Contributed to laptop replacement and migration tasks while learning deployment and infrastructure
+              practices across teams.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section id="projects" class="projects">
       <div class="projects__header">
         <h2 class="projects__heading reveal-text" data-parallax="0.4">Projects</h2>
       </div>
 
-      <!-- Side nav icons -->
       <div class="projects__side-nav" id="projects-side-nav">
         <button class="projects__side-btn active" data-filter="all" aria-label="All projects">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -192,30 +220,26 @@
         </button>
       </div>
 
-      <!-- Project Cards Container -->
-      <div class="projects__grid" id="projects-grid">
-        <!-- Cards injected by JS -->
-      </div>
+      <div class="projects__grid" id="projects-grid"></div>
     </section>
 
-    <!-- Contact Section -->
     <section id="contact" class="contact">
-      <h2 class="contact__heading reveal-text">Connection Established</h2>
-      <p class="contact__text">Open to new opportunities in firmware engineering, embedded software
-        development, and specialized
-        full-stack rolls. My inbox is always open.</p>
-      <p class="contact__text">Or email me at <a href="mailto:you@example.com" class="contact__link">you@example.com</a>
+      <h2 class="contact__heading reveal-text">Let&apos;s connect</h2>
+      <p class="contact__text">I am currently looking for full-time software and automation opportunities for 2026.
+      </p>
+      <p class="contact__text">If you are hiring for entry-level engineering roles, I would love to connect and share
+        project details.</p>
+      <p class="contact__text"><span class="contact__link">Use the contact details from my resume or LinkedIn.</span>
       </p>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
-      <p class="footer__text">Built with TypeScript, Three.js & passion. &copy; 2026</p>
+      <p class="footer__text">Amro Abedmoosa | University of Guelph Computer Engineering | Graduation target: May 2026
+      </p>
     </footer>
 
     <script type="module" src="/src/main.ts"></script>
-  </div> <!-- End of #app-content -->
+  </div>
 </body>
 
 </html>
-

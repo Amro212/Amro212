@@ -1,6 +1,6 @@
 /* ===================================================
    PORTFOLIO DESIGN SYSTEM
-   Inspired by edh.dev — Retro CRT + Brutalist aesthetic
+   Inspired by edh.dev - Retro CRT + Brutalist aesthetic
    Color palette: Slate blue / electric cyan / cool gray
    =================================================== */
 
@@ -394,7 +394,7 @@ body.scene-ready .three-container canvas {
   justify-content: center;
 }
 
-/* Gradient transition removed — blur overlay handles the transition */
+/* Gradient transition removed - blur overlay handles the transition */
 
 .about__heading {
   font-family: var(--font-pixel);
@@ -431,6 +431,111 @@ body.scene-ready .three-container canvas {
 
 .about__content p:last-child {
   margin-bottom: 0;
+}
+
+
+.about__content strong {
+  color: var(--about-heading);
+}
+
+.info-cards {
+  margin-top: var(--space-xl);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+
+.info-card {
+  border: 1px solid rgba(117, 252, 255, 0.3);
+  background: rgba(24, 10, 33, 0.52);
+  padding: 0.9rem;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.info-card h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--accent-bright);
+  font-family: var(--font-mono);
+}
+
+.info-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.skill-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  text-align: left;
+}
+
+.skill-group {
+  border: 1px solid rgba(117, 252, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(18, 8, 24, 0.45);
+  padding: 0.9rem;
+}
+
+.skill-group strong {
+  font-family: var(--font-mono);
+  color: var(--accent-bright);
+  font-size: 0.8rem;
+}
+
+.skill-group p {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.skill-pill-row {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+}
+
+.skill-pill {
+  border: 1px solid rgba(117, 252, 255, 0.45);
+  color: var(--accent-bright);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(12, 5, 18, 0.5);
+}
+
+.experience-list {
+  display: grid;
+  gap: 0.85rem;
+  text-align: left;
+}
+
+.experience-item {
+  padding: 0.9rem;
+  border: 1px solid rgba(117, 252, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(24, 10, 33, 0.45);
+}
+
+.experience-item h3 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-mono);
+  color: var(--about-heading);
+  font-size: 0.8rem;
+}
+
+.experience-item p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.7;
 }
 
 /* ---------- Projects Section ---------- */
@@ -508,7 +613,7 @@ body.scene-ready .three-container canvas {
   margin: 0 auto;
 }
 
-/* Individual Project Card — OS Window Style */
+/* Individual Project Card - OS Window Style */
 .project-card {
   background: var(--projects-card-bg);
   border: 2px solid var(--projects-border);
