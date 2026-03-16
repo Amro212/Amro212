@@ -1,3 +1,4 @@
+import { parseGIF, decompressFrames } from 'gifuct-js';
 import { projects } from './projects';
 
 interface FSNode {
@@ -190,8 +191,23 @@ export class Terminal {
   private buffer: Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> = [];
   private onRenderCallback: () => void;
   private inputEl: HTMLInputElement;
-  private portraitImg: HTMLImageElement | null = null;
-  private processedPortraitCanvas: HTMLCanvasElement | null = null;
+
+  // GIF Animation State
+  private gifFrames: any[] = [];
+  private gifFrameIndex = 0;
+  private lastGifRenderTime = 0;
+  private gifReady = false;
+  private gifNativeW = 0;
+  private gifNativeH = 0;
+
+  // Canvases for GIF processing
+  private portraitCompositeCanvas: HTMLCanvasElement;
+  private portraitCompositeCtx: CanvasRenderingContext2D;
+  private processedPortraitCanvas: HTMLCanvasElement;
+  private processedPortraitCtx: CanvasRenderingContext2D;
+
+  private readonly PORTRAIT_W = 240;
+  private readonly PORTRAIT_H = 288;
   private readonly CHAR_H = 30;
   private readonly FRAME_INTERVAL_MS = 1000 / 18;
   private readonly STATIC_WAVE_CYCLE_MS = 1650;
@@ -200,6 +216,17 @@ export class Terminal {
   constructor(containerSelector: string, onRender: () => void) {
     this.root = buildFileSystem();
     this.onRenderCallback = onRender;
+
+    // Reusable canvases for GIF frame processing (full resolution, no downsampling)
+    this.portraitCompositeCanvas = document.createElement('canvas');
+    this.portraitCompositeCanvas.width = this.PORTRAIT_W;
+    this.portraitCompositeCanvas.height = this.PORTRAIT_H;
+    this.portraitCompositeCtx = this.portraitCompositeCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    this.processedPortraitCanvas = document.createElement('canvas');
+    this.processedPortraitCanvas.width = this.PORTRAIT_W;
+    this.processedPortraitCanvas.height = this.PORTRAIT_H;
+    this.processedPortraitCtx = this.processedPortraitCanvas.getContext('2d')!;
 
     const container = document.querySelector(containerSelector) as HTMLElement | null;
     if (!container) {
@@ -228,71 +255,116 @@ export class Terminal {
     this.inputEl.addEventListener('input', () => this.requestRender());
 
     this.printLines(WELCOME_LINES);
-    this.setupPortrait('/portrait.jpg');
+    this.setupAnimatedPortrait('/amro-gif.gif');
     this.render(performance.now());
   }
 
-  private setupPortrait(src: string): void {
-    this.portraitImg = new Image();
-    this.portraitImg.crossOrigin = 'anonymous';
-    this.portraitImg.src = src;
-    this.portraitImg.onload = () => {
-      this.processPortrait();
-    };
+  private async setupAnimatedPortrait(src: string): Promise<void> {
+    try {
+      const response = await fetch(src);
+      const buffer = await response.arrayBuffer();
+      const gif = parseGIF(buffer);
+      const frames = decompressFrames(gif, true);
+
+      // Use the GIF's actual logical screen size
+      const gifW = gif.lsd.width;
+      const gifH = gif.lsd.height;
+
+      // Resize composite and processed canvases to match the GIF
+      this.portraitCompositeCanvas.width = gifW;
+      this.portraitCompositeCanvas.height = gifH;
+      this.processedPortraitCanvas.width = gifW;
+      this.processedPortraitCanvas.height = gifH;
+      // Store actual GIF dimensions for use in render
+      this.gifNativeW = gifW;
+      this.gifNativeH = gifH;
+
+      this.gifFrames = frames;
+      this.gifFrameIndex = 0;
+      this.lastGifRenderTime = performance.now();
+
+      // Clear composite canvas and immediately draw the first frame
+      this.portraitCompositeCtx.clearRect(0, 0, gifW, gifH);
+      this.compositeFrame(frames[0]);
+      this.gifFrameIndex = 1 % frames.length;
+
+      this.gifReady = true;
+    } catch (error) {
+      console.error('Failed to load GIF:', error);
+    }
   }
 
-  private processPortrait(): void {
-    if (!this.portraitImg) return;
-
-    const width = 240;
-    const height = 288;
-    const pixelSize = 4;
-    const cols = Math.floor(width / pixelSize);
-    const rows = Math.floor(height / pixelSize);
+  /** Draw a single GIF frame patch onto the composite canvas */
+  private compositeFrame(frame: any): void {
+    const frameImageData = new ImageData(
+      frame.patch,
+      frame.dims.width,
+      frame.dims.height
+    );
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cols;
-    tempCanvas.height = rows;
-    const tempCtx = tempCanvas.getContext('2d')!;
-    tempCtx.drawImage(this.portraitImg, 0, 0, cols, rows);
+    tempCanvas.width = frame.dims.width;
+    tempCanvas.height = frame.dims.height;
+    tempCanvas.getContext('2d')!.putImageData(frameImageData, 0, 0);
 
-    const imageData = tempCtx.getImageData(0, 0, cols, rows);
+    if (frame.disposalType === 2) {
+      this.portraitCompositeCtx.clearRect(
+        frame.dims.left,
+        frame.dims.top,
+        frame.dims.width,
+        frame.dims.height
+      );
+    }
+
+    this.portraitCompositeCtx.drawImage(
+      tempCanvas,
+      frame.dims.left,
+      frame.dims.top
+    );
+  }
+
+  /** Advance GIF frame and apply amber monochrome tint */
+  private processCurrentFrame(timestamp: number): void {
+    if (!this.gifReady || this.gifFrames.length === 0) return;
+
+    const currentFrame = this.gifFrames[this.gifFrameIndex];
+    // GIF delays are in centiseconds (1/100s), convert to milliseconds
+    const delayMs = (currentFrame.delay || 0) * 0.65;
+
+    // Check if we need to advance to the next frame
+    if (delayMs > 0 && timestamp - this.lastGifRenderTime >= delayMs) {
+      // Advance to next frame and composite it
+      this.gifFrameIndex = (this.gifFrameIndex + 1) % this.gifFrames.length;
+      this.compositeFrame(this.gifFrames[this.gifFrameIndex]);
+      this.lastGifRenderTime = timestamp;
+    }
+
+    // Now grab the final composite and tint it amber
+    const w = this.gifNativeW;
+    const h = this.gifNativeH;
+    if (w === 0 || h === 0) return;
+    const imageData = this.portraitCompositeCtx.getImageData(0, 0, w, h);
     const data = imageData.data;
 
-    this.processedPortraitCanvas = document.createElement('canvas');
-    this.processedPortraitCanvas.width = width;
-    this.processedPortraitCanvas.height = height;
-    const portraitCtx = this.processedPortraitCanvas.getContext('2d')!;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
 
-    const bayer = [
-      [0, 2],
-      [3, 1],
-    ];
+      if (a === 0) continue; // skip fully transparent
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const idx = (y * cols + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-        const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        const threshold = (bayer[y % 2][x % 2] + 0.5) / 4;
+      let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      lum = Math.pow(lum, 0.7);
 
-        let color = 'transparent';
-        if (brightness > threshold * 1.2) {
-          color = '#ffcc00';
-        } else if (brightness > threshold * 0.6) {
-          color = '#ffb000';
-        } else if (brightness > threshold * 0.2) {
-          color = '#cc8800';
-        }
-
-        if (color !== 'transparent') {
-          portraitCtx.fillStyle = color;
-          portraitCtx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-        }
-      }
+      const darkColor = 20;
+      data[i] = Math.min(255, darkColor + Math.round(lum * 235));
+      data[i + 1] = Math.min(255, darkColor * 0.7 + Math.round(lum * 170));
+      data[i + 2] = Math.min(255, darkColor * 0.2 + Math.round(lum * 40));
     }
+
+    this.processedPortraitCtx.clearRect(0, 0, w, h);
+    this.processedPortraitCtx.putImageData(imageData, 0, 0);
   }
 
   public getCanvas(): HTMLCanvasElement {
@@ -555,10 +627,18 @@ export class Terminal {
     this.ctx.fillStyle = '#0a0601';
     this.ctx.fillRect(0, 0, width, height);
 
-    if (this.processedPortraitCanvas) {
-      this.ctx.drawImage(this.processedPortraitCanvas, width - 280, 40);
-    } else {
-      this.drawDitheredPortrait(this.ctx, width - 280, 40, 240, 288);
+    this.processCurrentFrame(timestamp);
+    // Draw the processed portrait, scaled to fit the terminal
+    if (this.gifReady && this.gifNativeW > 0) {
+      const targetH = Math.round(height * 0.45);  // ~45% of canvas height
+      const aspectRatio = this.gifNativeW / this.gifNativeH;
+      const targetW = Math.round(targetH * aspectRatio);
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.drawImage(
+        this.processedPortraitCanvas,
+        0, 0, this.gifNativeW, this.gifNativeH,
+        width - targetW - 40, 20, targetW, targetH
+      );
     }
 
     this.ctx.font = 'bold 24px monospace';
@@ -654,49 +734,8 @@ export class Terminal {
     this.ctx.fillRect(0, Math.round(centerY - radius * 0.18), width, 1);
     this.ctx.fillRect(0, Math.round(centerY + radius * 0.18), width, 1);
   }
-  private drawDitheredPortrait(
-    ctx: CanvasRenderingContext2D,
-    dx: number,
-    dy: number,
-    width: number,
-    height: number,
-  ): void {
-    const pixelSize = 4;
-    const cols = Math.floor(width / pixelSize);
-    const rows = Math.floor(height / pixelSize);
-
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const cx = x / cols - 0.5;
-        const cy = y / rows - 0.5;
-        const headY = cy + 0.15;
-        const isHead = (cx * cx) / 0.04 + (headY * headY) / 0.035 < 1;
-        const neckY = cy - 0.05;
-        const isNeck = Math.abs(cx) < 0.06 && neckY > 0 && neckY < 0.08;
-        const shoulderY = cy - 0.1;
-        const isShoulders = Math.abs(cx) < 0.35 && shoulderY > 0 && shoulderY < 0.2;
-        const shoulderCurve = isShoulders && shoulderY < 0.1 + (0.35 - Math.abs(cx)) * 0.5;
-
-        if (isHead || isNeck || shoulderCurve) {
-          const dither = (x + y) % 2 === 0;
-          const innerDither = (x + y) % 3 === 0;
-          const dist = Math.sqrt(cx * cx + headY * headY);
-
-          if (isHead) {
-            ctx.fillStyle =
-              dist < 0.1 ? (dither ? '#ffcc00' : '#ffb000') : innerDither ? '#ffcc00' : '#cc8800';
-          } else {
-            ctx.fillStyle = dither ? '#ffaa00' : '#cc7700';
-          }
-          ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
-        } else if (Math.random() < 0.02) {
-          ctx.fillStyle = 'rgba(255, 204, 0, 0.04)';
-          ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
-        }
-      }
-    }
-  }
 }
+
 
 
 
