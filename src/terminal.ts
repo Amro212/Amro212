@@ -1,3 +1,4 @@
+import { parseGIF, decompressFrames } from 'gifuct-js';
 import { projects } from './projects';
 
 interface FSNode {
@@ -169,13 +170,14 @@ const HELP_TEXT: TerminalOutput[] = [
 ];
 
 const WELCOME_LINES: TerminalOutput[] = [
-  { text: '===========================================', className: 'term-dim' },
-  { text: '  SYSTEM INITIALIZATION SUCCESSFUL', className: 'term-bright' },
-  { text: '===========================================', className: 'term-dim' },
+  { text: 'Hi there!', className: 'term-bright term-header' },
+  { text: '<span class="term-inverted term-header"> I\'m Amro Abed Moosa </span>' },
   { text: '' },
-  { text: 'Welcome to the CE-Linux terminal.', className: 'term-bright' },
-  { text: "I'm [Name], a Computer Engineer." },
-  { text: 'Available commands: ls, cd, cat, help', className: 'term-dim' },
+  { text: 'A Computer Engineer', className: 'term-bright' },
+  { text: '' },
+  { text: '' },
+  { text: 'Welcome to CE-Linux 1.0 LTS', className: 'term-bright' },
+  { text: '>> Scroll or type "help" to get started', className: 'term-dim' },
   { text: '' },
 ];
 
@@ -186,11 +188,26 @@ export class Terminal {
   private historyIndex = -1;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private buffer: Array<Array<{ text: string; color: string }>> = [];
+  private buffer: Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> = [];
   private onRenderCallback: () => void;
   private inputEl: HTMLInputElement;
-  private portraitImg: HTMLImageElement | null = null;
-  private processedPortraitCanvas: HTMLCanvasElement | null = null;
+
+  // GIF Animation State
+  private gifFrames: any[] = [];
+  private gifFrameIndex = 0;
+  private lastGifRenderTime = 0;
+  private gifReady = false;
+  private gifNativeW = 0;
+  private gifNativeH = 0;
+
+  // Canvases for GIF processing
+  private portraitCompositeCanvas: HTMLCanvasElement;
+  private portraitCompositeCtx: CanvasRenderingContext2D;
+  private processedPortraitCanvas: HTMLCanvasElement;
+  private processedPortraitCtx: CanvasRenderingContext2D;
+
+  private readonly PORTRAIT_W = 240;
+  private readonly PORTRAIT_H = 288;
   private readonly CHAR_H = 30;
   private readonly FRAME_INTERVAL_MS = 1000 / 18;
   private readonly STATIC_WAVE_CYCLE_MS = 1650;
@@ -199,6 +216,17 @@ export class Terminal {
   constructor(containerSelector: string, onRender: () => void) {
     this.root = buildFileSystem();
     this.onRenderCallback = onRender;
+
+    // Reusable canvases for GIF frame processing (full resolution, no downsampling)
+    this.portraitCompositeCanvas = document.createElement('canvas');
+    this.portraitCompositeCanvas.width = this.PORTRAIT_W;
+    this.portraitCompositeCanvas.height = this.PORTRAIT_H;
+    this.portraitCompositeCtx = this.portraitCompositeCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    this.processedPortraitCanvas = document.createElement('canvas');
+    this.processedPortraitCanvas.width = this.PORTRAIT_W;
+    this.processedPortraitCanvas.height = this.PORTRAIT_H;
+    this.processedPortraitCtx = this.processedPortraitCanvas.getContext('2d')!;
 
     const container = document.querySelector(containerSelector) as HTMLElement | null;
     if (!container) {
@@ -227,71 +255,116 @@ export class Terminal {
     this.inputEl.addEventListener('input', () => this.requestRender());
 
     this.printLines(WELCOME_LINES);
-    this.setupPortrait('/portrait.jpg');
+    this.setupAnimatedPortrait('/amro-gif.gif');
     this.render(performance.now());
   }
 
-  private setupPortrait(src: string): void {
-    this.portraitImg = new Image();
-    this.portraitImg.crossOrigin = 'anonymous';
-    this.portraitImg.src = src;
-    this.portraitImg.onload = () => {
-      this.processPortrait();
-    };
+  private async setupAnimatedPortrait(src: string): Promise<void> {
+    try {
+      const response = await fetch(src);
+      const buffer = await response.arrayBuffer();
+      const gif = parseGIF(buffer);
+      const frames = decompressFrames(gif, true);
+
+      // Use the GIF's actual logical screen size
+      const gifW = gif.lsd.width;
+      const gifH = gif.lsd.height;
+
+      // Resize composite and processed canvases to match the GIF
+      this.portraitCompositeCanvas.width = gifW;
+      this.portraitCompositeCanvas.height = gifH;
+      this.processedPortraitCanvas.width = gifW;
+      this.processedPortraitCanvas.height = gifH;
+      // Store actual GIF dimensions for use in render
+      this.gifNativeW = gifW;
+      this.gifNativeH = gifH;
+
+      this.gifFrames = frames;
+      this.gifFrameIndex = 0;
+      this.lastGifRenderTime = performance.now();
+
+      // Clear composite canvas and immediately draw the first frame
+      this.portraitCompositeCtx.clearRect(0, 0, gifW, gifH);
+      this.compositeFrame(frames[0]);
+      this.gifFrameIndex = 1 % frames.length;
+
+      this.gifReady = true;
+    } catch (error) {
+      console.error('Failed to load GIF:', error);
+    }
   }
 
-  private processPortrait(): void {
-    if (!this.portraitImg) return;
-
-    const width = 240;
-    const height = 288;
-    const pixelSize = 4;
-    const cols = Math.floor(width / pixelSize);
-    const rows = Math.floor(height / pixelSize);
+  /** Draw a single GIF frame patch onto the composite canvas */
+  private compositeFrame(frame: any): void {
+    const frameImageData = new ImageData(
+      frame.patch,
+      frame.dims.width,
+      frame.dims.height
+    );
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cols;
-    tempCanvas.height = rows;
-    const tempCtx = tempCanvas.getContext('2d')!;
-    tempCtx.drawImage(this.portraitImg, 0, 0, cols, rows);
+    tempCanvas.width = frame.dims.width;
+    tempCanvas.height = frame.dims.height;
+    tempCanvas.getContext('2d')!.putImageData(frameImageData, 0, 0);
 
-    const imageData = tempCtx.getImageData(0, 0, cols, rows);
+    if (frame.disposalType === 2) {
+      this.portraitCompositeCtx.clearRect(
+        frame.dims.left,
+        frame.dims.top,
+        frame.dims.width,
+        frame.dims.height
+      );
+    }
+
+    this.portraitCompositeCtx.drawImage(
+      tempCanvas,
+      frame.dims.left,
+      frame.dims.top
+    );
+  }
+
+  /** Advance GIF frame and apply amber monochrome tint */
+  private processCurrentFrame(timestamp: number): void {
+    if (!this.gifReady || this.gifFrames.length === 0) return;
+
+    const currentFrame = this.gifFrames[this.gifFrameIndex];
+    // GIF delays are in centiseconds (1/100s), convert to milliseconds
+    const delayMs = (currentFrame.delay || 0) * 0.65;
+
+    // Check if we need to advance to the next frame
+    if (delayMs > 0 && timestamp - this.lastGifRenderTime >= delayMs) {
+      // Advance to next frame and composite it
+      this.gifFrameIndex = (this.gifFrameIndex + 1) % this.gifFrames.length;
+      this.compositeFrame(this.gifFrames[this.gifFrameIndex]);
+      this.lastGifRenderTime = timestamp;
+    }
+
+    // Now grab the final composite and tint it amber
+    const w = this.gifNativeW;
+    const h = this.gifNativeH;
+    if (w === 0 || h === 0) return;
+    const imageData = this.portraitCompositeCtx.getImageData(0, 0, w, h);
     const data = imageData.data;
 
-    this.processedPortraitCanvas = document.createElement('canvas');
-    this.processedPortraitCanvas.width = width;
-    this.processedPortraitCanvas.height = height;
-    const portraitCtx = this.processedPortraitCanvas.getContext('2d')!;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
 
-    const bayer = [
-      [0, 2],
-      [3, 1],
-    ];
+      if (a === 0) continue; // skip fully transparent
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const idx = (y * cols + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-        const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        const threshold = (bayer[y % 2][x % 2] + 0.5) / 4;
+      let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      lum = Math.pow(lum, 0.7);
 
-        let color = 'transparent';
-        if (brightness > threshold * 1.2) {
-          color = '#cee7d7';
-        } else if (brightness > threshold * 0.6) {
-          color = '#a4e8be';
-        } else if (brightness > threshold * 0.2) {
-          color = '#2f8e65';
-        }
-
-        if (color !== 'transparent') {
-          portraitCtx.fillStyle = color;
-          portraitCtx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-        }
-      }
+      const darkColor = 20;
+      data[i] = Math.min(255, darkColor + Math.round(lum * 235));
+      data[i + 1] = Math.min(255, darkColor * 0.7 + Math.round(lum * 170));
+      data[i + 2] = Math.min(255, darkColor * 0.2 + Math.round(lum * 40));
     }
+
+    this.processedPortraitCtx.clearRect(0, 0, w, h);
+    this.processedPortraitCtx.putImageData(imageData, 0, 0);
   }
 
   public getCanvas(): HTMLCanvasElement {
@@ -302,31 +375,42 @@ export class Terminal {
     this.lastFrameTime = 0;
   }
 
-  private parseOutput(output: TerminalOutput): Array<{ text: string; color: string }> {
-    let color = '#cee7d7';
-    if (output.className === 'term-dim') color = 'rgba(206, 231, 215, 0.56)';
-    if (output.className === 'term-bright') color = '#ffffff';
-    if (output.className === 'term-error') color = '#ff5b5b';
-    if (output.className === 'term-echo') color = '#b8b2a8';
+  private parseOutput(output: TerminalOutput): Array<{ text: string; color: string; inverted?: boolean; large?: boolean }> {
+    let color = '#ffbd33';
+    let isOutputLarge = false;
+    if (output.className?.includes('term-header')) isOutputLarge = true;
+    if (output.className?.includes('term-dim')) color = 'rgba(255, 189, 51, 0.56)';
+    if (output.className?.includes('term-bright')) color = '#ffeb99';
+    if (output.className?.includes('term-error')) color = '#ff5b5b';
+    if (output.className?.includes('term-echo')) color = '#b8b2a8';
 
-    const segments: Array<{ text: string; color: string }> = [];
+    const segments: Array<{ text: string; color: string; inverted?: boolean; large?: boolean }> = [];
     const spanRegex = /<span class="([^"]+)">([^<]*)<\/span>|([^<]+)/g;
     let match: RegExpExecArray | null;
 
     if (!output.text.includes('<span')) {
-      return [{ text: output.text, color }];
+      return [{ text: output.text, color, large: isOutputLarge }];
     }
 
     while ((match = spanRegex.exec(output.text)) !== null) {
       if (match[1]) {
-        let segmentColor = '#cee7d7';
-        if (match[1].includes('term-dir')) segmentColor = '#a9d1bc';
-        if (match[1].includes('term-file')) segmentColor = '#d4cfc8';
-        if (match[1].includes('term-dim')) segmentColor = 'rgba(206, 231, 215, 0.56)';
-        if (match[1].includes('term-bright')) segmentColor = '#ffffff';
-        segments.push({ text: match[2], color: segmentColor });
+        let segmentColor = '#ffbd33';
+        let inverted = false;
+        let large = isOutputLarge;
+        if (match[1].includes('term-dir')) segmentColor = '#ffaa00';
+        if (match[1].includes('term-file')) segmentColor = '#ffdd88';
+        if (match[1].includes('term-dim')) segmentColor = 'rgba(255, 189, 51, 0.56)';
+        if (match[1].includes('term-bright')) segmentColor = '#ffeb99';
+        if (match[1].includes('term-inverted')) {
+          segmentColor = '#ffbd33';
+          inverted = true;
+        }
+        if (match[1].includes('term-header')) {
+          large = true;
+        }
+        segments.push({ text: match[2], color: segmentColor, inverted, large });
       } else if (match[3]) {
-        segments.push({ text: match[3], color });
+        segments.push({ text: match[3], color, large: isOutputLarge });
       }
     }
 
@@ -540,13 +624,21 @@ export class Terminal {
 
     const width = this.canvas.width;
     const height = this.canvas.height;
-    this.ctx.fillStyle = '#03120b';
+    this.ctx.fillStyle = '#0a0601';
     this.ctx.fillRect(0, 0, width, height);
 
-    if (this.processedPortraitCanvas) {
-      this.ctx.drawImage(this.processedPortraitCanvas, width - 280, 40);
-    } else {
-      this.drawDitheredPortrait(this.ctx, width - 280, 40, 240, 288);
+    this.processCurrentFrame(timestamp);
+    // Draw the processed portrait, scaled to fit the terminal
+    if (this.gifReady && this.gifNativeW > 0) {
+      const targetH = Math.round(height * 0.45);  // ~45% of canvas height
+      const aspectRatio = this.gifNativeW / this.gifNativeH;
+      const targetW = Math.round(targetH * aspectRatio);
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.drawImage(
+        this.processedPortraitCanvas,
+        0, 0, this.gifNativeW, this.gifNativeH,
+        width - targetW - 40, 20, targetW, targetH
+      );
     }
 
     this.ctx.font = 'bold 24px monospace';
@@ -558,25 +650,41 @@ export class Terminal {
 
     for (let i = startIdx; i < this.buffer.length; i++) {
       let x = padding;
+      const isLargeLine = this.buffer[i].some((c) => c.large);
+      const lineH = isLargeLine ? 48 : this.CHAR_H;
+      if (isLargeLine) y += 8;
+
       for (const chunk of this.buffer[i]) {
-        this.ctx.fillStyle = chunk.color;
+        this.ctx.font = chunk.large ? 'bold 44px monospace' : 'bold 24px monospace';
+        const textWidth = this.ctx.measureText(chunk.text).width;
+        if (chunk.inverted) {
+          this.ctx.fillStyle = chunk.color;
+          const rectH = chunk.large ? 48 : this.CHAR_H - 2;
+          const rectY = chunk.large ? y - 36 : y - this.CHAR_H + 8;
+          this.ctx.fillRect(x, rectY, textWidth, rectH);
+          this.ctx.fillStyle = '#0a0601';
+        } else {
+          this.ctx.fillStyle = chunk.color;
+        }
         this.ctx.fillText(chunk.text, x, y);
-        x += this.ctx.measureText(chunk.text).width;
+        x += textWidth;
       }
-      y += this.CHAR_H;
+      y += lineH - (isLargeLine ? 8 : 0);
     }
 
-    const prompt = `user@ce-linux:${formatCwd(this.cwd)}$ `;
-    this.ctx.fillStyle = '#cee7d7';
+    this.ctx.font = 'bold 24px monospace';
+
+    const prompt = `user:~$ `;
+    this.ctx.fillStyle = '#ffbd33';
     this.ctx.fillText(prompt, padding, y);
     let cursorX = padding + this.ctx.measureText(prompt).width;
 
-    this.ctx.fillStyle = '#eef8f0';
+    this.ctx.fillStyle = '#ffeb99';
     this.ctx.fillText(this.inputEl.value, cursorX, y);
     cursorX += this.ctx.measureText(this.inputEl.value).width;
 
     if (Date.now() % 1000 < 500) {
-      this.ctx.fillStyle = '#cee7d7';
+      this.ctx.fillStyle = '#ffbd33';
       this.ctx.fillRect(cursorX, y - 20, 12, 24);
     }
 
@@ -587,17 +695,17 @@ export class Terminal {
 
     this.drawStaticWave(timestamp, width, height);
 
-    this.ctx.fillStyle = 'rgba(206, 231, 215, 0.01)';
-    for (let i = 0; i < 36; i++) {
+    this.ctx.fillStyle = 'rgba(255, 189, 51, 0.04)';
+    for (let i = 0; i < 900; i++) {
       const noiseX = Math.floor(Math.random() * width);
       const noiseY = Math.floor(Math.random() * height);
-      this.ctx.fillRect(noiseX, noiseY, 2, 2);
+      this.ctx.fillRect(noiseX, noiseY, 4, 4);
     }
 
     this.onRenderCallback();
   };
 
-    private drawStaticWave(timestamp: number, width: number, height: number): void {
+  private drawStaticWave(timestamp: number, width: number, height: number): void {
     const progress = (timestamp % this.STATIC_WAVE_CYCLE_MS) / this.STATIC_WAVE_CYCLE_MS;
     const pulse = Math.sin(progress * Math.PI);
     const centerY = progress * (height + 200) - 100;
@@ -609,11 +717,11 @@ export class Terminal {
 
       const distance = Math.abs(offset) / radius;
       const alpha = (1 - distance * distance) * (0.08 + pulse * 0.14);
-      this.ctx.fillStyle = `rgba(120, 255, 170, ${alpha.toFixed(3)})`;
+      this.ctx.fillStyle = `rgba(255, 189, 51, ${alpha.toFixed(3)})`;
       this.ctx.fillRect(0, y, width, 2);
     }
 
-    this.ctx.fillStyle = `rgba(140, 255, 190, ${(0.045 + pulse * 0.065).toFixed(3)})`;
+    this.ctx.fillStyle = `rgba(255, 170, 0, ${(0.045 + pulse * 0.065).toFixed(3)})`;
     for (let i = 0; i < 42; i++) {
       const noiseX = Math.floor(((i * 131) + timestamp * 0.12) % width);
       const noiseY = Math.round(centerY + Math.sin(i * 0.75 + timestamp * 0.006) * radius * 0.8);
@@ -622,53 +730,12 @@ export class Terminal {
       this.ctx.fillRect(noiseX, noiseY, blockSize, blockSize);
     }
 
-    this.ctx.fillStyle = `rgba(70, 220, 120, ${(0.02 + pulse * 0.04).toFixed(3)})`;
+    this.ctx.fillStyle = `rgba(220, 120, 0, ${(0.02 + pulse * 0.04).toFixed(3)})`;
     this.ctx.fillRect(0, Math.round(centerY - radius * 0.18), width, 1);
     this.ctx.fillRect(0, Math.round(centerY + radius * 0.18), width, 1);
   }
-  private drawDitheredPortrait(
-    ctx: CanvasRenderingContext2D,
-    dx: number,
-    dy: number,
-    width: number,
-    height: number,
-  ): void {
-    const pixelSize = 4;
-    const cols = Math.floor(width / pixelSize);
-    const rows = Math.floor(height / pixelSize);
-
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const cx = x / cols - 0.5;
-        const cy = y / rows - 0.5;
-        const headY = cy + 0.15;
-        const isHead = (cx * cx) / 0.04 + (headY * headY) / 0.035 < 1;
-        const neckY = cy - 0.05;
-        const isNeck = Math.abs(cx) < 0.06 && neckY > 0 && neckY < 0.08;
-        const shoulderY = cy - 0.1;
-        const isShoulders = Math.abs(cx) < 0.35 && shoulderY > 0 && shoulderY < 0.2;
-        const shoulderCurve = isShoulders && shoulderY < 0.1 + (0.35 - Math.abs(cx)) * 0.5;
-
-        if (isHead || isNeck || shoulderCurve) {
-          const dither = (x + y) % 2 === 0;
-          const innerDither = (x + y) % 3 === 0;
-          const dist = Math.sqrt(cx * cx + headY * headY);
-
-          if (isHead) {
-            ctx.fillStyle =
-              dist < 0.1 ? (dither ? '#cee7d7' : '#a4e8be') : innerDither ? '#cee7d7' : '#4daf84';
-          } else {
-            ctx.fillStyle = dither ? '#a9d1bc' : '#2f8e65';
-          }
-          ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
-        } else if (Math.random() < 0.02) {
-          ctx.fillStyle = 'rgba(216, 255, 228, 0.04)';
-          ctx.fillRect(dx + x * pixelSize, dy + y * pixelSize, pixelSize, pixelSize);
-        }
-      }
-    }
-  }
 }
+
 
 
 
