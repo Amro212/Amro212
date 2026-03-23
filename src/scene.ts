@@ -466,8 +466,8 @@ export class RetroComputerScene {
         this.scene.add(this.rimLight);
 
         // Subtle always-on light in front of the monitor to reveal frame edges
-        this.screenLight = new THREE.PointLight(0xffb060, 0.6, 4, 2);
-        this.screenLight.position.set(0, 1.64, 1.6);
+        this.screenLight = new THREE.PointLight(0xfffbf5, 0.6, 4, 0.5);
+        this.screenLight.position.set(0, 2, 1.6);
         this.computerGroup.add(this.screenLight);
     }
 
