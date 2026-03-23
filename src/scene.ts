@@ -47,6 +47,8 @@ export class RetroComputerScene {
     private readonly backgroundStart = new THREE.Color(0x08020d);
     private readonly backgroundEnd = new THREE.Color(0x16071a);
     private readonly backgroundScratch = new THREE.Color();
+    private readonly bgReturnScratch = new THREE.Color();
+    private readonly bgTargetScratch = new THREE.Color();
 
     private readonly gridUniforms = {
         uTime: { value: 0 },
@@ -608,8 +610,8 @@ export class RetroComputerScene {
 
     /** Interpolate background color for page sync while the canvas uses a shader backdrop */
     getBackgroundColor(): THREE.Color {
-        const target = this.backgroundStart.clone().lerp(this.backgroundEnd, 0.15 + this.scrollProgress * 0.5);
-        return new THREE.Color(0x000000).lerp(target, this.scrollProgress);
+        this.bgTargetScratch.copy(this.backgroundStart).lerp(this.backgroundEnd, 0.15 + this.scrollProgress * 0.5);
+        return this.bgReturnScratch.setHex(0x000000).lerp(this.bgTargetScratch, this.scrollProgress);
     }
 
     /** Aspect-ratio-aware portrait offset */
@@ -653,8 +655,8 @@ export class RetroComputerScene {
         this.lookTarget.set(0, this.computerGroup.position.y + 1.6, 0);
         this.camera.lookAt(this.lookTarget);
 
-        const baseBg = this.backgroundStart.clone().lerp(this.backgroundEnd, 0.08 + this.scrollProgress * 0.18);
-        this.backgroundScratch.setHex(0x000000).lerp(baseBg, this.scrollProgress);
+        this.bgTargetScratch.copy(this.backgroundStart).lerp(this.backgroundEnd, 0.08 + this.scrollProgress * 0.18);
+        this.backgroundScratch.setHex(0x000000).lerp(this.bgTargetScratch, this.scrollProgress);
         this.renderer.setClearColor(this.backgroundScratch, 1);
 
         this.gridUniforms.uTime.value = elapsed;

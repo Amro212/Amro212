@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
+    cssMinify: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -21,6 +22,10 @@ export default defineConfig({
 
           if (normalizedId.includes('/gsap/') || normalizedId.includes('/lenis/')) {
             return 'motion';
+          }
+
+          if (normalizedId.includes('/gifuct-js/')) {
+            return 'gifuct';
           }
 
           return undefined;

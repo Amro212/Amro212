@@ -256,7 +256,7 @@ function initScrollHandlers(): void {
   };
 
   window.addEventListener('scroll', queueUpdate, { passive: true });
-  window.addEventListener('resize', queueUpdate);
+  window.addEventListener('resize', queueUpdate, { passive: true });
   queueUpdate();
 }
 
@@ -285,7 +285,7 @@ function initMagneticElements(modules: AnimationModules): void {
       ease: 'power4.out',
     });
 
-    element.addEventListener('mousemove', (event) => {
+    element.addEventListener('mousemove', (event: MouseEvent) => {
       const rect = element.getBoundingClientRect();
       const x = event.clientX - rect.left - rect.width / 2;
       const y = event.clientY - rect.top - rect.height / 2;

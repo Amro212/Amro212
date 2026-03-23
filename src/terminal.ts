@@ -1,4 +1,4 @@
-import { parseGIF, decompressFrames } from 'gifuct-js';
+// gifuct-js is loaded lazily inside setupAnimatedPortrait()
 import { projects } from './projects';
 
 interface FSNode {
@@ -199,15 +199,25 @@ export class Terminal {
   private gifReady = false;
   private gifNativeW = 0;
   private gifNativeH = 0;
+  private gifFrameDirty = false;
 
   // Canvases for GIF processing
   private portraitCompositeCanvas: HTMLCanvasElement;
   private portraitCompositeCtx: CanvasRenderingContext2D;
+  /** Small canvas where downscaled composite is tinted — this is what gets drawn to the terminal */
   private processedPortraitCanvas: HTMLCanvasElement;
   private processedPortraitCtx: CanvasRenderingContext2D;
+  /** Downscale target before pixel manipulation (avoids tinting the full 1920×1920) */
+  private tintSourceCanvas: HTMLCanvasElement;
+  private tintSourceCtx: CanvasRenderingContext2D;
+  private frameTempCanvas: HTMLCanvasElement;
+  private frameTempCtx: CanvasRenderingContext2D;
 
-  private readonly PORTRAIT_W = 240;
-  private readonly PORTRAIT_H = 288;
+  /** Max dimension for the tint working canvas (keeps pixel loop fast) */
+  private readonly TINT_MAX_DIM = 320;
+  private tintW = 0;
+  private tintH = 0;
+
   private readonly CHAR_H = 30;
   private readonly FRAME_INTERVAL_MS = 1000 / 18;
   private readonly STATIC_WAVE_CYCLE_MS = 1650;
@@ -217,16 +227,28 @@ export class Terminal {
     this.root = buildFileSystem();
     this.onRenderCallback = onRender;
 
-    // Reusable canvases for GIF frame processing (full resolution, no downsampling)
+    // Full-resolution composite canvas (resized to GIF dimensions later)
     this.portraitCompositeCanvas = document.createElement('canvas');
-    this.portraitCompositeCanvas.width = this.PORTRAIT_W;
-    this.portraitCompositeCanvas.height = this.PORTRAIT_H;
-    this.portraitCompositeCtx = this.portraitCompositeCanvas.getContext('2d', { willReadFrequently: true })!;
+    this.portraitCompositeCanvas.width = 1;
+    this.portraitCompositeCanvas.height = 1;
+    this.portraitCompositeCtx = this.portraitCompositeCanvas.getContext('2d')!;
 
+    // Small working canvas for downscale → tint
+    this.tintSourceCanvas = document.createElement('canvas');
+    this.tintSourceCanvas.width = 1;
+    this.tintSourceCanvas.height = 1;
+    this.tintSourceCtx = this.tintSourceCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    // Final tinted output (same small size)
     this.processedPortraitCanvas = document.createElement('canvas');
-    this.processedPortraitCanvas.width = this.PORTRAIT_W;
-    this.processedPortraitCanvas.height = this.PORTRAIT_H;
+    this.processedPortraitCanvas.width = 1;
+    this.processedPortraitCanvas.height = 1;
     this.processedPortraitCtx = this.processedPortraitCanvas.getContext('2d')!;
+
+    this.frameTempCanvas = document.createElement('canvas');
+    this.frameTempCanvas.width = 1;
+    this.frameTempCanvas.height = 1;
+    this.frameTempCtx = this.frameTempCanvas.getContext('2d')!;
 
     const container = document.querySelector(containerSelector) as HTMLElement | null;
     if (!container) {
@@ -261,7 +283,10 @@ export class Terminal {
 
   private async setupAnimatedPortrait(src: string): Promise<void> {
     try {
-      const response = await fetch(src);
+      const [response, { parseGIF, decompressFrames }] = await Promise.all([
+        fetch(src),
+        import('gifuct-js'),
+      ]);
       const buffer = await response.arrayBuffer();
       const gif = parseGIF(buffer);
       const frames = decompressFrames(gif, true);
@@ -270,14 +295,22 @@ export class Terminal {
       const gifW = gif.lsd.width;
       const gifH = gif.lsd.height;
 
-      // Resize composite and processed canvases to match the GIF
+      // Full-resolution composite canvas
       this.portraitCompositeCanvas.width = gifW;
       this.portraitCompositeCanvas.height = gifH;
-      this.processedPortraitCanvas.width = gifW;
-      this.processedPortraitCanvas.height = gifH;
-      // Store actual GIF dimensions for use in render
       this.gifNativeW = gifW;
       this.gifNativeH = gifH;
+
+      // Compute a small working size for tinting (max 320px on longest side)
+      const scale = Math.min(1, this.TINT_MAX_DIM / Math.max(gifW, gifH));
+      this.tintW = Math.round(gifW * scale);
+      this.tintH = Math.round(gifH * scale);
+
+      // Size the tint working canvases
+      this.tintSourceCanvas.width = this.tintW;
+      this.tintSourceCanvas.height = this.tintH;
+      this.processedPortraitCanvas.width = this.tintW;
+      this.processedPortraitCanvas.height = this.tintH;
 
       this.gifFrames = frames;
       this.gifFrameIndex = 0;
@@ -287,6 +320,7 @@ export class Terminal {
       this.portraitCompositeCtx.clearRect(0, 0, gifW, gifH);
       this.compositeFrame(frames[0]);
       this.gifFrameIndex = 1 % frames.length;
+      this.gifFrameDirty = true;
 
       this.gifReady = true;
     } catch (error) {
@@ -302,10 +336,11 @@ export class Terminal {
       frame.dims.height
     );
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = frame.dims.width;
-    tempCanvas.height = frame.dims.height;
-    tempCanvas.getContext('2d')!.putImageData(frameImageData, 0, 0);
+    if (this.frameTempCanvas.width !== frame.dims.width || this.frameTempCanvas.height !== frame.dims.height) {
+      this.frameTempCanvas.width = frame.dims.width;
+      this.frameTempCanvas.height = frame.dims.height;
+    }
+    this.frameTempCtx.putImageData(frameImageData, 0, 0);
 
     if (frame.disposalType === 2) {
       this.portraitCompositeCtx.clearRect(
@@ -317,53 +352,57 @@ export class Terminal {
     }
 
     this.portraitCompositeCtx.drawImage(
-      tempCanvas,
+      this.frameTempCanvas,
       frame.dims.left,
       frame.dims.top
     );
+
+    this.gifFrameDirty = true;
   }
 
-  /** Advance GIF frame and apply amber monochrome tint */
+  /** Advance GIF frame and apply amber monochrome tint (only when frame changes) */
   private processCurrentFrame(timestamp: number): void {
     if (!this.gifReady || this.gifFrames.length === 0) return;
 
     const currentFrame = this.gifFrames[this.gifFrameIndex];
-    // GIF delays are in centiseconds (1/100s), convert to milliseconds
     const delayMs = (currentFrame.delay || 0) * 0.65;
 
-    // Check if we need to advance to the next frame
+    // Advance to next frame if enough time has passed
     if (delayMs > 0 && timestamp - this.lastGifRenderTime >= delayMs) {
-      // Advance to next frame and composite it
       this.gifFrameIndex = (this.gifFrameIndex + 1) % this.gifFrames.length;
       this.compositeFrame(this.gifFrames[this.gifFrameIndex]);
       this.lastGifRenderTime = timestamp;
     }
 
-    // Now grab the final composite and tint it amber
-    const w = this.gifNativeW;
-    const h = this.gifNativeH;
-    if (w === 0 || h === 0) return;
-    const imageData = this.portraitCompositeCtx.getImageData(0, 0, w, h);
+    // Only re-tint when the frame actually changed
+    if (!this.gifFrameDirty) return;
+    this.gifFrameDirty = false;
+
+    const tw = this.tintW;
+    const th = this.tintH;
+    if (tw === 0 || th === 0) return;
+
+    // Downscale composite → small tint source canvas (browser handles the resize)
+    this.tintSourceCtx.clearRect(0, 0, tw, th);
+    this.tintSourceCtx.drawImage(this.portraitCompositeCanvas, 0, 0, tw, th);
+
+    // Per-pixel amber tint on the SMALL canvas
+    const imageData = this.tintSourceCtx.getImageData(0, 0, tw, th);
     const data = imageData.data;
 
     for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
       const a = data[i + 3];
+      if (a === 0) continue;
 
-      if (a === 0) continue; // skip fully transparent
-
-      let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      let lum = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
       lum = Math.pow(lum, 0.7);
 
-      const darkColor = 20;
-      data[i] = Math.min(255, darkColor + Math.round(lum * 235));
-      data[i + 1] = Math.min(255, darkColor * 0.7 + Math.round(lum * 170));
-      data[i + 2] = Math.min(255, darkColor * 0.2 + Math.round(lum * 40));
+      data[i] = Math.min(255, 20 + Math.round(lum * 235));
+      data[i + 1] = Math.min(255, 14 + Math.round(lum * 170));
+      data[i + 2] = Math.min(255, 4 + Math.round(lum * 40));
     }
 
-    this.processedPortraitCtx.clearRect(0, 0, w, h);
+    this.processedPortraitCtx.clearRect(0, 0, tw, th);
     this.processedPortraitCtx.putImageData(imageData, 0, 0);
   }
 
@@ -629,14 +668,14 @@ export class Terminal {
 
     this.processCurrentFrame(timestamp);
     // Draw the processed portrait, scaled to fit the terminal
-    if (this.gifReady && this.gifNativeW > 0) {
+    if (this.gifReady && this.tintW > 0) {
       const targetH = Math.round(height * 0.45);  // ~45% of canvas height
       const aspectRatio = this.gifNativeW / this.gifNativeH;
       const targetW = Math.round(targetH * aspectRatio);
       this.ctx.imageSmoothingEnabled = false;
       this.ctx.drawImage(
         this.processedPortraitCanvas,
-        0, 0, this.gifNativeW, this.gifNativeH,
+        0, 0, this.tintW, this.tintH,
         width - targetW - 40, 20, targetW, targetH
       );
     }
