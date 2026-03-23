@@ -44,8 +44,8 @@ export class RetroComputerScene {
     private animationId: number | null = null;
     private readonly clock = new THREE.Clock();
     private readonly lookTarget = new THREE.Vector3();
-    private readonly backgroundStart = new THREE.Color(0x08020d);
-    private readonly backgroundEnd = new THREE.Color(0x16071a);
+    private readonly backgroundStart = new THREE.Color(0x080401);
+    private readonly backgroundEnd = new THREE.Color(0x160903);
     private readonly backgroundScratch = new THREE.Color();
     private readonly bgReturnScratch = new THREE.Color();
     private readonly bgTargetScratch = new THREE.Color();
@@ -444,27 +444,31 @@ export class RetroComputerScene {
     }
 
     private addLights(): void {
-        this.ambientLight = new THREE.AmbientLight(0x35193d, 0.46);
+        // Warmer, even ambient light to establish a soft cinematic base
+        this.ambientLight = new THREE.AmbientLight(0x4a4440, 0.65);
         this.scene.add(this.ambientLight);
 
-        this.fillLight = new THREE.DirectionalLight(0x55d7ff, 1.15);
-        this.fillLight.position.set(-5.5, 2.8, 5.8);
+        // Soft, balanced fill light from front-left
+        this.fillLight = new THREE.DirectionalLight(0xffefe0, 0.9);
+        this.fillLight.position.set(-6.0, 3.5, 6.0);
         this.scene.add(this.fillLight);
 
-        this.keyLight = new THREE.SpotLight(0xff4ea3, 22, 16, Math.PI / 5.2, 0.42, 1.35);
-        this.keyLight.position.set(4.4, 4.8, 5.2);
-        this.keyLight.target.position.set(0.15, 1.3, 0.75);
+        // Pulled-back, wide-angle cinematic key light (warm orange)
+        this.keyLight = new THREE.SpotLight(0xffc599, 14, 30, Math.PI / 3, 0.8, 1.4);
+        this.keyLight.position.set(4.0, 6.0, 8.0);
+        this.keyLight.target.position.set(0, 1.0, 0);
         this.keyLight.castShadow = true;
         this.keyLight.shadow.mapSize.set(1024, 1024);
-        this.keyLight.shadow.radius = 4;
+        this.keyLight.shadow.radius = 6;
         this.keyLight.shadow.bias = -0.00025;
         this.keyLight.shadow.camera.near = 0.5;
-        this.keyLight.shadow.camera.far = 20;
+        this.keyLight.shadow.camera.far = 25;
         this.scene.add(this.keyLight);
         this.scene.add(this.keyLight.target);
 
-        this.rimLight = new THREE.PointLight(0xff5ec6, 2.8, 12, 2);
-        this.rimLight.position.set(-1.0, 2.7, -2.4);
+        // Subtle warm rim light from behind
+        this.rimLight = new THREE.PointLight(0xffb070, 1.5, 15, 2);
+        this.rimLight.position.set(-2.0, 3.0, -4.0);
         this.scene.add(this.rimLight);
 
         // Subtle always-on light in front of the monitor to reveal frame edges
@@ -491,7 +495,7 @@ export class RetroComputerScene {
         this.scene.add(gridFloor);
 
         this.shadowFloorMat = new THREE.ShadowMaterial({ opacity: 0 });
-        this.shadowFloorMat.color.set(0x150512);
+        this.shadowFloorMat.color.set(0x160903);
         const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), this.shadowFloorMat);
         shadowFloor.rotation.x = -Math.PI / 2;
         shadowFloor.position.y = -0.495;
@@ -634,10 +638,10 @@ export class RetroComputerScene {
         const lightProgress = Math.min(1, this.scrollProgress * 2.5);
         const lightEased = 1 - Math.pow(1 - lightProgress, 3);
 
-        this.ambientLight.intensity = 0.46 * lightEased;
-        this.fillLight.intensity = 1.15 * lightEased;
-        this.keyLight.intensity = 22 * lightEased;
-        this.rimLight.intensity = 2.8 * lightEased;
+        this.ambientLight.intensity = 0.65 * lightEased;
+        this.fillLight.intensity = 0.9 * lightEased;
+        this.keyLight.intensity = 14 * lightEased;
+        this.rimLight.intensity = 1.5 * lightEased;
 
         const camZ = this.lerp(
             this.CAM_Z_START + this.portraitOffset,
