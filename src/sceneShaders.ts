@@ -91,6 +91,7 @@ void main() {
   color += minorColor * minor * 0.28 * distanceFade * edgeFade * pulse;
   color += majorColor * major * 0.68 * distanceFade * edgeFade;
 
+  color *= uOpacity;
   gl_FragColor = vec4(color, uOpacity);
 }
 `;
@@ -130,12 +131,12 @@ void main() {
 
   float phosphor = smoothstep(0.08, 0.88, texel.r * 0.8 + texel.g * 0.2);
   vec3 color = texel;
-  color *= mix(vec3(0.9, 0.82, 0.6), vec3(1.0, 0.94, 0.7), phosphor);
+  color *= mix(vec3(1.05, 0.96, 0.72), vec3(1.2, 1.1, 0.85), phosphor);
   color *= scanline * mask * flicker;
-  color += vec3(0.02, 0.008, 0.0) * phosphor;
+  color += vec3(0.03, 0.012, 0.0) * phosphor;
 
   float vignette = 1.0 - smoothstep(0.42, 0.96, dist);
-  color *= 0.82 + vignette * 0.18;
+  color *= 0.88 + vignette * 0.12;
   color += vec3(0.015, 0.005, 0.0) * (1.0 - vignette) * 0.12;
 
   float noise = fract(sin(dot(uv + vec2(uTime, uTime * 0.5), vec2(12.9898, 78.233))) * 43758.5453);
@@ -207,11 +208,18 @@ void main() {
 
   float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
   color = mix(vec3(luminance), color, 1.08);
-  color = (color - 0.5) * 1.08 + 0.5;
+
+  // Apply contrast only to non-black areas to prevent lifting blacks
+  float brightness = max(color.r, max(color.g, color.b));
+  float contrastMask = smoothstep(0.0, 0.05, brightness);
+  color = mix(color, (color - 0.5) * 1.08 + 0.5, contrastMask);
   color *= vec3(1.02, 1.0, 1.04);
 
   float vignette = 1.0 - smoothstep(0.34, 1.10, dist);
   color *= mix(0.76, 1.0, vignette);
+
+  // Ensure blacks stay black
+  color = max(color, vec3(0.0));
 
   gl_FragColor = vec4(color, 1.0);
 }

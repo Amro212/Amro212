@@ -36,6 +36,11 @@ export class RetroComputerScene {
     private gridMaterial!: THREE.ShaderMaterial;
     private shadowFloorMat!: THREE.ShadowMaterial;
     private screenTexture: THREE.CanvasTexture | null = null;
+    private ambientLight!: THREE.AmbientLight;
+    private fillLight!: THREE.DirectionalLight;
+    private keyLight!: THREE.SpotLight;
+    private rimLight!: THREE.PointLight;
+    private screenLight!: THREE.PointLight;
     private animationId: number | null = null;
     private readonly clock = new THREE.Clock();
     private readonly lookTarget = new THREE.Vector3();
@@ -265,7 +270,7 @@ export class RetroComputerScene {
         const glowMat = new THREE.MeshBasicMaterial({
             color: 0xffb000,
             transparent: true,
-            opacity: 0.045,
+            opacity: 0.07,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             toneMapped: false,
@@ -437,28 +442,33 @@ export class RetroComputerScene {
     }
 
     private addLights(): void {
-        const ambient = new THREE.AmbientLight(0x35193d, 0.46);
-        this.scene.add(ambient);
+        this.ambientLight = new THREE.AmbientLight(0x35193d, 0.46);
+        this.scene.add(this.ambientLight);
 
-        const fillLight = new THREE.DirectionalLight(0x55d7ff, 1.15);
-        fillLight.position.set(-5.5, 2.8, 5.8);
-        this.scene.add(fillLight);
+        this.fillLight = new THREE.DirectionalLight(0x55d7ff, 1.15);
+        this.fillLight.position.set(-5.5, 2.8, 5.8);
+        this.scene.add(this.fillLight);
 
-        const keyLight = new THREE.SpotLight(0xff4ea3, 22, 16, Math.PI / 5.2, 0.42, 1.35);
-        keyLight.position.set(4.4, 4.8, 5.2);
-        keyLight.target.position.set(0.15, 1.3, 0.75);
-        keyLight.castShadow = true;
-        keyLight.shadow.mapSize.set(1024, 1024);
-        keyLight.shadow.radius = 4;
-        keyLight.shadow.bias = -0.00025;
-        keyLight.shadow.camera.near = 0.5;
-        keyLight.shadow.camera.far = 20;
-        this.scene.add(keyLight);
-        this.scene.add(keyLight.target);
+        this.keyLight = new THREE.SpotLight(0xff4ea3, 22, 16, Math.PI / 5.2, 0.42, 1.35);
+        this.keyLight.position.set(4.4, 4.8, 5.2);
+        this.keyLight.target.position.set(0.15, 1.3, 0.75);
+        this.keyLight.castShadow = true;
+        this.keyLight.shadow.mapSize.set(1024, 1024);
+        this.keyLight.shadow.radius = 4;
+        this.keyLight.shadow.bias = -0.00025;
+        this.keyLight.shadow.camera.near = 0.5;
+        this.keyLight.shadow.camera.far = 20;
+        this.scene.add(this.keyLight);
+        this.scene.add(this.keyLight.target);
 
-        const rimLight = new THREE.PointLight(0xff5ec6, 2.8, 12, 2);
-        rimLight.position.set(-1.0, 2.7, -2.4);
-        this.scene.add(rimLight);
+        this.rimLight = new THREE.PointLight(0xff5ec6, 2.8, 12, 2);
+        this.rimLight.position.set(-1.0, 2.7, -2.4);
+        this.scene.add(this.rimLight);
+
+        // Subtle always-on light in front of the monitor to reveal frame edges
+        this.screenLight = new THREE.PointLight(0xffb060, 0.6, 4, 2);
+        this.screenLight.position.set(0, 1.64, 1.6);
+        this.computerGroup.add(this.screenLight);
     }
 
     private addFloor(): void {
@@ -618,6 +628,15 @@ export class RetroComputerScene {
         const elapsed = this.clock.getElapsedTime();
         const easedT = this.easeInOutCubic(this.scrollProgress);
 
+        // Reveal the lights much faster than the rest of the animations
+        const lightProgress = Math.min(1, this.scrollProgress * 2.5);
+        const lightEased = 1 - Math.pow(1 - lightProgress, 3);
+
+        this.ambientLight.intensity = 0.46 * lightEased;
+        this.fillLight.intensity = 1.15 * lightEased;
+        this.keyLight.intensity = 22 * lightEased;
+        this.rimLight.intensity = 2.8 * lightEased;
+
         const camZ = this.lerp(
             this.CAM_Z_START + this.portraitOffset,
             this.CAM_Z_END + this.portraitOffset,
@@ -644,7 +663,7 @@ export class RetroComputerScene {
         this.crtUniforms.uTime.value = elapsed;
         this.glassUniforms.uTime.value = elapsed;
 
-        this.screenGlowMesh.material.opacity = 0.018 + Math.sin(elapsed * 2.6) * 0.004;
+        this.screenGlowMesh.material.opacity = 0.035 + Math.sin(elapsed * 2.6) * 0.006;
         this.screenGlowMesh.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.0008);
 
         this.composer.render();
