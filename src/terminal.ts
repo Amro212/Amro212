@@ -666,26 +666,41 @@ export class Terminal {
     this.ctx.fillStyle = '#0a0601';
     this.ctx.fillRect(0, 0, width, height);
 
-    this.processCurrentFrame(timestamp);
-    // Draw the processed portrait, scaled to fit the terminal
-    if (this.gifReady && this.tintW > 0) {
-      const targetH = Math.round(height * 0.45);  // ~45% of canvas height
-      const aspectRatio = this.gifNativeW / this.gifNativeH;
-      const targetW = Math.round(targetH * aspectRatio);
-      this.ctx.imageSmoothingEnabled = false;
-      this.ctx.drawImage(
-        this.processedPortraitCanvas,
-        0, 0, this.tintW, this.tintH,
-        width - targetW - 40, 20, targetW, targetH
-      );
-    }
-
     this.ctx.font = 'bold 24px monospace';
     const padding = 40;
     let y = padding + 36;
     const totalLines = this.buffer.length + 1;
     const maxVisibleLines = Math.floor((height - padding * 2) / this.CHAR_H);
     const startIdx = totalLines > maxVisibleLines ? totalLines - maxVisibleLines : 0;
+
+    let scrolledY = 0;
+    for (let i = 0; i < startIdx; i++) {
+      if (i < this.buffer.length) {
+        const isLargeLine = this.buffer[i].some((c) => c.large);
+        scrolledY += isLargeLine ? 48 : this.CHAR_H;
+      } else {
+        scrolledY += this.CHAR_H;
+      }
+    }
+
+    const targetH = Math.round(height * 0.45);  // ~45% of canvas height
+    const isGifVisible = (20 - scrolledY + targetH) > 0;
+
+    if (isGifVisible) {
+      this.processCurrentFrame(timestamp);
+    }
+
+    // Draw the processed portrait, scaled to fit the terminal
+    if (this.gifReady && this.tintW > 0 && isGifVisible) {
+      const aspectRatio = this.gifNativeW / this.gifNativeH;
+      const targetW = Math.round(targetH * aspectRatio);
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.drawImage(
+        this.processedPortraitCanvas,
+        0, 0, this.tintW, this.tintH,
+        width - targetW - 40, 20 - scrolledY, targetW, targetH
+      );
+    }
 
     for (let i = startIdx; i < this.buffer.length; i++) {
       let x = padding;
