@@ -1,4 +1,5 @@
 import './style.css';
+import './components/ui/pixelact-ui/styles/styles.css';
 import { projects, type Project } from './projects';
 
 type RetroComputerScene = import('./scene').RetroComputerScene;

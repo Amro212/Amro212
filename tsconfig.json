@@ -3,6 +3,12 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
     "lib": [
       "ES2022",
       "DOM",
