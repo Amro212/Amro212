@@ -500,7 +500,16 @@ body.scene-ready .three-container canvas {
 
 .projects__header {
   text-align: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: 0;
+}
+
+.projects .about__heading {
+  color: var(--projects-heading);
+}
+
+.projects .about__heading::after {
+  background: var(--projects-heading);
+  opacity: 0.35;
 }
 
 .projects__title {
@@ -508,49 +517,6 @@ body.scene-ready .three-container canvas {
   font-size: clamp(1.5rem, 4vw, 3rem);
   color: var(--projects-heading);
   letter-spacing: 2px;
-}
-
-/* Side Navigation Icons */
-.projects__side-nav {
-  position: fixed;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  z-index: 100;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition-normal);
-}
-
-.projects__side-nav.visible {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.projects__side-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid var(--projects-border);
-  background: var(--projects-card-bg);
-  color: var(--projects-tag-text);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.projects__side-btn:hover,
-.projects__side-btn.active {
-  background: var(--projects-heading);
-  color: #fff;
-  border-color: var(--projects-heading);
-  transform: scale(1.1);
 }
 
 /* Project Cards Grid */
@@ -755,10 +721,6 @@ body.scene-ready .three-container canvas {
 @media (max-width: 768px) {
   .projects {
     padding-left: var(--space-lg);
-  }
-
-  .projects__side-nav {
-    display: none;
   }
 
   .about {

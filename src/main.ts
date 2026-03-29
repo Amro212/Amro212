@@ -100,8 +100,19 @@ function createProjectCard(project: Project): string {
     .map((tag) => `<span class="project-card__tag">${tag}</span>`)
     .join('');
 
+  const linkLabel = (() => {
+    if (!project.link) return '';
+
+    try {
+      const host = new URL(project.link).hostname.replace(/^www\./, '');
+      return host === 'github.com' ? 'View repository' : 'Visit live site';
+    } catch {
+      return 'Open project';
+    }
+  })();
+
   const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener" class="project-card__link">${project.link}</a>`
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__link" aria-label="Open ${project.title} in a new tab">${linkLabel} -></a>`
     : '';
 
   return `
@@ -121,18 +132,6 @@ function createProjectCard(project: Project): string {
       </div>
     </article>
   `;
-}
-
-function initProjectFilters(): void {
-  const buttons = document.querySelectorAll('.projects__side-btn');
-  buttons.forEach((button) => {
-    button.addEventListener('click', () => {
-      buttons.forEach((currentButton) => currentButton.classList.remove('active'));
-      button.classList.add('active');
-      const filter = (button as HTMLElement).dataset.filter || 'all';
-      renderProjects(filter);
-    });
-  });
 }
 
 function initSmoothScroll(modules: AnimationModules): void {
@@ -160,7 +159,6 @@ function initScrollHandlers(): void {
   const threeContainer = document.getElementById('three-container');
   const blurOverlay = document.getElementById('three-blur-overlay');
   const aboutSection = document.getElementById('about');
-  const projectsSideNav = document.getElementById('projects-side-nav');
   const projectsSection = document.getElementById('projects');
   const body = document.body;
   let pendingFrame = false;
@@ -242,12 +240,6 @@ function initScrollHandlers(): void {
       }
     }
 
-    if (projectsSideNav && projectsSection) {
-      const sectionTop = projectsSection.offsetTop;
-      const sectionBottom = sectionTop + projectsSection.offsetHeight;
-      const inView = scrollY + windowHeight > sectionTop + 100 && scrollY < sectionBottom;
-      projectsSideNav.classList.toggle('visible', inView);
-    }
   };
 
   const queueUpdate = () => {
@@ -430,7 +422,6 @@ async function initAnimationStack(): Promise<void> {
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   renderProjects();
-  initProjectFilters();
   initScrollHandlers();
 
   void Promise.all([initAnimationStack(), initScene(), initTerminal()]);

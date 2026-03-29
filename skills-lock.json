@@ -1,6 +1,16 @@
 {
   "version": 1,
   "skills": {
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "6337038fe1fe6bbe1b9f252ab678ee575859190bab6f0f246f4061824eb40875"
+    },
+    "userinterface-wiki": {
+      "source": "raphaelsalaja/userinterface-wiki",
+      "sourceType": "github",
+      "computedHash": "1d1fbf49afa29712573e39bea7669b932160ae93bdf96a16d729849641b1fa22"
+    },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
