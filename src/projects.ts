@@ -4,6 +4,7 @@ export interface Project {
   tags: string[];
   description: string;
   link?: string;
+  previewImages?: string[];
   category: 'hardware' | 'software' | 'research';
 }
 
@@ -33,6 +34,7 @@ export const projects: Project[] = [
     description:
       'Branded community web experience for LEGEND that combines narrative storytelling, contract and chart visibility, and media-backed updates tied to real-world school-support efforts.',
     link: 'https://legend.guru',
+    previewImages: ['/project-previews/legend1.png', '/project-previews/legend2.png'],
     category: 'research',
   },
   {
@@ -40,13 +42,13 @@ export const projects: Project[] = [
     year: '2025',
     tags: ['MCP', 'Base Network', 'AgentKit', 'Coinbase', 'Onchain Tools'],
     description:
-      'Developer-facing MCP workflow product that gives AI agents a unified interface for onchain actions across wallets, contracts, NFTs, and integrations on Base infrastructure.',
+      'Frontend concept site for BaseMCP, built as a passion project inspired by Coinbase, focused on presenting the product clearly through a polished, developer-friendly interface.',
     link: 'https://www.basemcp.xyz',
     category: 'software',
   },
   {
     title: 'Gerk',
-    year: '2026',
+    year: '2025',
     tags: ['Solana', 'DexScreener', 'Community', 'Brand UX', 'Landing Page'],
     description:
       'Character-driven web product for $GERK that streamlines buy/community entry points and reinforces brand voice with live market context and social touchpoints.',

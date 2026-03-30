@@ -1,6 +1,8 @@
 import './style.css';
 import './components/ui/pixelact-ui/styles/styles.css';
+import './components/ui/pixelact-ui/button.css';
 import { projects, type Project } from './projects';
+import { initProjectsPixelTrail } from './projectsPixelTrail';
 
 type RetroComputerScene = import('./scene').RetroComputerScene;
 
@@ -89,6 +91,7 @@ function renderProjects(filter = 'all'): void {
       : projects.filter((project) => project.category === filter);
 
   grid.innerHTML = filtered.map((project) => createProjectCard(project)).join('');
+  initProjectPixelTransitions();
 
   if (animationModules) {
     observeRevealElements(animationModules);
@@ -96,6 +99,9 @@ function renderProjects(filter = 'all'): void {
 }
 
 function createProjectCard(project: Project): string {
+  const projectIndex = projects.indexOf(project) + 1;
+  const projectSlug = project.title.toLowerCase().replace(/\s+/g, '-');
+  const mediaHtml = createProjectMedia(project, projectSlug);
   const tagsHtml = project.tags
     .map((tag) => `<span class="project-card__tag">${tag}</span>`)
     .join('');
@@ -112,26 +118,121 @@ function createProjectCard(project: Project): string {
   })();
 
   const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__link" aria-label="Open ${project.title} in a new tab">${linkLabel} -></a>`
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span>${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">-></span></a>`
     : '';
 
   return `
-    <article class="project-card" data-category="${project.category}">
-      <div class="project-card__titlebar">
-        <span class="project-card__dot project-card__dot--red"></span>
-        <span class="project-card__dot project-card__dot--yellow"></span>
-        <span class="project-card__dot project-card__dot--green"></span>
-        <span class="project-card__titlebar-text">~/projects/${project.title.toLowerCase().replace(/\s+/g, '-')}</span>
-      </div>
-      <div class="project-card__body">
-        <h3 class="project-card__name">${project.title}</h3>
-        <p class="project-card__year">${project.year}</p>
-        <div class="project-card__tags">${tagsHtml}</div>
-        <p class="project-card__desc">${project.description}</p>
-        ${linkHtml}
+    <article class="project-card" data-category="${project.category}" aria-label="Project ${projectIndex}: ${project.title}">
+      <div class="project-card__layout">
+        <figure class="project-card__media" aria-label="Project preview for ${project.title}">
+          ${mediaHtml}
+        </figure>
+
+        <div class="project-card__body">
+          <p class="project-card__eyebrow">Project ${String(projectIndex).padStart(2, '0')}</p>
+          <h3 class="project-card__name">${project.title}</h3>
+          <p class="project-card__year">${project.year}</p>
+          <div class="project-card__tags" aria-label="Project technologies">${tagsHtml}</div>
+          <p class="project-card__desc">${project.description}</p>
+          ${linkHtml}
+        </div>
       </div>
     </article>
   `;
+}
+
+function createProjectMedia(project: Project, projectSlug: string): string {
+  if (project.previewImages && project.previewImages.length >= 2) {
+    const [firstImage, secondImage] = project.previewImages;
+    return `
+      <div class="project-card__pixel-transition" data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
+        <img class="project-card__transition-image project-card__transition-image--base" src="${firstImage}" alt="${project.title} preview image one" loading="lazy" decoding="async" />
+        <img class="project-card__transition-image project-card__transition-image--alt" src="${secondImage}" alt="${project.title} preview image two" loading="lazy" decoding="async" />
+        <div class="project-card__pixel-layer" aria-hidden="true"></div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="project-card__placeholder" role="img" aria-label="Placeholder screenshot for ${project.title}">
+      <span class="project-card__placeholder-label">Screenshot Placeholder</span>
+      <span class="project-card__placeholder-title">${project.title}</span>
+      <span class="project-card__placeholder-meta">/project-previews/${projectSlug}</span>
+    </div>
+  `;
+}
+
+function initProjectPixelTransitions(): void {
+  const transitions = document.querySelectorAll<HTMLElement>('[data-pixel-transition]');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+
+  transitions.forEach((transition) => {
+    if (transition.dataset.pixelTransitionReady === 'true') return;
+    transition.dataset.pixelTransitionReady = 'true';
+
+    const pixelLayer = transition.querySelector<HTMLElement>('.project-card__pixel-layer');
+    const gridSize = Number(transition.dataset.gridSize ?? '19');
+    const animationDuration = Number(transition.dataset.animationDuration ?? '0.4');
+    const pixelColor = transition.dataset.pixelColor ?? '#ffffff';
+
+    if (pixelLayer) {
+      pixelLayer.innerHTML = '';
+      const pixelSize = 100 / gridSize;
+
+      for (let row = 0; row < gridSize; row += 1) {
+        for (let col = 0; col < gridSize; col += 1) {
+          const pixel = document.createElement('span');
+          pixel.className = 'project-card__pixel';
+          pixel.style.width = `${pixelSize}%`;
+          pixel.style.height = `${pixelSize}%`;
+          pixel.style.left = `${col * pixelSize}%`;
+          pixel.style.top = `${row * pixelSize}%`;
+          pixel.style.backgroundColor = pixelColor;
+          pixel.style.setProperty('--pixel-burst-duration', `${Math.max(0.1, animationDuration)}s`);
+          pixelLayer.appendChild(pixel);
+        }
+      }
+    }
+
+    if (prefersReducedMotion) return;
+
+    let isActive = false;
+    let swapTimer: number | undefined;
+
+    const animateTransition = (activate: boolean) => {
+      if (isActive === activate) return;
+      isActive = activate;
+
+      if (swapTimer) {
+        window.clearTimeout(swapTimer);
+      }
+
+      if (!pixelLayer) return;
+      const pixels = pixelLayer.querySelectorAll<HTMLElement>('.project-card__pixel');
+      const maxDelayMs = Math.max(1, Math.floor(animationDuration * 1000 * 0.7));
+
+      pixels.forEach((pixel) => {
+        pixel.classList.remove('is-firing');
+        pixel.style.animationDelay = `${Math.floor(Math.random() * maxDelayMs)}ms`;
+        void pixel.offsetWidth;
+        pixel.classList.add('is-firing');
+      });
+
+      swapTimer = window.setTimeout(() => {
+        transition.classList.toggle('is-active', activate);
+      }, Math.max(100, Math.floor(animationDuration * 1000)));
+    };
+
+    transition.addEventListener('mouseenter', () => animateTransition(true));
+    transition.addEventListener('mouseleave', () => animateTransition(false));
+    transition.addEventListener('focus', () => animateTransition(true));
+    transition.addEventListener('blur', () => animateTransition(false));
+
+    if (isCoarsePointer) {
+      transition.addEventListener('click', () => animateTransition(!isActive));
+    }
+  });
 }
 
 function initSmoothScroll(modules: AnimationModules): void {
@@ -422,6 +523,7 @@ async function initAnimationStack(): Promise<void> {
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   renderProjects();
+  initProjectsPixelTrail();
   initScrollHandlers();
 
   void Promise.all([initAnimationStack(), initScene(), initTerminal()]);

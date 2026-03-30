@@ -47,7 +47,7 @@ function buildFileSystem(): FSNode {
       '  Contact Info',
       '===========================================',
       '',
-      'Email:    you@example.com',
+      'Email:    amromousa8@gmail.com',
       'LinkedIn: linkedin.com/in/yourprofile',
       'GitHub:   github.com/yourhandle',
     ].join('\n'),
@@ -556,25 +556,40 @@ export class Terminal {
         return a.name.localeCompare(b.name);
       });
 
-    if (items.length <= 5) {
-      const formatted = items
-        .map((item) =>
-          item.isDir
-            ? `<span class="term-dir">${item.name}/</span>`
-            : `<span class="term-file">${item.name}</span>`,
-        )
-        .join('  ');
-      this.printLine({ text: formatted });
-      return;
+    // Wrap ls output to terminal width so long project names never clip at the right edge.
+    const maxCharsPerLine = this.getMaxCharsPerLine();
+    let line = '';
+    let lineLength = 0;
+
+    for (const item of items) {
+      const plainText = item.isDir ? `${item.name}/` : item.name;
+      const htmlText = item.isDir
+        ? `<span class="term-dir">${plainText}</span>`
+        : `<span class="term-file">${plainText}</span>`;
+      const itemLength = plainText.length;
+      const separatorLength = lineLength === 0 ? 0 : 2;
+
+      if (lineLength > 0 && lineLength + separatorLength + itemLength > maxCharsPerLine) {
+        this.printLine({ text: line });
+        line = htmlText;
+        lineLength = itemLength;
+        continue;
+      }
+
+      line += (lineLength === 0 ? '' : '  ') + htmlText;
+      lineLength += separatorLength + itemLength;
     }
 
-    items.forEach((item) => {
-      this.printLine({
-        text: item.isDir
-          ? `<span class="term-dir">${item.name}/</span>`
-          : `<span class="term-file">${item.name}</span>`,
-      });
-    });
+    if (line) {
+      this.printLine({ text: line });
+    }
+  }
+
+  private getMaxCharsPerLine(): number {
+    const padding = 40;
+    const availableWidth = Math.max(220, this.canvas.width - padding * 2);
+    const approxCharWidth = 16;
+    return Math.max(24, Math.floor(availableWidth / approxCharWidth));
   }
 
   private cmdCd(path?: string): void {
@@ -632,8 +647,9 @@ export class Terminal {
     const projectCards = document.querySelectorAll('.project-card');
 
     for (const card of projectCards) {
-      const titlebar = card.querySelector('.project-card__titlebar-text');
-      if (titlebar?.textContent?.includes(slug)) {
+      const projectMeta = card.querySelector('.project-card__placeholder-meta')?.textContent?.toLowerCase() ?? '';
+      const projectName = card.querySelector('.project-card__name')?.textContent?.toLowerCase() ?? '';
+      if (projectMeta.includes(slug) || slugify(projectName) === slug) {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         card.classList.add('project-card--highlight');
         setTimeout(() => card.classList.remove('project-card--highlight'), 2000);
