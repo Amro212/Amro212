@@ -61,23 +61,51 @@ function initScene(): Promise<void> {
   return sceneInitPromise;
 }
 
+function setMobileMenuOpen(
+  open: boolean,
+  hamburger: HTMLButtonElement,
+  mobileMenu: HTMLElement,
+  firstMenuLink: HTMLAnchorElement | null,
+): void {
+  hamburger.classList.toggle('active', open);
+  mobileMenu.classList.toggle('active', open);
+  hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  mobileMenu.setAttribute('aria-hidden', open ? 'false' : 'true');
+  document.documentElement.classList.toggle('mobile-menu-open', open);
+  document.body.classList.toggle('mobile-menu-open', open);
+
+  if (open && firstMenuLink && window.matchMedia('(pointer: fine)').matches) {
+    firstMenuLink.focus();
+  }
+}
+
 function initNavigation(): void {
   const hamburger = document.getElementById('nav-hamburger');
   const mobileMenu = document.getElementById('mobile-menu');
-  const menuLinks = mobileMenu?.querySelectorAll('.mobile-menu__link');
+  const menuLinks = mobileMenu?.querySelectorAll<HTMLAnchorElement>('.mobile-menu__link');
 
-  if (!hamburger || !mobileMenu) return;
+  if (!hamburger || !mobileMenu || !(hamburger instanceof HTMLButtonElement)) return;
+
+  const firstLink = menuLinks?.[0] ?? null;
+
+  const closeMenu = () => setMobileMenuOpen(false, hamburger, mobileMenu, null);
 
   hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('active');
-    mobileMenu.classList.toggle('active');
+    const willOpen = !mobileMenu.classList.contains('active');
+    setMobileMenuOpen(willOpen, hamburger, mobileMenu, willOpen ? firstLink : null);
   });
 
   menuLinks?.forEach((link) => {
     link.addEventListener('click', () => {
-      hamburger.classList.remove('active');
-      mobileMenu.classList.remove('active');
+      closeMenu();
     });
+  });
+
+  document.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key !== 'Escape' || !mobileMenu.classList.contains('active')) return;
+    event.preventDefault();
+    closeMenu();
+    hamburger.focus();
   });
 }
 
@@ -118,7 +146,7 @@ function createProjectCard(project: Project): string {
   })();
 
   const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span>${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">-></span></a>`
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span class="project-card__cta-inner"><span class="project-card__cta-label">${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">→</span></span></a>`
     : '';
 
   return `
@@ -235,25 +263,33 @@ function initProjectPixelTransitions(): void {
   });
 }
 
+function shouldUseLenis(): boolean {
+  return window.matchMedia('(pointer: fine) and (hover: hover)').matches;
+}
+
 function initSmoothScroll(modules: AnimationModules): void {
   if (smoothScrollInitialized) return;
   smoothScrollInitialized = true;
 
-  const lenis = new modules.Lenis({
-    duration: 1.2,
-    easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    orientation: 'vertical',
-    gestureOrientation: 'vertical',
-    smoothWheel: true,
-  });
+  if (shouldUseLenis()) {
+    const lenis = new modules.Lenis({
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+    });
 
-  lenis.on('scroll', modules.ScrollTrigger.update);
+    lenis.on('scroll', modules.ScrollTrigger.update);
 
-  modules.gsap.ticker.add((time) => {
-    lenis.raf(time * 1000);
-  });
+    modules.gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
 
-  modules.gsap.ticker.lagSmoothing(0);
+    modules.gsap.ticker.lagSmoothing(0);
+  }
+
+  modules.ScrollTrigger.refresh();
 }
 
 function initScrollHandlers(): void {

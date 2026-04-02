@@ -82,6 +82,10 @@ html {
   overflow-x: hidden;
 }
 
+html.mobile-menu-open {
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-body);
   background: radial-gradient(circle at 50% 12%, rgba(90, 18, 104, 0.22), var(--crt-bg) 56%);
@@ -89,6 +93,11 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body.mobile-menu-open {
+  overflow: hidden;
+  touch-action: none;
 }
 
 a {
@@ -191,8 +200,14 @@ ol {
   z-index: 1000;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  padding: 1rem 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: calc(1rem + env(safe-area-inset-top, 0px))
+    calc(1.5rem + env(safe-area-inset-right, 0px))
+    1rem
+    calc(1.5rem + env(safe-area-inset-left, 0px));
   pointer-events: none;
 }
 
@@ -262,6 +277,10 @@ ol {
   right: 0;
   bottom: 0;
   z-index: 999;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -356,6 +375,7 @@ ol {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   z-index: 1;
   pointer-events: none;
   backdrop-filter: blur(0px);
@@ -369,6 +389,7 @@ ol {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   z-index: 0;
   opacity: 0;
   filter: blur(18px);
@@ -749,14 +770,31 @@ body.scene-ready .three-container canvas {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  justify-content: center;
   color: #0a1222;
   text-decoration: none;
   padding-inline: 1rem;
+  line-height: 1.35;
+}
+
+.project-card__cta-inner {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-card__cta-label {
+  min-width: 0;
 }
 
 .project-card__cta-arrow {
   display: inline-block;
+  flex-shrink: 0;
+  white-space: nowrap;
   transition: transform 170ms ease;
 }
 
@@ -918,7 +956,23 @@ body.scene-ready .three-container canvas {
 
   .project-card__cta {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     justify-content: center;
+    padding-inline: 0.75rem;
+    padding-block: 0.6rem;
+    font-size: clamp(0.42rem, 1.65vw + 0.28rem, 0.68rem);
+  }
+
+  .project-card__cta-inner {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .project-card__cta-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .about {
