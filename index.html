@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Welcome!</title>
   <meta name="description"
     content="Portfolio of a graduate computer engineering student — embedded systems, FPGA design, RISC-V, and more." />
@@ -69,7 +69,8 @@
     <!-- Navigation -->
     <nav id="main-nav" class="nav">
       <div data-magnetic style="display: inline-block; padding: 10px;">
-        <button id="nav-hamburger" class="nav__hamburger" aria-label="Toggle menu" data-magnetic-content>
+        <button id="nav-hamburger" type="button" class="nav__hamburger" aria-label="Toggle menu"
+          aria-controls="mobile-menu" aria-expanded="false" data-magnetic-content>
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -96,7 +97,8 @@
     </nav>
 
     <!-- Mobile Menu Overlay -->
-    <div id="mobile-menu" class="mobile-menu">
+    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" aria-label="Site navigation"
+      aria-hidden="true">
       <a href="#home" class="mobile-menu__link">Home</a>
       <a href="#about" class="mobile-menu__link">About</a>
       <a href="#skills" class="mobile-menu__link">Skills</a>
@@ -186,7 +188,7 @@
       <h2 class="contact__heading reveal-text">Connection Established</h2>
       <p class="contact__text">Open to new opportunities in firmware engineering, embedded software
         development, and specialized
-        full-stack rolls. My inbox is always open.</p>
+        full-stack roles. My inbox is always open.</p>
       <p class="contact__text">Or email me at <a href="mailto:amromousa8@gmail.com" class="contact__link">amromousa8@gmail.com</a>
       </p>
     </section>

@@ -15,6 +15,7 @@ dist-ssr
 .agents
 .agent
 .codex/
+.cursor/
 
 # Editor directories and files
 .vscode/*
