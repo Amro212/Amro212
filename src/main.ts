@@ -218,6 +218,11 @@ function initProjectPixelTransitions(): void {
           pixel.style.top = `${row * pixelSize}%`;
           pixel.style.backgroundColor = pixelColor;
           pixel.style.setProperty('--pixel-burst-duration', `${Math.max(0.1, animationDuration)}s`);
+          pixel.addEventListener('animationend', (e: AnimationEvent) => {
+            if (e.animationName !== 'projectPixelBurst') return;
+            pixel.classList.remove('is-firing');
+            pixel.style.removeProperty('animation-delay');
+          });
           pixelLayer.appendChild(pixel);
         }
       }
@@ -252,12 +257,14 @@ function initProjectPixelTransitions(): void {
       }, Math.max(100, Math.floor(animationDuration * 1000)));
     };
 
-    transition.addEventListener('mouseenter', () => animateTransition(true));
-    transition.addEventListener('mouseleave', () => animateTransition(false));
-    transition.addEventListener('focus', () => animateTransition(true));
-    transition.addEventListener('blur', () => animateTransition(false));
-
-    if (isCoarsePointer) {
+    // Coarse pointer: focus + click on tabindex elements both fire per tap, which ran the
+    // transition twice and left burst pixels stuck (WebKit compositing). Use click only.
+    if (!isCoarsePointer) {
+      transition.addEventListener('mouseenter', () => animateTransition(true));
+      transition.addEventListener('mouseleave', () => animateTransition(false));
+      transition.addEventListener('focus', () => animateTransition(true));
+      transition.addEventListener('blur', () => animateTransition(false));
+    } else {
       transition.addEventListener('click', () => animateTransition(!isActive));
     }
   });

@@ -616,6 +616,7 @@ body.scene-ready .three-container canvas {
   overflow: hidden;
   background: #0f1724;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .project-card__pixel-transition:focus-visible {
@@ -656,6 +657,7 @@ body.scene-ready .three-container canvas {
   overflow: hidden;
   pointer-events: none;
   z-index: 3;
+  contain: paint;
 }
 
 .project-card__pixel {
@@ -666,7 +668,8 @@ body.scene-ready .three-container canvas {
 }
 
 .project-card__pixel.is-firing {
-  animation: projectPixelBurst var(--pixel-burst-duration, 0.4s) steps(1, end) forwards;
+  /* Avoid `forwards` — mobile WebKit can leave compositor artifacts; default fill resets to base opacity */
+  animation: projectPixelBurst var(--pixel-burst-duration, 0.4s) steps(1, end);
 }
 
 .project-card__placeholder {
