@@ -44,6 +44,7 @@ export const projects: Project[] = [
     description:
       'Frontend concept site for BaseMCP, built as a passion project inspired by Coinbase, focused on presenting the product clearly through a polished, developer-friendly interface.',
     link: 'https://www.basemcp.xyz',
+    previewImages: ['/project-previews/basemcp1.png', '/project-previews/basemcp2.png'],
     category: 'software',
   },
   {
@@ -53,6 +54,7 @@ export const projects: Project[] = [
     description:
       'Character-driven web product for $GERK that streamlines buy/community entry points and reinforces brand voice with live market context and social touchpoints.',
     link: 'https://gerk.it.com',
+    previewImages: ['/project-previews/gerk1.png', '/project-previews/gerk2.png'],
     category: 'research',
   },
 ];
