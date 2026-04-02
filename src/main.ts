@@ -146,7 +146,7 @@ function createProjectCard(project: Project): string {
   })();
 
   const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span>${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">-></span></a>`
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span class="project-card__cta-inner"><span class="project-card__cta-label">${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">→</span></span></a>`
     : '';
 
   return `

@@ -770,14 +770,31 @@ body.scene-ready .three-container canvas {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  justify-content: center;
   color: #0a1222;
   text-decoration: none;
   padding-inline: 1rem;
+  line-height: 1.35;
+}
+
+.project-card__cta-inner {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-card__cta-label {
+  min-width: 0;
 }
 
 .project-card__cta-arrow {
   display: inline-block;
+  flex-shrink: 0;
+  white-space: nowrap;
   transition: transform 170ms ease;
 }
 
@@ -939,7 +956,23 @@ body.scene-ready .three-container canvas {
 
   .project-card__cta {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     justify-content: center;
+    padding-inline: 0.75rem;
+    padding-block: 0.6rem;
+    font-size: clamp(0.42rem, 1.65vw + 0.28rem, 0.68rem);
+  }
+
+  .project-card__cta-inner {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .project-card__cta-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .about {
