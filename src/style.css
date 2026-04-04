@@ -230,12 +230,22 @@ ol {
   transition: all var(--transition-normal);
 }
 
+/* Hover stays dark so contrast holds over light sections (fixed nav crosses Projects, etc.) */
 .nav__hamburger:hover,
 .nav__social-link:hover {
-  background: rgba(117, 252, 255, 0.12);
+  background: rgba(22, 10, 38, 0.94);
   color: var(--accent-bright);
-  border-color: rgba(117, 252, 255, 0.36);
-  box-shadow: 0 0 26px rgba(117, 252, 255, 0.16);
+  border-color: rgba(117, 252, 255, 0.55);
+  box-shadow:
+    0 12px 32px rgba(7, 2, 16, 0.38),
+    0 0 0 1px rgba(117, 252, 255, 0.22),
+    0 0 20px rgba(117, 252, 255, 0.12);
+}
+
+.nav__hamburger:focus-visible,
+.nav__social-link:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 3px;
 }
 
 .nav__hamburger {
