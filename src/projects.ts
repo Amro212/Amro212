@@ -5,6 +5,8 @@ export interface Project {
   description: string;
   link?: string;
   previewImages?: string[];
+  /** Native resolution of the preview images (width × height in px). */
+  imageResolution?: { width: number; height: number };
   category: 'hardware' | 'software' | 'research';
 }
 
@@ -25,6 +27,8 @@ export const projects: Project[] = [
     description:
       'Hybrid iOS and serverless app that turns syllabus PDFs into structured student plans, with editable timelines and one-tap Apple Calendar sync for cleaner semester planning.',
     link: 'https://github.com/Amro212/Syllabus-Sync',
+    previewImages: ['/project-previews/syllabus1.png', '/project-previews/syllabus2.png'],
+    imageResolution: { width: 1206, height: 2622 },
     category: 'software',
   },
   {

@@ -152,7 +152,14 @@ function createProjectCard(project: Project): string {
   return `
     <article class="project-card" data-category="${project.category}" aria-label="Project ${projectIndex}: ${project.title}">
       <div class="project-card__layout">
-        <figure class="project-card__media" aria-label="Project preview for ${project.title}">
+        <figure class="project-card__media"${(() => {
+          const res = project.imageResolution;
+          if (res && res.height > res.width) {
+            // Portrait images: scale down, center, and ensure width: 100% to avoid collapse.
+            return ` style="width: 100%; max-width: min(230px, 35vw); margin-inline: auto;"`;
+          }
+          return '';
+        })()} aria-label="Project preview for ${project.title}">
           ${mediaHtml}
         </figure>
 
@@ -172,8 +179,16 @@ function createProjectCard(project: Project): string {
 function createProjectMedia(project: Project, projectSlug: string): string {
   if (project.previewImages && project.previewImages.length >= 2) {
     const [firstImage, secondImage] = project.previewImages;
+
+    // When imageResolution is set, inject CSS custom properties so the frame
+    // dynamically adopts the native aspect ratio of the images.
+    const res = project.imageResolution;
+    const resStyle = res
+      ? ` style="--img-w:${res.width};--img-h:${res.height}"`
+      : '';
+
     return `
-      <div class="project-card__pixel-transition" data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
+      <div class="project-card__pixel-transition"${resStyle} data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
         <img class="project-card__transition-image project-card__transition-image--base" src="${firstImage}" alt="${project.title} preview image one" loading="lazy" decoding="async" />
         <img class="project-card__transition-image project-card__transition-image--alt" src="${secondImage}" alt="${project.title} preview image two" loading="lazy" decoding="async" />
         <div class="project-card__pixel-layer" aria-hidden="true"></div>
