@@ -1,4 +1,4 @@
-<h2 align="left">Hi 👋! My name is Amro and I'm a Computer Engineering graduate from the University of Guelph!</h2>
+<h2 align="left">Hi 👋! My name is Amro and I'm a Computer Engineering graduate!</h2>
 
 ###
 
