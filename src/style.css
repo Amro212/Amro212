@@ -621,7 +621,8 @@ body.scene-ready .three-container canvas {
 
 .project-card__pixel-transition {
   position: relative;
-  aspect-ratio: 16 / 10;
+  /* Use native image dimensions when provided; fall back to 16/10 landscape */
+  aspect-ratio: var(--img-w, 16) / var(--img-h, 10);
   border-radius: inherit;
   overflow: hidden;
   background: #0f1724;
