@@ -16,6 +16,7 @@ export const projects: Project[] = [
     description:
       'Local-first job pipeline that discovers roles from ATS sources, generates tailored resume and cover-letter artifacts, and automates repetitive form-filling with browser + AI workflow logic.',
     link: 'https://github.com/Amro212/JobAutomation',
+    previewImages: ['/project-previews/job-automation1.png', '/project-previews/job-automation2.png'],
     category: 'software',
   },
   {
