@@ -14,7 +14,7 @@ const GOO_STRENGTH = 3;
 const BASE_SIZE_PX = Math.max(1, GRID_SIZE_PX * TRAIL_SIZE_RATIO);
 const EXTRA_SIZE_PX = BASE_SIZE_PX * 0.75;
 const ALPHA_MULTIPLIER = 0.45 + GOO_STRENGTH * 1.5;
-const TRAIL_COLOR_RGB = '0, 0, 0';
+const TRAIL_COLOR_RGB = '255, 255, 255';
 
 class ProjectsPixelTrail {
   private section: HTMLElement;

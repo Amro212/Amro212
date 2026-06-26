@@ -118,86 +118,121 @@
     <!-- Blur overlay for 3D model transition -->
     <div id="three-blur-overlay" class="three-blur-overlay"></div>
 
-    <!-- About Section -->
-    <section id="about" class="about">
-      <h2 class="about__heading reveal-text" data-parallax="0.3">About Me</h2>
-      <div class="about__content">
-        <p>I'm Amro Abedmoosa, a Computer Engineering student who enjoys turning ideas into practical products.</p>
-        <p>I focus on software development, embedded systems, AI automation, and product design, moving comfortably
-          between implementation details and user experience.</p>
-        <p>I like building systems that are reliable under the hood and intuitive to use on the surface.</p>
+    <!-- ═══════════════════════════════════════════
+         CHAPTER 1 — PROLOGUE (About)
+         Full-viewport narrative text reveal
+         ═══════════════════════════════════════════ -->
+    <section id="about" class="chapter chapter--prologue">
+      <div class="prologue__inner">
+        <div class="prologue__left">
+          <h2 class="prologue__heading">The story so far</h2>
+          <div class="prologue__accent-line" aria-hidden="true"></div>
+        </div>
+        <div class="prologue__right">
+          <div class="prologue__lines">
+            <p class="prologue__line" data-line="1">I'm Amro Abed Moosa, a Computer Engineering student who found his
+              stride at the intersection of hardware and software.</p>
+            <p class="prologue__line" data-line="2">What started as curiosity about how systems work became a drive to
+              build products that feel effortless on the surface and bulletproof underneath.</p>
+            <p class="prologue__line" data-line="3">I move between embedded firmware and full-stack web development,
+              between AI automation pipelines and polished user interfaces.</p>
+            <p class="prologue__line" data-line="4">The thread that connects all of it: making complex things simple for
+              the people who use them.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Skills Section -->
-    <section id="skills" class="about" style="padding-top: 4rem;">
-      <h2 class="about__heading reveal-text">Skills</h2>
-      <div class="about__content">
-        <p class="skills-intro">Grouped in Pixelact-style cards for quick scanning.</p>
-        <div class="skills-grid">
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group" aria-label="Languages">
-            <h3 class="pixelact-card__title">Languages</h3>
-            <p class="pixelact-card__body">TypeScript, JavaScript, Python, C/C++, Swift, SQL</p>
+    <!-- ═══════════════════════════════════════════
+         CHAPTER 2 — THE TOOLKIT (Skills)
+         Scroll-pinned constellation layout
+         ═══════════════════════════════════════════ -->
+    <section id="skills" class="chapter chapter--toolkit">
+      <div class="toolkit__pin-wrapper">
+        <div class="toolkit__heading-area">
+          <h2 class="toolkit__heading">The Toolkit</h2>
+        </div>
+        <!-- SVG connecting lines drawn behind nodes -->
+        <svg class="toolkit__lines" aria-hidden="true" preserveAspectRatio="none"></svg>
+        <div class="toolkit__constellation">
+          <article class="toolkit__node" data-node="0" role="group" aria-label="Languages">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">Languages</h3>
+            <p class="toolkit__node-body">TypeScript, JavaScript, Python, C/C++, Swift, SQL</p>
           </article>
-
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group"
-            aria-label="Frameworks and Libraries">
-            <h3 class="pixelact-card__title">Frameworks & Libraries</h3>
-            <p class="pixelact-card__body">React, Node.js, Express, Three.js, LangChain</p>
+          <article class="toolkit__node" data-node="1" role="group" aria-label="Frameworks & Libraries">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">Frameworks & Libraries</h3>
+            <p class="toolkit__node-body">React, Node.js, Express, Three.js, LangChain</p>
           </article>
-
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group" aria-label="Tools and Platforms">
-            <h3 class="pixelact-card__title">Tools & Platforms</h3>
-            <p class="pixelact-card__body">WordPress/Gutenberg, Git & GitHub, Docker, Vite, Figma, Stitch, Vercel,
+          <article class="toolkit__node" data-node="2" role="group" aria-label="Tools & Platforms">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">Tools & Platforms</h3>
+            <p class="toolkit__node-body">WordPress/Gutenberg, Git & GitHub, Docker, Vite, Figma, Stitch, Vercel,
               Cloudflare</p>
           </article>
-
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group" aria-label="Mobile">
-            <h3 class="pixelact-card__title">Mobile</h3>
-            <p class="pixelact-card__body">Swift, SwiftUI, iOS App Prototyping, Flutter</p>
+          <article class="toolkit__node" data-node="3" role="group" aria-label="Mobile">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">Mobile</h3>
+            <p class="toolkit__node-body">Swift, SwiftUI, iOS App Prototyping, Flutter</p>
           </article>
-
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group" aria-label="AI and Automation">
-            <h3 class="pixelact-card__title">AI & Automation</h3>
-            <p class="pixelact-card__body">n8n, LangChain, OpenAI APIs, OpenRouter, Prompt Engineering, Workflow
-              Automation, OpenClaw, NemoClaw</p>
+          <article class="toolkit__node" data-node="4" role="group" aria-label="AI & Automation">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">AI & Automation</h3>
+            <p class="toolkit__node-body">n8n, LangChain, OpenAI APIs, OpenRouter, Prompt Engineering, Workflow
+              Automation</p>
           </article>
-
-          <article class="pixelact-card pixel-font box-shadow-margin" role="group" aria-label="Embedded Systems">
-            <h3 class="pixelact-card__title">Embedded Systems</h3>
-            <p class="pixelact-card__body">STM32, ARM Cortex-M, FPGA Fundamentals, Quartus</p>
+          <article class="toolkit__node" data-node="5" role="group" aria-label="Embedded Systems">
+            <div class="toolkit__node-ring" aria-hidden="true"></div>
+            <h3 class="toolkit__node-title">Embedded Systems</h3>
+            <p class="toolkit__node-body">STM32, ARM Cortex-M, FPGA Fundamentals, Quartus</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- Projects Section -->
-    <section id="projects" class="projects">
-      <div class="projects__header">
-        <h2 class="about__heading reveal-text">Projects</h2>
+    <!-- ═══════════════════════════════════════════
+         CHAPTER 3 — THE WORK (Projects)
+         Full-viewport cinematic panels
+         ═══════════════════════════════════════════ -->
+    <section id="projects" class="chapter chapter--work">
+      <div class="work__heading-area">
+        <h2 class="work__heading">The Work</h2>
       </div>
-
-      <!-- Project Cards Container -->
-      <div class="projects__grid" id="projects-grid">
-        <!-- Cards injected by JS -->
+      <div class="work__panels" id="projects-grid">
+        <!-- Panels injected by JS -->
       </div>
     </section>
 
-    <!-- Contact Section -->
-    <section id="contact" class="contact">
-      <h2 class="contact__heading reveal-text">Connection Established</h2>
-      <p class="contact__text">Open to new opportunities in firmware engineering, embedded software
-        development, and specialized
-        full-stack roles. My inbox is always open.</p>
-      <p class="contact__text">Or email me at <a href="mailto:amromousa8@gmail.com"
-          class="contact__link">amromousa8@gmail.com</a>
-      </p>
+    <!-- ═══════════════════════════════════════════
+         CHAPTER 4 — SIGNAL (Contact)
+         Dramatic entrance + pulsing glow
+         ═══════════════════════════════════════════ -->
+    <section id="contact" class="chapter chapter--signal">
+      <div class="signal__flash" aria-hidden="true"></div>
+      <div class="signal__content">
+        <h2 class="signal__heading">Connection Established</h2>
+        <p class="signal__text">Open to new oppurtunities in Full-Stack Development, AI & Automation, Mobile
+          Development, & more! </p>
+        <p class="signal__text">My inbox is always open.</p>
+        <a href="mailto:amromousa8@gmail.com" class="signal__email">amromousa8@gmail.com</a>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
-      <p class="footer__text">Built with TypeScript, Three.js & passion. &copy; 2026</p>
+      <p class="footer__text">Built with TypeScript, Three.js & passion.</p>
     </footer>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal" aria-hidden="true">
+      <div class="image-modal__backdrop"></div>
+      <button class="image-modal__close" aria-label="Close modal">&times;</button>
+      <button class="image-modal__nav image-modal__nav--prev" aria-label="Previous image">&#8592;</button>
+      <img class="image-modal__img" src="" alt="Enlarged preview" />
+      <button class="image-modal__nav image-modal__nav--next" aria-label="Next image">&#8594;</button>
+      <div class="image-modal__counter"></div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </div> <!-- End of #app-content -->

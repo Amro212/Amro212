@@ -644,15 +644,14 @@ export class Terminal {
 
   private scrollToProject(title: string): void {
     const slug = slugify(title);
-    const projectCards = document.querySelectorAll('.project-card');
+    const projectPanels = document.querySelectorAll('.work__panel');
 
-    for (const card of projectCards) {
-      const projectMeta = card.querySelector('.project-card__placeholder-meta')?.textContent?.toLowerCase() ?? '';
-      const projectName = card.querySelector('.project-card__name')?.textContent?.toLowerCase() ?? '';
-      if (projectMeta.includes(slug) || slugify(projectName) === slug) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('project-card--highlight');
-        setTimeout(() => card.classList.remove('project-card--highlight'), 2000);
+    for (const panel of projectPanels) {
+      const panelTitle = panel.querySelector('.work__panel-title')?.textContent?.toLowerCase() ?? '';
+      if (slugify(panelTitle) === slug) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        panel.classList.add('project-card--highlight');
+        setTimeout(() => panel.classList.remove('project-card--highlight'), 2000);
         this.printLine({ text: `Opening ${title}...`, className: 'term-dim' });
         return;
       }

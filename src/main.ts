@@ -13,15 +13,22 @@ type AnimationModules = {
 };
 
 let retroScene: RetroComputerScene | null = null;
-let animationModules: AnimationModules | null = null;
 let animationModulesPromise: Promise<AnimationModules> | null = null;
 let sceneInitPromise: Promise<void> | null = null;
 let terminalInitPromise: Promise<void> | null = null;
 let smoothScrollInitialized = false;
 let magneticElementsInitialized = false;
-let textRevealsInitialized = false;
-let parallaxInitialized = false;
-let projectCardRevealTriggers: Array<{ kill: () => void }> = [];
+let prologueInitialized = false;
+let toolkitInitialized = false;
+let workInitialized = false;
+let signalInitialized = false;
+
+const prefersReducedMotion = (): boolean =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ─────────────────────────────────────
+// Module loading (unchanged)
+// ─────────────────────────────────────
 
 function loadAnimationModules(): Promise<AnimationModules> {
   if (!animationModulesPromise) {
@@ -37,13 +44,16 @@ function loadAnimationModules(): Promise<AnimationModules> {
       };
 
       modules.gsap.registerPlugin(modules.ScrollTrigger);
-      animationModules = modules;
       return modules;
     });
   }
 
   return animationModulesPromise;
 }
+
+// ─────────────────────────────────────
+// Scene init (unchanged)
+// ─────────────────────────────────────
 
 function initScene(): Promise<void> {
   if (!sceneInitPromise) {
@@ -60,6 +70,10 @@ function initScene(): Promise<void> {
 
   return sceneInitPromise;
 }
+
+// ─────────────────────────────────────
+// Navigation (unchanged)
+// ─────────────────────────────────────
 
 function setMobileMenuOpen(
   open: boolean,
@@ -109,181 +123,9 @@ function initNavigation(): void {
   });
 }
 
-function renderProjects(filter = 'all'): void {
-  const grid = document.getElementById('projects-grid');
-  if (!grid) return;
-
-  const filtered =
-    filter === 'all'
-      ? projects
-      : projects.filter((project) => project.category === filter);
-
-  grid.innerHTML = filtered.map((project) => createProjectCard(project)).join('');
-  initProjectPixelTransitions();
-
-  if (animationModules) {
-    observeRevealElements(animationModules);
-  }
-}
-
-function createProjectCard(project: Project): string {
-  const projectIndex = projects.indexOf(project) + 1;
-  const projectSlug = project.title.toLowerCase().replace(/\s+/g, '-');
-  const mediaHtml = createProjectMedia(project, projectSlug);
-  const tagsHtml = project.tags
-    .map((tag) => `<span class="project-card__tag">${tag}</span>`)
-    .join('');
-
-  const linkLabel = (() => {
-    if (!project.link) return '';
-
-    try {
-      const host = new URL(project.link).hostname.replace(/^www\./, '');
-      return host === 'github.com' ? 'View repository' : 'Visit live site';
-    } catch {
-      return 'Open project';
-    }
-  })();
-
-  const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="project-card__cta pixel__button pixel-default__button pixel-font box-shadow-margin" aria-label="Open ${project.title} in a new tab"><span class="project-card__cta-inner"><span class="project-card__cta-label">${linkLabel}</span><span aria-hidden="true" class="project-card__cta-arrow">→</span></span></a>`
-    : '';
-
-  return `
-    <article class="project-card" data-category="${project.category}" aria-label="Project ${projectIndex}: ${project.title}">
-      <div class="project-card__layout">
-        <figure class="project-card__media"${(() => {
-          const res = project.imageResolution;
-          if (res && res.height > res.width) {
-            // Portrait images: scale down, center, and ensure width: 100% to avoid collapse.
-            return ` style="width: 100%; max-width: min(230px, 35vw); margin-inline: auto;"`;
-          }
-          return '';
-        })()} aria-label="Project preview for ${project.title}">
-          ${mediaHtml}
-        </figure>
-
-        <div class="project-card__body">
-          <p class="project-card__eyebrow">Project ${String(projectIndex).padStart(2, '0')}</p>
-          <h3 class="project-card__name">${project.title}</h3>
-          <p class="project-card__year">${project.year}</p>
-          <div class="project-card__tags" aria-label="Project technologies">${tagsHtml}</div>
-          <p class="project-card__desc">${project.description}</p>
-          ${linkHtml}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function createProjectMedia(project: Project, projectSlug: string): string {
-  if (project.previewImages && project.previewImages.length >= 2) {
-    const [firstImage, secondImage] = project.previewImages;
-
-    // When imageResolution is set, inject CSS custom properties so the frame
-    // dynamically adopts the native aspect ratio of the images.
-    const res = project.imageResolution;
-    const resStyle = res
-      ? ` style="--img-w:${res.width};--img-h:${res.height}"`
-      : '';
-
-    return `
-      <div class="project-card__pixel-transition"${resStyle} data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
-        <img class="project-card__transition-image project-card__transition-image--base" src="${firstImage}" alt="${project.title} preview image one" loading="lazy" decoding="async" />
-        <img class="project-card__transition-image project-card__transition-image--alt" src="${secondImage}" alt="${project.title} preview image two" loading="lazy" decoding="async" />
-        <div class="project-card__pixel-layer" aria-hidden="true"></div>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="project-card__placeholder" role="img" aria-label="Placeholder screenshot for ${project.title}">
-      <span class="project-card__placeholder-label">Screenshot Placeholder</span>
-      <span class="project-card__placeholder-title">${project.title}</span>
-      <span class="project-card__placeholder-meta">/project-previews/${projectSlug}</span>
-    </div>
-  `;
-}
-
-function initProjectPixelTransitions(): void {
-  const transitions = document.querySelectorAll<HTMLElement>('[data-pixel-transition]');
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-
-  transitions.forEach((transition) => {
-    if (transition.dataset.pixelTransitionReady === 'true') return;
-    transition.dataset.pixelTransitionReady = 'true';
-
-    const pixelLayer = transition.querySelector<HTMLElement>('.project-card__pixel-layer');
-    const gridSize = Number(transition.dataset.gridSize ?? '19');
-    const animationDuration = Number(transition.dataset.animationDuration ?? '0.4');
-    const pixelColor = transition.dataset.pixelColor ?? '#ffffff';
-
-    if (pixelLayer) {
-      pixelLayer.innerHTML = '';
-      const pixelSize = 100 / gridSize;
-
-      for (let row = 0; row < gridSize; row += 1) {
-        for (let col = 0; col < gridSize; col += 1) {
-          const pixel = document.createElement('span');
-          pixel.className = 'project-card__pixel';
-          pixel.style.width = `${pixelSize}%`;
-          pixel.style.height = `${pixelSize}%`;
-          pixel.style.left = `${col * pixelSize}%`;
-          pixel.style.top = `${row * pixelSize}%`;
-          pixel.style.backgroundColor = pixelColor;
-          pixel.style.setProperty('--pixel-burst-duration', `${Math.max(0.1, animationDuration)}s`);
-          pixel.addEventListener('animationend', (e: AnimationEvent) => {
-            if (e.animationName !== 'projectPixelBurst') return;
-            pixel.classList.remove('is-firing');
-            pixel.style.removeProperty('animation-delay');
-          });
-          pixelLayer.appendChild(pixel);
-        }
-      }
-    }
-
-    if (prefersReducedMotion) return;
-
-    let isActive = false;
-    let swapTimer: number | undefined;
-
-    const animateTransition = (activate: boolean) => {
-      if (isActive === activate) return;
-      isActive = activate;
-
-      if (swapTimer) {
-        window.clearTimeout(swapTimer);
-      }
-
-      if (!pixelLayer) return;
-      const pixels = pixelLayer.querySelectorAll<HTMLElement>('.project-card__pixel');
-      const maxDelayMs = Math.max(1, Math.floor(animationDuration * 1000 * 0.7));
-
-      pixels.forEach((pixel) => {
-        pixel.classList.remove('is-firing');
-        pixel.style.animationDelay = `${Math.floor(Math.random() * maxDelayMs)}ms`;
-        void pixel.offsetWidth;
-        pixel.classList.add('is-firing');
-      });
-
-      swapTimer = window.setTimeout(() => {
-        transition.classList.toggle('is-active', activate);
-      }, Math.max(100, Math.floor(animationDuration * 1000)));
-    };
-
-    // Coarse pointer: focus + click on tabindex elements both fire per tap, which ran the
-    // transition twice and left burst pixels stuck (WebKit compositing). Use click only.
-    if (!isCoarsePointer) {
-      transition.addEventListener('mouseenter', () => animateTransition(true));
-      transition.addEventListener('mouseleave', () => animateTransition(false));
-      transition.addEventListener('focus', () => animateTransition(true));
-      transition.addEventListener('blur', () => animateTransition(false));
-    } else {
-      transition.addEventListener('click', () => animateTransition(!isActive));
-    }
-  });
-}
+// ─────────────────────────────────────
+// Smooth scroll (unchanged)
+// ─────────────────────────────────────
 
 function shouldUseLenis(): boolean {
   return window.matchMedia('(pointer: fine) and (hover: hover)').matches;
@@ -313,6 +155,10 @@ function initSmoothScroll(modules: AnimationModules): void {
 
   modules.ScrollTrigger.refresh();
 }
+
+// ─────────────────────────────────────
+// Scroll handlers for Three.js scene (unchanged)
+// ─────────────────────────────────────
 
 function initScrollHandlers(): void {
   const threeContainer = document.getElementById('three-container');
@@ -412,6 +258,10 @@ function initScrollHandlers(): void {
   queueUpdate();
 }
 
+// ─────────────────────────────────────
+// Magnetic elements (unchanged)
+// ─────────────────────────────────────
+
 function initMagneticElements(modules: AnimationModules): void {
   if (magneticElementsInitialized) return;
   magneticElementsInitialized = true;
@@ -463,68 +313,530 @@ function initMagneticElements(modules: AnimationModules): void {
   });
 }
 
-function observeRevealElements(modules: AnimationModules): void {
-  projectCardRevealTriggers.forEach((trigger) => trigger.kill());
-  projectCardRevealTriggers = [];
+// ─────────────────────────────────────
+// Pixel transitions (preserved for project panels)
+// ─────────────────────────────────────
 
-  const cards = modules.gsap.utils.toArray<HTMLElement>('.project-card');
-  if (cards.length === 0) return;
+function initProjectPixelTransitions(): void {
+  const transitions = document.querySelectorAll<HTMLElement>('[data-pixel-transition]');
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-  modules.gsap.set(cards, { y: 60, opacity: 0 });
+  transitions.forEach((transition) => {
+    if (transition.dataset.pixelTransitionReady === 'true') return;
+    transition.dataset.pixelTransitionReady = 'true';
 
-  projectCardRevealTriggers = modules.ScrollTrigger.batch(cards, {
-    start: 'top 85%',
-    onEnter: (elements) => {
-      modules.gsap.to(elements, {
-        y: 0,
-        opacity: 1,
-        stagger: 0.15,
-        duration: 0.8,
-        ease: 'power3.out',
-        overwrite: true,
+    const pixelLayer = transition.querySelector<HTMLElement>('.project-card__pixel-layer');
+    const gridSize = Number(transition.dataset.gridSize ?? '19');
+    const animationDuration = Number(transition.dataset.animationDuration ?? '0.4');
+    const pixelColor = transition.dataset.pixelColor ?? '#ffffff';
+
+    if (pixelLayer) {
+      pixelLayer.innerHTML = '';
+      const pixelSize = 100 / gridSize;
+
+      for (let row = 0; row < gridSize; row += 1) {
+        for (let col = 0; col < gridSize; col += 1) {
+          const pixel = document.createElement('span');
+          pixel.className = 'project-card__pixel';
+          pixel.style.width = `${pixelSize}%`;
+          pixel.style.height = `${pixelSize}%`;
+          pixel.style.left = `${col * pixelSize}%`;
+          pixel.style.top = `${row * pixelSize}%`;
+          pixel.style.backgroundColor = pixelColor;
+          pixel.style.setProperty('--pixel-burst-duration', `${Math.max(0.1, animationDuration)}s`);
+          pixel.addEventListener('animationend', (e: AnimationEvent) => {
+            if (e.animationName !== 'projectPixelBurst') return;
+            pixel.classList.remove('is-firing');
+            pixel.style.removeProperty('animation-delay');
+          });
+          pixelLayer.appendChild(pixel);
+        }
+      }
+    }
+
+    if (prefersReducedMotion()) return;
+
+    let isActive = false;
+    let swapTimer: number | undefined;
+
+    const animateTransition = (activate: boolean) => {
+      if (isActive === activate) return;
+      isActive = activate;
+
+      if (swapTimer) {
+        window.clearTimeout(swapTimer);
+      }
+
+      if (!pixelLayer) return;
+      const pixels = pixelLayer.querySelectorAll<HTMLElement>('.project-card__pixel');
+      const maxDelayMs = Math.max(1, Math.floor(animationDuration * 1000 * 0.7));
+
+      pixels.forEach((pixel) => {
+        pixel.classList.remove('is-firing');
+        pixel.style.animationDelay = `${Math.floor(Math.random() * maxDelayMs)}ms`;
+        void pixel.offsetWidth;
+        pixel.classList.add('is-firing');
       });
-    },
-    once: true,
-  }) as Array<{ kill: () => void }>;
 
-  modules.ScrollTrigger.refresh();
+      swapTimer = window.setTimeout(() => {
+        transition.classList.toggle('is-active', activate);
+      }, Math.max(100, Math.floor(animationDuration * 1000)));
+    };
+
+    if (!isCoarsePointer) {
+      transition.addEventListener('mouseenter', () => animateTransition(true));
+      transition.addEventListener('mouseleave', () => animateTransition(false));
+      transition.addEventListener('focus', () => animateTransition(true));
+      transition.addEventListener('blur', () => animateTransition(false));
+    } else {
+      transition.addEventListener('click', () => animateTransition(!isActive));
+    }
+  });
 }
 
-function initTextReveals(modules: AnimationModules): void {
-  if (textRevealsInitialized) return;
-  textRevealsInitialized = true;
+// ═══════════════════════════════════════════
+// CHAPTER 3 — PROJECT PANEL RENDERING
+// Full-viewport cinematic panels
+// ═══════════════════════════════════════════
 
-  const revealElements = document.querySelectorAll<HTMLElement>('.reveal-text');
+function renderProjectPanels(): void {
+  const container = document.getElementById('projects-grid');
+  if (!container) return;
 
-  revealElements.forEach((element) => {
-    const text = (element.textContent || '').trim();
-    if (!text) return;
+  container.innerHTML = projects.map((project, index) => createProjectPanel(project, index)).join('');
+  initProjectPixelTransitions();
+}
 
-    element.setAttribute('aria-label', text);
-    element.innerHTML = '';
+function createProjectPanel(project: Project, index: number): string {
+  const isPortrait = project.imageResolution && project.imageResolution.height > project.imageResolution.width;
+  const portraitClass = isPortrait ? ' work__panel-preview--portrait' : '';
 
-    const textSpan = document.createElement('span');
-    element.appendChild(textSpan);
+  // Build the image area
+  let mediaHtml: string;
+  if (project.previewImages && project.previewImages.length >= 2) {
+    const [firstImage, secondImage] = project.previewImages;
+    const res = project.imageResolution;
+    const resStyle = res ? ` style="--img-w:${res.width};--img-h:${res.height}"` : '';
+
+    mediaHtml = `
+      <div class="work__panel-preview${portraitClass}">
+        <div class="project-card__pixel-transition"${resStyle} data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
+          <img class="project-card__transition-image project-card__transition-image--base" src="${firstImage}" alt="${project.title} preview image one" loading="lazy" decoding="async" />
+          <img class="project-card__transition-image project-card__transition-image--alt" src="${secondImage}" alt="${project.title} preview image two" loading="lazy" decoding="async" />
+          <div class="project-card__pixel-layer" aria-hidden="true"></div>
+        </div>
+      </div>
+    `;
+  } else if (project.previewImages && project.previewImages.length === 1) {
+    mediaHtml = `
+      <div class="work__panel-preview${portraitClass}">
+        <img src="${project.previewImages[0]}" alt="${project.title} preview" loading="lazy" decoding="async" style="width:100%;display:block;border-radius:inherit;" />
+      </div>
+    `;
+  } else {
+    mediaHtml = `
+      <div class="work__panel-placeholder">
+        <span class="work__panel-placeholder-label">${project.title}</span>
+      </div>
+    `;
+  }
+
+  // Tags
+  const tagsHtml = project.tags
+    .map((tag) => `<span class="work__panel-tag">${tag}</span>`)
+    .join('');
+
+  // Link
+  const linkLabel = (() => {
+    if (!project.link) return '';
+    try {
+      const host = new URL(project.link).hostname.replace(/^www\./, '');
+      return host === 'github.com' ? 'View repository' : 'Visit live site';
+    } catch {
+      return 'Open project';
+    }
+  })();
+
+  const linkHtml = project.link
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="work__panel-cta" aria-label="Open ${project.title} in a new tab">
+        <span>${linkLabel}</span>
+        <span class="work__panel-cta-arrow" aria-hidden="true">\u2192</span>
+      </a>`
+    : '';
+
+  // Background image (first preview for the clip-path reveal unless explicitly set)
+  const bgImage = project.backgroundImage || project.previewImages?.[0];
+  const bgHtml = bgImage
+    ? `<div class="work__panel-bg">
+        <img src="${bgImage}" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <div class="work__panel-scrim"></div>
+      </div>`
+    : '';
+
+  return `
+    <article class="work__panel" data-project-index="${index}" aria-label="Project ${index + 1}: ${project.title}">
+      ${bgHtml}
+      <div class="work__panel-content">
+        <p class="work__panel-index">Project ${String(index + 1).padStart(2, '0')}</p>
+        <h3 class="work__panel-title">${project.title}</h3>
+        <p class="work__panel-year">${project.year}</p>
+        <div class="work__panel-tags" aria-label="Project technologies">${tagsHtml}</div>
+        <p class="work__panel-desc">${project.description}</p>
+        ${linkHtml}
+      </div>
+      <div class="work__panel-media">
+        ${mediaHtml}
+      </div>
+    </article>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER ANIMATIONS
+// ═══════════════════════════════════════════
+
+// ---------- Chapter 1: Prologue ----------
+
+function initPrologueTimeline(modules: AnimationModules): void {
+  if (prologueInitialized || prefersReducedMotion()) return;
+  prologueInitialized = true;
+
+  const section = document.querySelector('.chapter--prologue');
+  if (!section) return;
+
+  const lines = modules.gsap.utils.toArray<HTMLElement>('.prologue__line');
+  const heading = section.querySelector('.prologue__heading');
+
+  // Heading fade in
+  if (heading) {
+    modules.gsap.from(heading, {
+      opacity: 0,
+      y: 32,
+      duration: 0.9,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 75%',
+        once: true,
+      },
+    });
+  }
+
+  // Accent line animation via class toggle
+  modules.ScrollTrigger.create({
+    trigger: section,
+    start: 'top 70%',
+    once: true,
+    onEnter: () => {
+      section.classList.add('is-active');
+    },
+  });
+
+  // Line-by-line text reveal with stagger
+  if (lines.length > 0) {
+    modules.gsap.to(lines, {
+      opacity: 1,
+      y: 0,
+      duration: 0.7,
+      stagger: 0.18,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 60%',
+        once: true,
+      },
+    });
+  }
+}
+
+// ---------- Chapter 2: Toolkit ----------
+
+function initToolkitTimeline(modules: AnimationModules): void {
+  if (toolkitInitialized || prefersReducedMotion()) return;
+  toolkitInitialized = true;
+
+  const section = document.querySelector('.chapter--toolkit');
+  const pinWrapper = document.querySelector('.toolkit__pin-wrapper');
+  const headingArea = document.querySelector('.toolkit__heading-area');
+  const nodes = modules.gsap.utils.toArray<HTMLElement>('.toolkit__node');
+  const svgContainer = document.querySelector<SVGSVGElement>('.toolkit__lines');
+
+  if (!section || !pinWrapper || nodes.length === 0) return;
+
+  // Pin the toolkit section during scroll
+  modules.ScrollTrigger.create({
+    trigger: section,
+    start: 'top top',
+    end: 'bottom bottom',
+    pin: pinWrapper,
+    pinSpacing: false,
+  });
+
+  // Heading reveal
+  if (headingArea) {
+    modules.gsap.to(headingArea, {
+      opacity: 1,
+      y: 0,
+      duration: 0.7,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 80%',
+        once: true,
+      },
+    });
+  }
+
+  // Staggered node reveals linked to scroll progress
+  const totalNodes = nodes.length;
+  const perNodeScrollFraction = 1 / (totalNodes + 1);
+
+  nodes.forEach((node, index) => {
+    const start = perNodeScrollFraction * index;
+    const end = start + perNodeScrollFraction;
 
     modules.ScrollTrigger.create({
-      trigger: element,
-      start: 'top 85%',
-      once: true,
+      trigger: section,
+      start: `${Math.round(start * 100)}% top`,
+      end: `${Math.round(end * 100)}% top`,
       onEnter: () => {
-        const state = { length: 0 };
-
-        modules.gsap.to(state, {
-          length: text.length,
-          duration: text.length * 0.05,
-          ease: 'none',
-          onUpdate: () => {
-            textSpan.textContent = text.substring(0, Math.floor(state.length));
-          },
+        // Animate node in
+        modules.gsap.to(node, {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
         });
+        // Light it up after a brief delay
+        setTimeout(() => {
+          node.classList.add('is-lit');
+        }, 300);
       },
+      once: true,
+    });
+  });
+
+  // Draw SVG connecting lines between adjacent nodes
+  if (svgContainer) {
+    drawConstellationLines(svgContainer, nodes, modules);
+  }
+}
+
+function drawConstellationLines(
+  svg: SVGSVGElement,
+  nodes: HTMLElement[],
+  modules: AnimationModules,
+): void {
+  // Wait a frame for layout
+  requestAnimationFrame(() => {
+    const pinWrapper = svg.closest('.toolkit__pin-wrapper');
+    if (!pinWrapper) return;
+    const wrapperRect = pinWrapper.getBoundingClientRect();
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
+
+    // Connect each node to the next, plus some cross-connections for visual interest
+    const connections: [number, number][] = [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      connections.push([i, i + 1]);
+    }
+    // Cross-connections: 0-2, 1-4, 3-5
+    if (nodes.length >= 3) connections.push([0, 2]);
+    if (nodes.length >= 5) connections.push([1, 4]);
+    if (nodes.length >= 6) connections.push([3, 5]);
+
+    connections.forEach(([a, b], lineIndex) => {
+      const nodeA = nodes[a];
+      const nodeB = nodes[b];
+      if (!nodeA || !nodeB) return;
+
+      const rectA = nodeA.getBoundingClientRect();
+      const rectB = nodeB.getBoundingClientRect();
+
+      const x1 = rectA.left - wrapperRect.left + rectA.width / 2;
+      const y1 = rectA.top - wrapperRect.top + rectA.height / 2;
+      const x2 = rectB.left - wrapperRect.left + rectB.width / 2;
+      const y2 = rectB.top - wrapperRect.top + rectB.height / 2;
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', String(x1));
+      line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2));
+      line.setAttribute('y2', String(y2));
+      svg.appendChild(line);
+
+      // Animate lines in with stagger
+      const delay = Math.max(a, b) * 0.15 + lineIndex * 0.05;
+      modules.ScrollTrigger.create({
+        trigger: svg.closest('.chapter--toolkit'),
+        start: `${Math.round((delay / 2) * 100)}% top`,
+        once: true,
+        onEnter: () => {
+          line.classList.add('is-visible');
+        },
+      });
     });
   });
 }
+
+// ---------- Chapter 3: The Work ----------
+
+function initWorkTimeline(modules: AnimationModules): void {
+  if (workInitialized || prefersReducedMotion()) return;
+  workInitialized = true;
+
+  // Heading reveal
+  const heading = document.querySelector('.work__heading');
+  if (heading) {
+    modules.gsap.to(heading, {
+      opacity: 1,
+      y: 0,
+      duration: 0.7,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: heading,
+        start: 'top 85%',
+        once: true,
+      },
+    });
+  }
+
+  // Per-panel cinematic reveals
+  const panels = modules.gsap.utils.toArray<HTMLElement>('.work__panel');
+
+  panels.forEach((panel, index) => {
+    const bg = panel.querySelector<HTMLElement>('.work__panel-bg');
+    const preview = panel.querySelector<HTMLElement>('.work__panel-preview, .work__panel-placeholder');
+    const textElements = panel.querySelectorAll<HTMLElement>(
+      '.work__panel-index, .work__panel-title, .work__panel-year, .work__panel-tags, .work__panel-desc, .work__panel-cta',
+    );
+    const isEven = index % 2 === 1;
+
+    // Timeline for each panel
+    const tl = modules.gsap.timeline({
+      scrollTrigger: {
+        trigger: panel,
+        start: 'top 75%',
+        once: true,
+      },
+    });
+
+    // 1. Clip-path reveal on the background
+    if (bg) {
+      const fromClip = isEven ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)';
+      const toClip = 'inset(0 0% 0 0%)';
+
+      tl.fromTo(
+        bg,
+        { clipPath: fromClip },
+        {
+          clipPath: toClip,
+          duration: 1.2,
+          ease: 'power3.inOut',
+        },
+        0,
+      );
+    }
+
+    // 2. Text elements stagger in
+    if (textElements.length > 0) {
+      tl.to(
+        textElements,
+        {
+          opacity: 1,
+          y: 0,
+          stagger: 0.08,
+          duration: 0.6,
+          ease: 'power3.out',
+        },
+        bg ? 0.4 : 0,
+      );
+    }
+
+    // 3. Preview image floats up
+    if (preview) {
+      tl.to(
+        preview,
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power3.out',
+        },
+        bg ? 0.6 : 0.2,
+      );
+    }
+  });
+}
+
+// ---------- Chapter 4: Signal ----------
+
+function initSignalTimeline(modules: AnimationModules): void {
+  if (signalInitialized || prefersReducedMotion()) return;
+  signalInitialized = true;
+
+  const section = document.querySelector('.chapter--signal');
+  const flash = document.querySelector<HTMLElement>('.signal__flash');
+  const content = document.querySelector<HTMLElement>('.signal__content');
+  const email = document.querySelector<HTMLElement>('.signal__email');
+
+  if (!section) return;
+
+  modules.ScrollTrigger.create({
+    trigger: section,
+    start: 'top 70%',
+    once: true,
+    onEnter: () => {
+      const tl = modules.gsap.timeline();
+
+      // Brief bright flash
+      if (flash) {
+        tl.to(flash, {
+          opacity: 0.7,
+          duration: 0.12,
+          ease: 'power2.in',
+        })
+          .to(flash, {
+            opacity: 0,
+            duration: 0.6,
+            ease: 'power3.out',
+          });
+      }
+
+      // Content reveals after flash
+      if (content) {
+        tl.to(
+          content,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: 'power3.out',
+          },
+          flash ? 0.25 : 0,
+        );
+      }
+
+      // Add pulsing glow to email after content settles
+      if (email) {
+        tl.call(
+          () => {
+            email.classList.add('signal__email--pulsing');
+          },
+          [],
+          '+=0.3',
+        );
+      }
+    },
+  });
+}
+
+// ─────────────────────────────────────
+// Terminal init (unchanged)
+// ─────────────────────────────────────
 
 function initTerminal(): Promise<void> {
   if (terminalInitPromise) return terminalInitPromise;
@@ -548,40 +860,115 @@ function initTerminal(): Promise<void> {
   return terminalInitPromise;
 }
 
-function initParallax(modules: AnimationModules): void {
-  if (parallaxInitialized) return;
-  parallaxInitialized = true;
-
-  const parallaxElements = document.querySelectorAll<HTMLElement>('[data-parallax]');
-  parallaxElements.forEach((element) => {
-    const speed = parseFloat(element.getAttribute('data-parallax') || '1');
-
-    modules.gsap.to(element, {
-      yPercent: speed * 30,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: element,
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      },
-    });
-  });
-}
+// ─────────────────────────────────────
+// Animation stack (updated for chapters)
+// ─────────────────────────────────────
 
 async function initAnimationStack(): Promise<void> {
   const modules = await loadAnimationModules();
   initSmoothScroll(modules);
   initMagneticElements(modules);
-  initTextReveals(modules);
-  initParallax(modules);
-  observeRevealElements(modules);
+
+  // Chapter animations
+  initPrologueTimeline(modules);
+  initToolkitTimeline(modules);
+  initWorkTimeline(modules);
+  initSignalTimeline(modules);
 }
+
+function initImageModal(): void {
+  const modal = document.getElementById('image-modal');
+  const modalImg = modal?.querySelector('.image-modal__img') as HTMLImageElement;
+  const backdrop = modal?.querySelector('.image-modal__backdrop');
+  const closeBtn = modal?.querySelector('.image-modal__close');
+  const prevBtn = modal?.querySelector('.image-modal__nav--prev') as HTMLButtonElement;
+  const nextBtn = modal?.querySelector('.image-modal__nav--next') as HTMLButtonElement;
+  const counter = modal?.querySelector('.image-modal__counter');
+
+  if (!modal || !modalImg || !backdrop || !closeBtn || !prevBtn || !nextBtn || !counter) return;
+
+  // State
+  let currentImages: string[] = [];
+  let currentIndex = 0;
+
+  const updateNav = () => {
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === currentImages.length - 1;
+    // Hide nav buttons when only one image
+    const showNav = currentImages.length > 1;
+    prevBtn.style.display = showNav ? '' : 'none';
+    nextBtn.style.display = showNav ? '' : 'none';
+    counter.textContent = showNav ? `${currentIndex + 1} / ${currentImages.length}` : '';
+  };
+
+  const showImage = (index: number) => {
+    currentIndex = Math.max(0, Math.min(index, currentImages.length - 1));
+    // Fade out → swap → fade in
+    modalImg.style.opacity = '0';
+    setTimeout(() => {
+      modalImg.src = currentImages[currentIndex];
+      modalImg.style.opacity = '1';
+    }, 150);
+    updateNav();
+  };
+
+  const open = (images: string[], startIndex = 0) => {
+    currentImages = images;
+    currentIndex = startIndex;
+    modalImg.src = images[startIndex];
+    updateNav();
+    modal.classList.add('is-active');
+    modal.setAttribute('aria-hidden', 'false');
+  };
+
+  const close = () => {
+    modal.classList.remove('is-active');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { modalImg.src = ''; currentImages = []; }, 300);
+  };
+
+  // Wire controls
+  backdrop.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+  prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
+  nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
+
+  // Add CSS transition for the swap
+  modalImg.style.transition = 'opacity 0.15s ease';
+
+  document.addEventListener('keydown', (e) => {
+    if (!modal.classList.contains('is-active')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowRight') showImage(currentIndex + 1);
+    if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+  });
+
+  // Attach click to each project preview, collecting all its images
+  const panels = document.querySelectorAll<HTMLElement>('.work__panel');
+  panels.forEach((panel) => {
+    const preview = panel.querySelector('.work__panel-preview');
+    if (!preview) return;
+
+    // Collect all <img> srcs within this preview (base + alt images)
+    const imgs = Array.from(preview.querySelectorAll<HTMLImageElement>('img'))
+      .map((img) => img.src)
+      .filter(Boolean);
+
+    if (imgs.length === 0) return;
+
+    preview.addEventListener('click', () => open(imgs, 0));
+  });
+}
+
+// ═══════════════════════════════════════════
+// Bootstrap
+// ═══════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
-  renderProjects();
+  renderProjectPanels();
   initProjectsPixelTrail();
+  initImageModal();
   initScrollHandlers();
 
   void Promise.all([initAnimationStack(), initScene(), initTerminal()]);

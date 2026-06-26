@@ -5,6 +5,7 @@ export interface Project {
   description: string;
   link?: string;
   previewImages?: string[];
+  backgroundImage?: string;
   /** Native resolution of the preview images (width × height in px). */
   imageResolution?: { width: number; height: number };
   category: 'hardware' | 'software' | 'research';
@@ -12,13 +13,14 @@ export interface Project {
 
 export const projects: Project[] = [
   {
-    title: 'Job Application Automation Workflow',
+    title: 'Sahara',
     year: '2026',
-    tags: ['TypeScript', 'Node.js', 'Playwright', 'Stagehand', 'SQLite', 'Next.js'],
+    tags: ['Next.js', 'TypeScript', 'Playwright', 'Stripe', 'Queue Management', 'Browser Automation'],
     description:
-      'Local-first job pipeline that discovers roles from ATS sources, generates tailored resume and cover-letter artifacts, and automates repetitive form-filling with browser + AI workflow logic.',
+      'Job automation SaaS that helps users track their job hunt, parse job boards, tailor resumes, and automate application workflows for platforms like Greenhouse and Ashby.',
     link: 'https://github.com/Amro212/JobAutomation',
-    previewImages: ['/project-previews/job-automation1.png', '/project-previews/job-automation2.png'],
+    previewImages: ['/project-previews/sahara/sahara1.png', '/project-previews/sahara/sahara2.png'],
+    backgroundImage: '/project-previews/sahara/Sahara-background.png',
     category: 'software',
   },
   {
@@ -28,18 +30,19 @@ export const projects: Project[] = [
     description:
       'Hybrid iOS and serverless app that turns syllabus PDFs into structured student plans, with editable timelines and one-tap Apple Calendar sync for cleaner semester planning.',
     link: 'https://github.com/Amro212/Syllabus-Sync',
-    previewImages: ['/project-previews/syllabus1.png', '/project-previews/syllabus2.png'],
+    previewImages: ['/project-previews/syllabus/syllabus1.png', '/project-previews/syllabus/syllabus2.png'],
+    backgroundImage: '/project-previews/syllabus/syllabus-bg-playful.png',
     imageResolution: { width: 1206, height: 2622 },
     category: 'software',
   },
   {
-    title: 'LEGEND Community Impact Platform',
+    title: 'LEGEND Community',
     year: '2026',
     tags: ['Next.js', 'Tailwind CSS', 'Solana', 'DexScreener', 'Community UX'],
     description:
       'Branded community web experience for LEGEND that combines narrative storytelling, contract and chart visibility, and media-backed updates tied to real-world school-support efforts.',
     link: 'https://legend.guru',
-    previewImages: ['/project-previews/legend1.png', '/project-previews/legend2.png'],
+    previewImages: ['/project-previews/legend/legend1.png', '/project-previews/legend/legend2.png'],
     category: 'research',
   },
   {
@@ -49,7 +52,7 @@ export const projects: Project[] = [
     description:
       'Frontend concept site for BaseMCP, built as a passion project inspired by Coinbase, focused on presenting the product clearly through a polished, developer-friendly interface.',
     link: 'https://www.basemcp.xyz',
-    previewImages: ['/project-previews/basemcp1.png', '/project-previews/basemcp2.png'],
+    previewImages: ['/project-previews/basemcp/basemcp1.png', '/project-previews/basemcp/basemcp2.png'],
     category: 'software',
   },
   {
@@ -59,7 +62,7 @@ export const projects: Project[] = [
     description:
       'Character-driven web product for $GERK that streamlines buy/community entry points and reinforces brand voice with live market context and social touchpoints.',
     link: 'https://gerk.it.com',
-    previewImages: ['/project-previews/gerk1.png', '/project-previews/gerk2.png'],
+    previewImages: ['/project-previews/gerk/gerk1.png', '/project-previews/gerk/gerk2.png'],
     category: 'research',
   },
 ];
