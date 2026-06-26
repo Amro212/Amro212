@@ -3,6 +3,7 @@ import './components/ui/pixelact-ui/styles/styles.css';
 import './components/ui/pixelact-ui/button.css';
 import { projects, type Project } from './projects';
 import { initProjectsPixelTrail } from './projectsPixelTrail';
+import { inject } from '@vercel/analytics';
 
 type RetroComputerScene = import('./scene').RetroComputerScene;
 
@@ -965,6 +966,9 @@ function initImageModal(): void {
 // ═══════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Vercel Web Analytics
+  inject();
+
   initNavigation();
   renderProjectPanels();
   initProjectsPixelTrail();
