@@ -143,6 +143,7 @@ const HELP_TEXT: TerminalOutput[] = [
   { text: '  ls              List directory contents' },
   { text: '  cd <path>       Change directory' },
   { text: '  cat <section>   Jump to a section or project' },
+  { text: '  clear           Reset terminal' },
   { text: '' },
   { text: '  Tip: cd projects then cat <project-name>', className: 'term-dim' },
 ];
@@ -500,12 +501,15 @@ export class Terminal {
       case 'cat':
         this.cmdCat(arg);
         break;
+      case 'clear':
+        this.cmdClear();
+        break;
       case 'help':
         this.printLines(HELP_TEXT);
         break;
       default:
         this.printLine({ text: `bash: ${cmd}: command not found`, className: 'term-error' });
-        this.printLine({ text: 'Available commands: ls, cd, cat, help', className: 'term-dim' });
+        this.printLine({ text: 'Available commands: ls, cd, cat, clear, help', className: 'term-dim' });
     }
   }
 
@@ -626,6 +630,12 @@ export class Terminal {
     this.scrollToProject(project.title);
   }
 
+  private cmdClear(): void {
+    this.buffer = [];
+    this.cwd = [];
+    this.printLines(WELCOME_LINES);
+  }
+
   private scrollToProject(title: string): void {
     const slug = slugify(title);
     const projectPanels = document.querySelectorAll('.work__panel');
@@ -645,7 +655,7 @@ export class Terminal {
   }
 
   private autocomplete(): void {
-    const commands = ['ls', 'cd', 'cat', 'help'];
+    const commands = ['ls', 'cd', 'cat', 'clear', 'help'];
     const matches = commands.filter((command) => command.startsWith(this.inputEl.value));
     if (matches.length === 1) {
       this.inputEl.value = `${matches[0]} `;
