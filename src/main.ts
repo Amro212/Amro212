@@ -558,126 +558,68 @@ function initToolkitTimeline(modules: AnimationModules): void {
   const section = document.querySelector('.chapter--toolkit');
   const pinWrapper = document.querySelector('.toolkit__pin-wrapper');
   const headingArea = document.querySelector('.toolkit__heading-area');
-  const nodes = modules.gsap.utils.toArray<HTMLElement>('.toolkit__node');
-  const svgContainer = document.querySelector<SVGSVGElement>('.toolkit__lines');
+  const capabilities = modules.gsap.utils.toArray<HTMLElement>('.toolkit__capability');
+  const railFill = document.querySelector<HTMLElement>('.toolkit__rail-fill');
+  const chips = modules.gsap.utils.toArray<HTMLElement>('.toolkit__chips li');
+  const isCompact = window.matchMedia('(max-width: 768px)').matches;
 
-  if (!section || !pinWrapper || nodes.length === 0) return;
+  if (!section || !pinWrapper || capabilities.length === 0) return;
 
-  // Pin the toolkit section during scroll
-  modules.ScrollTrigger.create({
-    trigger: section,
-    start: 'top top',
-    end: 'bottom bottom',
-    pin: pinWrapper,
-    pinSpacing: false,
-  });
+  const headingTargets = [headingArea].filter(Boolean);
 
-  // Heading reveal
-  if (headingArea) {
-    modules.gsap.to(headingArea, {
-      opacity: 1,
-      y: 0,
-      duration: 0.7,
+  if (isCompact) {
+    modules.gsap.from([...headingTargets, ...capabilities], {
+      autoAlpha: 0,
+      y: 22,
+      duration: 0.55,
+      stagger: 0.08,
       ease: 'power3.out',
       scrollTrigger: {
         trigger: section,
-        start: 'top 80%',
+        start: 'top 82%',
         once: true,
       },
     });
+    return;
   }
 
-  // Staggered node reveals linked to scroll progress
-  const totalNodes = nodes.length;
-  const perNodeScrollFraction = 1 / (totalNodes + 1);
-
-  nodes.forEach((node, index) => {
-    const start = perNodeScrollFraction * index;
-    const end = start + perNodeScrollFraction;
-
-    modules.ScrollTrigger.create({
+  const timeline = modules.gsap.timeline({
+    defaults: { ease: 'power3.out' },
+    scrollTrigger: {
       trigger: section,
-      start: `${Math.round(start * 100)}% top`,
-      end: `${Math.round(end * 100)}% top`,
-      onEnter: () => {
-        // Animate node in
-        modules.gsap.to(node, {
-          opacity: 1,
-          scale: 1,
-          y: 0,
-          duration: 0.6,
-          ease: 'power3.out',
-        });
-        // Light it up after a brief delay
-        setTimeout(() => {
-          node.classList.add('is-lit');
-        }, 300);
-      },
-      once: true,
-    });
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 0.75,
+      pin: pinWrapper,
+      pinSpacing: false,
+    },
   });
 
-  // Draw SVG connecting lines between adjacent nodes
-  if (svgContainer) {
-    drawConstellationLines(svgContainer, nodes, modules);
+  timeline
+    .from(headingTargets, { autoAlpha: 0, y: 30, filter: 'blur(8px)', duration: 0.22 })
+    .from(
+      capabilities,
+      {
+        autoAlpha: 0,
+        y: 26,
+        clipPath: 'inset(0 0 100% 0)',
+        duration: 0.48,
+        stagger: 0.075,
+      },
+      0.08,
+    )
+    .from(chips, { autoAlpha: 0, y: 8, duration: 0.32, stagger: 0.012 }, 0.18);
+
+  if (railFill) {
+    timeline.to(railFill, { scaleY: 1, duration: 0.64, ease: 'none' }, 0.08);
   }
-}
 
-function drawConstellationLines(
-  svg: SVGSVGElement,
-  nodes: HTMLElement[],
-  modules: AnimationModules,
-): void {
-  // Wait a frame for layout
-  requestAnimationFrame(() => {
-    const pinWrapper = svg.closest('.toolkit__pin-wrapper');
-    if (!pinWrapper) return;
-    const wrapperRect = pinWrapper.getBoundingClientRect();
-
-    svg.innerHTML = '';
-    svg.setAttribute('viewBox', `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
-
-    // Connect each node to the next, plus some cross-connections for visual interest
-    const connections: [number, number][] = [];
-    for (let i = 0; i < nodes.length - 1; i++) {
-      connections.push([i, i + 1]);
-    }
-    // Cross-connections: 0-2, 1-4, 3-5
-    if (nodes.length >= 3) connections.push([0, 2]);
-    if (nodes.length >= 5) connections.push([1, 4]);
-    if (nodes.length >= 6) connections.push([3, 5]);
-
-    connections.forEach(([a, b], lineIndex) => {
-      const nodeA = nodes[a];
-      const nodeB = nodes[b];
-      if (!nodeA || !nodeB) return;
-
-      const rectA = nodeA.getBoundingClientRect();
-      const rectB = nodeB.getBoundingClientRect();
-
-      const x1 = rectA.left - wrapperRect.left + rectA.width / 2;
-      const y1 = rectA.top - wrapperRect.top + rectA.height / 2;
-      const x2 = rectB.left - wrapperRect.left + rectB.width / 2;
-      const y2 = rectB.top - wrapperRect.top + rectB.height / 2;
-
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', String(x1));
-      line.setAttribute('y1', String(y1));
-      line.setAttribute('x2', String(x2));
-      line.setAttribute('y2', String(y2));
-      svg.appendChild(line);
-
-      // Animate lines in with stagger
-      const delay = Math.max(a, b) * 0.15 + lineIndex * 0.05;
-      modules.ScrollTrigger.create({
-        trigger: svg.closest('.chapter--toolkit'),
-        start: `${Math.round((delay / 2) * 100)}% top`,
-        once: true,
-        onEnter: () => {
-          line.classList.add('is-visible');
-        },
-      });
-    });
+  capabilities.forEach((capability, index) => {
+    const progressPoint = 0.22 + index * 0.105;
+    timeline.call(() => {
+      capabilities.forEach((item) => item.classList.remove('is-active'));
+      capability.classList.add('is-active');
+    }, [], progressPoint);
   });
 }
 

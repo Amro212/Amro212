@@ -1097,10 +1097,10 @@ body.scene-ready .three-container canvas {
 
 /* ─────────────────────────────────────
    CHAPTER 2 — THE TOOLKIT (Skills)
-   Constellation layout with scroll pin
+   Capability console with measured scroll motion
    ───────────────────────────────────── */
 .chapter--toolkit {
-  min-height: 250vh; /* scroll distance for pin */
+  min-height: 230vh;
   background: transparent;
 }
 
@@ -1108,149 +1108,196 @@ body.scene-ready .three-container canvas {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  place-items: center;
   justify-content: center;
-  padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+  padding: clamp(3.5rem, 6vw, 5.5rem) clamp(1rem, 4vw, 3.5rem);
   overflow: hidden;
 }
 
+.toolkit__pin-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 8% -12% auto;
+  height: 55%;
+  background:
+    linear-gradient(90deg, transparent, rgba(117, 252, 255, 0.08), transparent),
+    radial-gradient(circle at 20% 30%, rgba(122, 255, 190, 0.1), transparent 34%),
+    radial-gradient(circle at 80% 45%, rgba(41, 215, 255, 0.13), transparent 38%);
+  filter: blur(34px);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.toolkit__shell {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: minmax(220px, 0.68fr) minmax(0, 1.32fr);
+  gap: clamp(1.75rem, 4vw, 4rem);
+  align-items: start;
+}
+
 .toolkit__heading-area {
-  text-align: center;
-  margin-bottom: clamp(3rem, 6vw, 5rem);
-  opacity: 0;
-  transform: translateY(24px);
+  position: sticky;
+  top: clamp(5rem, 16vh, 8rem);
+  text-align: left;
 }
 
 .toolkit__heading {
   font-family: var(--font-pixel);
-  font-size: clamp(1.5rem, 4vw, 2.8rem);
+  font-size: clamp(1.55rem, 3.4vw, 3rem);
+  line-height: 1.35;
   color: var(--about-heading);
-  margin: 0 0 0.8rem;
+  margin: 0 0 clamp(1rem, 2vw, 1.4rem);
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
-.toolkit__subline {
+.toolkit__kicker {
+  width: max-content;
+  margin: 0 0 1.1rem;
   font-family: var(--font-mono);
-  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
-  color: var(--about-text);
-  margin: 0;
-  opacity: 0.7;
+  font-size: 0.72rem;
+  color: var(--accent-bright);
+  border-block: 1px solid rgba(117, 252, 255, 0.28);
+  padding-block: 0.35rem;
 }
 
-/* SVG circuit-trace lines behind nodes */
-.toolkit__lines {
+.toolkit__summary {
+  max-width: 37ch;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(0.86rem, 1.1vw, 0.98rem);
+  line-height: 1.8;
+  color: var(--about-text);
+  opacity: 0.86;
+  text-wrap: pretty;
+}
+
+.toolkit__console {
+  position: relative;
+  display: grid;
+  gap: clamp(0.55rem, 1.1vw, 0.85rem);
+  padding-left: clamp(1rem, 2vw, 1.8rem);
+}
+
+.toolkit__rail {
   position: absolute;
-  inset: 0;
+  inset: 0 auto 0 0;
+  width: 1px;
+  background: rgba(117, 252, 255, 0.14);
+  overflow: hidden;
+}
+
+.toolkit__rail-fill {
+  display: block;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-  z-index: 0;
+  transform: scaleY(0);
+  transform-origin: top;
+  background: linear-gradient(180deg, var(--accent-bright), rgba(122, 255, 190, 0.8), transparent);
 }
 
-.toolkit__lines line {
-  stroke: var(--accent-dim);
-  stroke-width: 1;
-  opacity: 0;
-  transition: opacity 0.6s var(--ease-out-quart);
-}
-
-.toolkit__lines line.is-visible {
-  opacity: 1;
-}
-
-/* Constellation grid */
-.toolkit__constellation {
+.toolkit__capability {
   position: relative;
-  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: clamp(1.5rem, 3vw, 3rem);
-  max-width: 960px;
-  width: 100%;
-}
-
-/* Individual skill nodes */
-.toolkit__node {
-  position: relative;
-  padding: clamp(1.2rem, 2.5vw, 2rem);
-  background: rgba(20, 8, 32, 0.7);
-  border: 1px solid rgba(117, 252, 255, 0.08);
-  border-radius: 12px;
-  text-align: center;
-  cursor: default;
-  /* Start hidden for GSAP */
-  opacity: 0;
-  transform: scale(0.85) translateY(20px);
+  grid-template-columns: minmax(150px, 0.38fr) minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: start;
+  min-height: clamp(5.5rem, 8.4vw, 7rem);
+  padding: clamp(1rem, 1.9vw, 1.35rem) 0 clamp(1rem, 1.9vw, 1.35rem) clamp(1rem, 2vw, 1.5rem);
+  border-block-start: 1px solid rgba(214, 208, 230, 0.12);
   transition:
-    border-color 0.4s var(--ease-out-quart),
-    box-shadow 0.4s var(--ease-out-quart),
-    background 0.4s var(--ease-out-quart);
+    background 240ms var(--ease-out-quart),
+    border-color 240ms var(--ease-out-quart),
+    transform 240ms var(--ease-out-quart);
 }
 
-.toolkit__node.is-lit {
-  border-color: rgba(117, 252, 255, 0.35);
-  background: rgba(30, 14, 48, 0.85);
-  box-shadow:
-    0 0 0 1px rgba(117, 252, 255, 0.12),
-    0 8px 32px rgba(41, 215, 255, 0.08),
-    inset 0 1px 0 rgba(117, 252, 255, 0.1);
-}
-
-.toolkit__node:hover,
-.toolkit__node:focus-within {
-  border-color: rgba(117, 252, 255, 0.5);
-  box-shadow:
-    0 0 0 1px rgba(117, 252, 255, 0.18),
-    0 12px 40px rgba(41, 215, 255, 0.12),
-    inset 0 1px 0 rgba(117, 252, 255, 0.15);
-}
-
-/* Animated ring glow behind each node */
-.toolkit__node-ring {
+.toolkit__capability::before {
+  content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  border: 2px solid transparent;
-  opacity: 0;
-  transition: opacity 0.6s var(--ease-out-quart);
-  pointer-events: none;
+  left: calc(clamp(1rem, 2vw, 1.8rem) * -1 - 4px);
+  top: clamp(1.2rem, 2vw, 1.55rem);
+  width: 8px;
+  height: 8px;
+  background: var(--about-bg);
+  border: 1px solid rgba(117, 252, 255, 0.45);
+  transform: rotate(45deg);
+  transition:
+    background 220ms var(--ease-out-quart),
+    border-color 220ms var(--ease-out-quart),
+    box-shadow 220ms var(--ease-out-quart);
 }
 
-.toolkit__node.is-lit .toolkit__node-ring {
-  opacity: 1;
-  border-color: rgba(117, 252, 255, 0.2);
-  box-shadow: 0 0 20px rgba(41, 215, 255, 0.15);
+.toolkit__capability:last-child {
+  border-block-end: 1px solid rgba(214, 208, 230, 0.12);
 }
 
-.toolkit__node-title {
-  margin: 0 0 0.6rem;
+.toolkit__capability.is-active,
+.toolkit__capability:hover,
+.toolkit__capability:focus-within {
+  background: linear-gradient(90deg, rgba(117, 252, 255, 0.075), transparent 72%);
+  border-color: rgba(117, 252, 255, 0.25);
+}
+
+.toolkit__capability.is-active::before,
+.toolkit__capability:hover::before,
+.toolkit__capability:focus-within::before {
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 14px rgba(117, 252, 255, 0.55);
+}
+
+.toolkit__capability-meta {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.toolkit__index {
   font-family: var(--font-pixel);
-  font-size: clamp(0.65rem, 1.2vw, 0.82rem);
+  font-size: 0.56rem;
   color: var(--accent);
-  letter-spacing: 0.02em;
 }
 
-.toolkit__node-body {
+.toolkit__capability-title {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: clamp(0.78rem, 1.1vw, 0.88rem);
-  line-height: 1.7;
-  color: var(--about-text);
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition:
-    opacity 0.5s var(--ease-out-quart),
-    max-height 0.5s var(--ease-out-quart);
+  font-size: clamp(0.88rem, 1.25vw, 1.05rem);
+  line-height: 1.4;
+  color: var(--about-heading);
 }
 
-.toolkit__node.is-lit .toolkit__node-body,
-.toolkit__node:hover .toolkit__node-body,
-.toolkit__node:focus-within .toolkit__node-body {
-  opacity: 1;
-  max-height: 200px;
+.toolkit__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.48rem;
+}
+
+.toolkit__chips li {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.62rem;
+  border: 1px solid rgba(117, 252, 255, 0.18);
+  background: rgba(8, 2, 13, 0.34);
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 0.9vw, 0.82rem);
+  line-height: 1.2;
+  color: rgba(240, 232, 255, 0.86);
+  transition:
+    color 180ms var(--ease-out-quart),
+    border-color 180ms var(--ease-out-quart),
+    background 180ms var(--ease-out-quart);
+}
+
+.toolkit__capability.is-active .toolkit__chips li,
+.toolkit__capability:hover .toolkit__chips li,
+.toolkit__capability:focus-within .toolkit__chips li {
+  color: var(--about-heading);
+  border-color: rgba(117, 252, 255, 0.32);
+  background: rgba(117, 252, 255, 0.055);
 }
 
 /* ─────────────────────────────────────
@@ -1617,23 +1664,21 @@ body.scene-ready .three-container canvas {
   }
 
   /* Toolkit */
-  .toolkit__heading-area {
+  .chapter--toolkit {
+    min-height: auto;
+  }
+  .toolkit__pin-wrapper {
+    min-height: auto;
+  }
+  .toolkit__heading-area,
+  .toolkit__capability,
+  .toolkit__chips li {
     opacity: 1;
     transform: none;
-  }
-  .toolkit__node {
-    opacity: 1;
-    transform: none;
-  }
-  .toolkit__node-body {
-    opacity: 1;
-    max-height: none;
-  }
-  .toolkit__node-ring {
     transition: none;
   }
-  .toolkit__lines line {
-    transition: none;
+  .toolkit__rail-fill {
+    transform: scaleY(1);
   }
 
   /* Work */
@@ -1696,10 +1741,43 @@ body.scene-ready .three-container canvas {
     text-align: center;
   }
 
-  /* Toolkit — 2-column grid */
-  .toolkit__constellation {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+  /* Toolkit */
+  .chapter--toolkit {
+    min-height: auto;
+  }
+
+  .toolkit__pin-wrapper {
+    min-height: auto;
+    padding-block: clamp(4rem, 10vw, 6rem);
+  }
+
+  .toolkit__shell {
+    grid-template-columns: 1fr;
+    gap: 2.4rem;
+  }
+
+  .toolkit__heading-area {
+    position: relative;
+    top: auto;
+    text-align: center;
+  }
+
+  .toolkit__kicker {
+    margin-inline: auto;
+  }
+
+  .toolkit__summary {
+    margin-inline: auto;
+  }
+
+  .toolkit__console {
+    padding-left: 1rem;
+  }
+
+  .toolkit__capability {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    min-height: auto;
   }
 
   /* Work — single column panels */
@@ -1734,13 +1812,26 @@ body.scene-ready .three-container canvas {
 }
 
 @media (max-width: 480px) {
-  /* Toolkit — single column */
-  .toolkit__constellation {
-    grid-template-columns: 1fr;
+  /* Toolkit */
+  .toolkit__pin-wrapper {
+    padding-inline: 1rem;
   }
 
-  .chapter--toolkit {
-    min-height: auto;
+  .toolkit__console {
+    padding-left: 0.8rem;
+  }
+
+  .toolkit__capability {
+    padding-left: 0.85rem;
+  }
+
+  .toolkit__chips {
+    gap: 0.4rem;
+  }
+
+  .toolkit__chips li {
+    min-height: 1.9rem;
+    padding-inline: 0.5rem;
   }
 
   /* Work panel text size adjustments */

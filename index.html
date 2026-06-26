@@ -145,48 +145,122 @@
 
     <!-- ═══════════════════════════════════════════
          CHAPTER 2 — THE TOOLKIT (Skills)
-         Scroll-pinned constellation layout
+         Capability map
          ═══════════════════════════════════════════ -->
     <section id="skills" class="chapter chapter--toolkit">
       <div class="toolkit__pin-wrapper">
-        <div class="toolkit__heading-area">
-          <h2 class="toolkit__heading">The Toolkit</h2>
-        </div>
-        <!-- SVG connecting lines drawn behind nodes -->
-        <svg class="toolkit__lines" aria-hidden="true" preserveAspectRatio="none"></svg>
-        <div class="toolkit__constellation">
-          <article class="toolkit__node" data-node="0" role="group" aria-label="Languages">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">Languages</h3>
-            <p class="toolkit__node-body">TypeScript, JavaScript, Python, C/C++, Swift, SQL</p>
-          </article>
-          <article class="toolkit__node" data-node="1" role="group" aria-label="Frameworks & Libraries">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">Frameworks & Libraries</h3>
-            <p class="toolkit__node-body">React, Node.js, Express, Three.js, LangChain</p>
-          </article>
-          <article class="toolkit__node" data-node="2" role="group" aria-label="Tools & Platforms">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">Tools & Platforms</h3>
-            <p class="toolkit__node-body">WordPress/Gutenberg, Git & GitHub, Docker, Vite, Figma, Stitch, Vercel,
-              Cloudflare</p>
-          </article>
-          <article class="toolkit__node" data-node="3" role="group" aria-label="Mobile">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">Mobile</h3>
-            <p class="toolkit__node-body">Swift, SwiftUI, iOS App Prototyping, Flutter</p>
-          </article>
-          <article class="toolkit__node" data-node="4" role="group" aria-label="AI & Automation">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">AI & Automation</h3>
-            <p class="toolkit__node-body">n8n, LangChain, OpenAI APIs, OpenRouter, Prompt Engineering, Workflow
-              Automation</p>
-          </article>
-          <article class="toolkit__node" data-node="5" role="group" aria-label="Embedded Systems">
-            <div class="toolkit__node-ring" aria-hidden="true"></div>
-            <h3 class="toolkit__node-title">Embedded Systems</h3>
-            <p class="toolkit__node-body">STM32, ARM Cortex-M, FPGA Fundamentals, Quartus</p>
-          </article>
+        <div class="toolkit__shell">
+          <div class="toolkit__heading-area">
+            <p class="toolkit__kicker">Capability map</p>
+            <h2 class="toolkit__heading">The Toolkit</h2>
+            <p class="toolkit__summary">A practical stack for turning messy inputs into structured systems: product
+              interfaces, automation pipelines, model experiments, embedded labs, and platform work.</p>
+          </div>
+
+          <div class="toolkit__console" aria-label="Technical skills grouped by capability">
+            <div class="toolkit__rail" aria-hidden="true">
+              <span class="toolkit__rail-fill"></span>
+            </div>
+
+            <article class="toolkit__capability" data-capability="software">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">01</span>
+                <h3 class="toolkit__capability-title">Software Foundations</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="Software Foundations skills">
+                <li>TypeScript</li>
+                <li>JavaScript</li>
+                <li>Python</li>
+                <li>Java</li>
+                <li>C/C++</li>
+                <li>SQL</li>
+                <li>HTML/CSS</li>
+              </ul>
+            </article>
+
+            <article class="toolkit__capability" data-capability="interfaces">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">02</span>
+                <h3 class="toolkit__capability-title">Product Interfaces</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="Product Interfaces skills">
+                <li>React</li>
+                <li>SwiftUI</li>
+                <li>Tailwind CSS</li>
+                <li>Framer Motion</li>
+                <li>Vite</li>
+                <li>Responsive UI</li>
+                <li>Accessibility</li>
+              </ul>
+            </article>
+
+            <article class="toolkit__capability" data-capability="backend">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">03</span>
+                <h3 class="toolkit__capability-title">Backend &amp; APIs</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="Backend and API skills">
+                <li>Node.js</li>
+                <li>Flask</li>
+                <li>REST APIs</li>
+                <li>Cloudflare Workers</li>
+                <li>WordPress/Gutenberg</li>
+                <li>Teamwork APIs</li>
+              </ul>
+            </article>
+
+            <article class="toolkit__capability" data-capability="automation">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">04</span>
+                <h3 class="toolkit__capability-title">AI &amp; Automation</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="AI and Automation skills">
+                <li>OpenAI API</li>
+                <li>LLM workflows</li>
+                <li>Prompt engineering</li>
+                <li>LangChain</li>
+                <li>n8n</li>
+                <li>Playwright</li>
+                <li>Document parsing</li>
+              </ul>
+            </article>
+
+            <article class="toolkit__capability" data-capability="ml">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">05</span>
+                <h3 class="toolkit__capability-title">Data &amp; ML Systems</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="Data and ML Systems skills">
+                <li>PyTorch</li>
+                <li>CUDA</li>
+                <li>HuggingFace</li>
+                <li>Transformers</li>
+                <li>pandas</li>
+                <li>NumPy</li>
+                <li>TensorFlow</li>
+                <li>Benchmarking</li>
+              </ul>
+            </article>
+
+            <article class="toolkit__capability" data-capability="systems">
+              <div class="toolkit__capability-meta">
+                <span class="toolkit__index">06</span>
+                <h3 class="toolkit__capability-title">Embedded &amp; Platforms</h3>
+              </div>
+              <ul class="toolkit__chips" aria-label="Embedded and platform skills">
+                <li>ARM Cortex-M</li>
+                <li>STM32/K60</li>
+                <li>VHDL</li>
+                <li>FPGA fundamentals</li>
+                <li>Quartus</li>
+                <li>MATLAB/Simulink</li>
+                <li>Jira</li>
+                <li>Confluence</li>
+                <li>Microsoft 365</li>
+                <li>ServiceDesk Plus</li>
+              </ul>
+            </article>
+          </div>
         </div>
       </div>
     </section>
