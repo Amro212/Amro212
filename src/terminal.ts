@@ -82,33 +82,11 @@ function buildFileSystem(): FSNode {
 
   for (const project of projects) {
     const slug = slugify(project.title);
-    const projectDir: FSNode = {
-      name: slug,
-      type: 'dir',
-      children: new Map(),
-    };
-
-    projectDir.children!.set('README.md', {
-      name: 'README.md',
+    projectsDir.children!.set(`${slug}.md`, {
+      name: `${slug}.md`,
       type: 'file',
-      content: [
-        `# ${project.title}`,
-        `> ${project.year} | ${project.category}`,
-        '',
-        project.description,
-        '',
-        `Tags: ${project.tags.join(', ')}`,
-        ...(project.link ? ['', `Link: ${project.link}`] : []),
-      ].join('\n'),
+      content: '',
     });
-
-    projectDir.children!.set('tech-stack.txt', {
-      name: 'tech-stack.txt',
-      type: 'file',
-      content: project.tags.map((tag) => `  - ${tag}`).join('\n'),
-    });
-
-    projectsDir.children!.set(slug, projectDir);
   }
 
   root.children!.set('projects', projectsDir);
@@ -605,7 +583,13 @@ export class Terminal {
     }
 
     if (target.node.type !== 'dir') {
-      this.printLine({ text: `cd: not a directory: ${path}`, className: 'term-error' });
+      // If the user tries to cd into a project file, show a helpful hint
+      const isInProjects = this.cwd.length === 1 && this.cwd[0] === 'projects';
+      if (isInProjects && target.node.name.endsWith('.md')) {
+        this.printLine({ text: `Tip: use 'cat ${target.node.name}' to view this project`, className: 'term-dim' });
+      } else {
+        this.printLine({ text: `cd: not a directory: ${path}`, className: 'term-error' });
+      }
       return;
     }
 
@@ -618,7 +602,7 @@ export class Terminal {
       return;
     }
 
-    const cleanTarget = target.replace(/\.txt$/, '');
+    const cleanTarget = target.replace(/\.(txt|md)$/, '');
     const slug = slugify(cleanTarget);
     const project = projects.find((entry) => slugify(entry.title) === slug);
 
