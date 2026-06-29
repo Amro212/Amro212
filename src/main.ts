@@ -3,6 +3,10 @@ import './components/ui/pixelact-ui/styles/styles.css';
 import './components/ui/pixelact-ui/button.css';
 import { projects, type Project } from './projects';
 import { initProjectsPixelTrail } from './projectsPixelTrail';
+import { inject } from '@vercel/analytics';
+
+// Initialize Vercel Web Analytics
+inject();
 
 type RetroComputerScene = import('./scene').RetroComputerScene;
 
