@@ -7,6 +7,12 @@
       "skillPath": "engineering/grill-me/skills/grill-me/SKILL.md",
       "computedHash": "e63ffc49b045c2186a64bc6c84c37ed6ded259b205c1755cee94f9fdb71b04d3"
     },
+    "humanizer": {
+      "source": "NousResearch/hermes-agent",
+      "sourceType": "github",
+      "skillPath": "skills/creative/humanizer/SKILL.md",
+      "computedHash": "a43bded5a04e7e460717dbf0cc9c26e554bc0296bb296ff8d704a147810b4902"
+    },
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",

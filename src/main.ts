@@ -116,10 +116,33 @@ function initNavigation(): void {
   });
 
   document.addEventListener('keydown', (event: KeyboardEvent) => {
-    if (event.key !== 'Escape' || !mobileMenu.classList.contains('active')) return;
-    event.preventDefault();
-    closeMenu();
-    hamburger.focus();
+    if (!mobileMenu.classList.contains('active')) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu();
+      hamburger.focus();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      const focusables = Array.from(mobileMenu.querySelectorAll<HTMLElement>('a, button'));
+      const elements = [hamburger, ...focusables];
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
   });
 }
 
@@ -498,7 +521,7 @@ function createProjectPanel(project: Project, index: number): string {
 // ---------- Chapter 1: Prologue ----------
 
 function initPrologueTimeline(modules: AnimationModules): void {
-  if (prologueInitialized || prefersReducedMotion()) return;
+  if (prologueInitialized) return;
   prologueInitialized = true;
 
   const section = document.querySelector('.chapter--prologue');
@@ -506,6 +529,13 @@ function initPrologueTimeline(modules: AnimationModules): void {
 
   const lines = modules.gsap.utils.toArray<HTMLElement>('.prologue__line');
   const heading = section.querySelector('.prologue__heading');
+
+  if (prefersReducedMotion()) {
+    if (heading) modules.gsap.set(heading, { opacity: 1, y: 0 });
+    if (lines.length > 0) modules.gsap.set(lines, { opacity: 1, y: 0 });
+    section.classList.add('is-active');
+    return;
+  }
 
   // Heading fade in
   if (heading) {
@@ -552,7 +582,7 @@ function initPrologueTimeline(modules: AnimationModules): void {
 // ---------- Chapter 2: Toolkit ----------
 
 function initToolkitTimeline(modules: AnimationModules): void {
-  if (toolkitInitialized || prefersReducedMotion()) return;
+  if (toolkitInitialized) return;
   toolkitInitialized = true;
 
   const section = document.querySelector('.chapter--toolkit');
@@ -564,6 +594,18 @@ function initToolkitTimeline(modules: AnimationModules): void {
   const isCompact = window.matchMedia('(max-width: 768px)').matches;
 
   if (!section || !pinWrapper || capabilities.length === 0) return;
+
+  if (prefersReducedMotion()) {
+    modules.gsap.set([headingArea, capabilities, railFill, chips].filter(Boolean), {
+      autoAlpha: 1,
+      y: 0,
+      clipPath: 'none',
+      scale: 1,
+      scaleY: 1,
+    });
+    capabilities.forEach((c) => c.classList.add('is-active'));
+    return;
+  }
 
   const headingTargets = [headingArea].filter(Boolean);
 
@@ -626,11 +668,35 @@ function initToolkitTimeline(modules: AnimationModules): void {
 // ---------- Chapter 3: The Work ----------
 
 function initWorkTimeline(modules: AnimationModules): void {
-  if (workInitialized || prefersReducedMotion()) return;
+  if (workInitialized) return;
   workInitialized = true;
 
   // Heading reveal
   const heading = document.querySelector('.work__heading');
+  const panels = modules.gsap.utils.toArray<HTMLElement>('.work__panel');
+
+  if (prefersReducedMotion()) {
+    if (heading) {
+      modules.gsap.set(heading, { opacity: 1, y: 0 });
+    }
+    panels.forEach((panel) => {
+      const bg = panel.querySelector<HTMLElement>('.work__panel-bg');
+      const preview = panel.querySelector<HTMLElement>('.work__panel-preview, .work__panel-placeholder');
+      const textElements = panel.querySelectorAll<HTMLElement>(
+        '.work__panel-index, .work__panel-title, .work__panel-year, .work__panel-tags, .work__panel-desc, .work__panel-cta',
+      );
+      if (bg) {
+        modules.gsap.set(bg, { clipPath: 'inset(0 0% 0 0%)' });
+      }
+      if (textElements.length > 0) {
+        modules.gsap.set(textElements, { opacity: 1, y: 0 });
+      }
+      if (preview) {
+        modules.gsap.set(preview, { opacity: 1, y: 0, scale: 1 });
+      }
+    });
+    return;
+  }
   if (heading) {
     modules.gsap.to(heading, {
       opacity: 1,
@@ -646,7 +712,6 @@ function initWorkTimeline(modules: AnimationModules): void {
   }
 
   // Per-panel cinematic reveals
-  const panels = modules.gsap.utils.toArray<HTMLElement>('.work__panel');
 
   panels.forEach((panel, index) => {
     const bg = panel.querySelector<HTMLElement>('.work__panel-bg');
@@ -717,7 +782,7 @@ function initWorkTimeline(modules: AnimationModules): void {
 // ---------- Chapter 4: Signal ----------
 
 function initSignalTimeline(modules: AnimationModules): void {
-  if (signalInitialized || prefersReducedMotion()) return;
+  if (signalInitialized) return;
   signalInitialized = true;
 
   const section = document.querySelector('.chapter--signal');
@@ -726,6 +791,16 @@ function initSignalTimeline(modules: AnimationModules): void {
   const email = document.querySelector<HTMLElement>('.signal__email');
 
   if (!section) return;
+
+  if (prefersReducedMotion()) {
+    if (content) {
+      modules.gsap.set(content, { opacity: 1, y: 0 });
+    }
+    if (email) {
+      email.classList.add('signal__email--pulsing');
+    }
+    return;
+  }
 
   modules.ScrollTrigger.create({
     trigger: section,
@@ -821,8 +896,8 @@ async function initAnimationStack(): Promise<void> {
 function initImageModal(): void {
   const modal = document.getElementById('image-modal');
   const modalImg = modal?.querySelector('.image-modal__img') as HTMLImageElement;
-  const backdrop = modal?.querySelector('.image-modal__backdrop');
-  const closeBtn = modal?.querySelector('.image-modal__close');
+  const backdrop = modal?.querySelector('.image-modal__backdrop') as HTMLElement | null;
+  const closeBtn = modal?.querySelector('.image-modal__close') as HTMLElement | null;
   const prevBtn = modal?.querySelector('.image-modal__nav--prev') as HTMLButtonElement;
   const nextBtn = modal?.querySelector('.image-modal__nav--next') as HTMLButtonElement;
   const counter = modal?.querySelector('.image-modal__counter');
@@ -832,6 +907,7 @@ function initImageModal(): void {
   // State
   let currentImages: string[] = [];
   let currentIndex = 0;
+  let triggeringElement: HTMLElement | null = null;
 
   const updateNav = () => {
     prevBtn.disabled = currentIndex === 0;
@@ -855,18 +931,29 @@ function initImageModal(): void {
   };
 
   const open = (images: string[], startIndex = 0) => {
+    triggeringElement = document.activeElement as HTMLElement | null;
     currentImages = images;
     currentIndex = startIndex;
     modalImg.src = images[startIndex];
     updateNav();
     modal.classList.add('is-active');
     modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => {
+      closeBtn.focus();
+    }, 50);
   };
 
   const close = () => {
     modal.classList.remove('is-active');
     modal.setAttribute('aria-hidden', 'true');
-    setTimeout(() => { modalImg.src = ''; currentImages = []; }, 300);
+    setTimeout(() => {
+      modalImg.src = '';
+      currentImages = [];
+      if (triggeringElement) {
+        triggeringElement.focus();
+        triggeringElement = null;
+      }
+    }, 300);
   };
 
   // Wire controls
@@ -883,6 +970,26 @@ function initImageModal(): void {
     if (e.key === 'Escape') close();
     if (e.key === 'ArrowRight') showImage(currentIndex + 1);
     if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+
+    // Focus trapping
+    if (e.key === 'Tab') {
+      const focusables = Array.from(modal.querySelectorAll<HTMLElement>('button:not([style*="display: none"]):not([disabled]), [tabindex="0"]:not([disabled])'));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
   });
 
   // Attach click to each project preview, collecting all its images
@@ -899,6 +1006,20 @@ function initImageModal(): void {
     if (imgs.length === 0) return;
 
     preview.addEventListener('click', () => open(imgs, 0));
+
+    // Keyboard support for custom triggers (Accessibility)
+    const transition = preview.querySelector('[data-pixel-transition]');
+    if (transition) {
+      transition.addEventListener('keydown', (e: Event) => {
+        const keyEvent = e as KeyboardEvent;
+        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+          keyEvent.preventDefault();
+          open(imgs, 0);
+        }
+      });
+      transition.setAttribute('role', 'button');
+      transition.setAttribute('aria-label', `View image preview gallery for ${panel.querySelector('.work__panel-title')?.textContent ?? 'project'}`);
+    }
   });
 }
 

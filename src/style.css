@@ -299,12 +299,14 @@ ol {
   background: radial-gradient(circle at 50% 18%, rgba(102, 24, 116, 0.38), rgba(14, 4, 22, 0.96) 52%, rgba(8, 2, 13, 0.98) 100%);
   backdrop-filter: blur(20px);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--transition-normal);
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
 }
 
 .mobile-menu.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: all;
 }
 
@@ -1054,7 +1056,7 @@ body.scene-ready .three-container canvas {
   font-family: var(--font-pixel);
   font-size: clamp(1.8rem, 4.5vw, 3.4rem);
   line-height: 1.25;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--about-heading);
   text-wrap: balance;
 }
@@ -1121,11 +1123,11 @@ body.scene-ready .three-container canvas {
   inset: 8% -12% auto;
   height: 55%;
   background:
-    linear-gradient(90deg, transparent, rgba(117, 252, 255, 0.08), transparent),
-    radial-gradient(circle at 20% 30%, rgba(122, 255, 190, 0.1), transparent 34%),
-    radial-gradient(circle at 80% 45%, rgba(41, 215, 255, 0.13), transparent 38%);
-  filter: blur(34px);
-  opacity: 0.65;
+    linear-gradient(90deg, transparent, rgba(117, 252, 255, 0.045), transparent),
+    radial-gradient(circle at 20% 30%, rgba(122, 255, 190, 0.065), transparent 34%),
+    radial-gradient(circle at 80% 45%, rgba(41, 215, 255, 0.08), transparent 38%);
+  filter: blur(30px);
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -1151,7 +1153,7 @@ body.scene-ready .three-container canvas {
   line-height: 1.35;
   color: var(--about-heading);
   margin: 0 0 clamp(1rem, 2vw, 1.4rem);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -1238,8 +1240,8 @@ body.scene-ready .three-container canvas {
 .toolkit__capability.is-active,
 .toolkit__capability:hover,
 .toolkit__capability:focus-within {
-  background: linear-gradient(90deg, rgba(117, 252, 255, 0.075), transparent 72%);
-  border-color: rgba(117, 252, 255, 0.25);
+  background: linear-gradient(90deg, rgba(117, 252, 255, 0.055), transparent 72%);
+  border-color: rgba(117, 252, 255, 0.22);
 }
 
 .toolkit__capability.is-active::before,
@@ -1247,7 +1249,7 @@ body.scene-ready .three-container canvas {
 .toolkit__capability:focus-within::before {
   background: var(--accent-bright);
   border-color: var(--accent-bright);
-  box-shadow: 0 0 14px rgba(117, 252, 255, 0.55);
+  box-shadow: 0 0 10px rgba(117, 252, 255, 0.38);
 }
 
 .toolkit__capability-meta {
@@ -1259,6 +1261,7 @@ body.scene-ready .three-container canvas {
   font-family: var(--font-pixel);
   font-size: 0.56rem;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .toolkit__capability-title {
@@ -1321,7 +1324,7 @@ body.scene-ready .three-container canvas {
   font-size: clamp(1.5rem, 4vw, 2.8rem);
   color: var(--projects-heading);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   opacity: 0;
   transform: translateY(24px);
 }
@@ -1340,6 +1343,7 @@ body.scene-ready .three-container canvas {
   grid-template-columns: 1fr 1fr;
   align-items: center;
   overflow: hidden;
+  background-color: #1a202c;
 }
 
 .work__panel:nth-child(even) {
@@ -1367,7 +1371,7 @@ body.scene-ready .three-container canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.35) saturate(0.7);
+  filter: brightness(0.42) saturate(0.82);
 }
 
 /* Scrim overlay for text legibility */
@@ -1436,6 +1440,7 @@ body.scene-ready .three-container canvas {
   margin: 0 0 1.2rem;
   opacity: 0;
   transform: translateY(16px);
+  font-variant-numeric: tabular-nums;
 }
 
 .work__panel-tags {
@@ -1578,7 +1583,7 @@ body.scene-ready .three-container canvas {
 .signal__flash {
   position: absolute;
   inset: 0;
-  background: rgba(117, 252, 255, 0.9);
+  background: rgba(117, 252, 255, 0.68);
   opacity: 0;
   pointer-events: none;
   z-index: 0;
@@ -1598,7 +1603,7 @@ body.scene-ready .three-container canvas {
   font-size: clamp(1.3rem, 3.5vw, 2.2rem);
   color: var(--about-heading);
   margin: 0 0 var(--space-xl);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .signal__text {
@@ -1626,7 +1631,7 @@ body.scene-ready .three-container canvas {
 .signal__email:focus-visible {
   color: #fff;
   border-color: #fff;
-  text-shadow: 0 0 20px rgba(117, 252, 255, 0.4);
+  text-shadow: 0 0 14px rgba(117, 252, 255, 0.3);
 }
 
 .signal__email:focus-visible {
@@ -1637,10 +1642,10 @@ body.scene-ready .three-container canvas {
 /* Pulsing glow animation on email */
 @keyframes signalPulse {
   0%, 100% {
-    text-shadow: 0 0 8px rgba(117, 252, 255, 0.15);
+    text-shadow: 0 0 6px rgba(117, 252, 255, 0.12);
   }
   50% {
-    text-shadow: 0 0 24px rgba(117, 252, 255, 0.35);
+    text-shadow: 0 0 16px rgba(117, 252, 255, 0.26);
   }
 }
 
@@ -1908,6 +1913,12 @@ body.scene-ready .three-container canvas {
   opacity: 0.7;
 }
 
+.image-modal__close:focus-visible,
+.image-modal__nav:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+}
+
 .image-modal__nav {
   position: relative;
   z-index: 2;
@@ -1950,4 +1961,5 @@ body.scene-ready .three-container canvas {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
 }

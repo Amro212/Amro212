@@ -24,18 +24,18 @@ function buildFileSystem(): FSNode {
     type: 'file',
     content: [
       '===========================================',
-      '  About Me',
+      '  About',
       '===========================================',
       '',
-      'Graduate computer engineering student with a',
-      'focus on hardware and software systems.',
+      'Computer Engineering builder working across',
+      'software, automation, interfaces, and embedded labs.',
       '',
-      'Focus areas:',
-      '  - Embedded Systems and FPGA Design',
-      '  - Digital Signal Processing',
-      '  - Computer Architecture',
-      '  - Machine Learning at the Edge',
-      '  - Full-Stack Development',
+      'Current orbit:',
+      '  - Job-search and browser automation',
+      '  - iOS tools for student planning',
+      '  - Frontend systems with a strong visual point of view',
+      '  - Embedded and FPGA coursework',
+      '  - AI workflows that save actual time',
     ].join('\n'),
   };
 
@@ -48,8 +48,8 @@ function buildFileSystem(): FSNode {
       '===========================================',
       '',
       'Email:    amromousa8@gmail.com',
-      'LinkedIn: linkedin.com/in/yourprofile',
-      'GitHub:   github.com/yourhandle',
+      'LinkedIn: linkedin.com/in/amro-abedmoosa',
+      'GitHub:   github.com/amro212',
     ].join('\n'),
   };
 
@@ -58,15 +58,15 @@ function buildFileSystem(): FSNode {
     type: 'file',
     content: [
       '===========================================',
-      '  Technical Skills',
+      '  Workbench',
       '===========================================',
       '',
-      'Languages:    C/C++, Python, Rust, TypeScript',
-      'HDL:          Verilog, SystemVerilog, VHDL',
-      'Hardware:     FPGA, ARM Cortex-M, STM32, PCB',
-      'Frameworks:   React, Node.js, TensorFlow Lite',
-      'Tools:        KiCad, Vivado, Git, Docker',
-      'Protocols:    MQTT, SPI, UART, AXI-Stream',
+      'Languages:    TypeScript, JavaScript, Python, Java, C/C++',
+      'Interfaces:   React, SwiftUI, Tailwind CSS, Vite',
+      'Backend:      Node.js, Flask, REST APIs, Cloudflare Workers',
+      'AI/Auto:      Claude, OpenAI, LangChain, n8n Automation, Playwright',
+      'Data/ML:      PyTorch, CUDA, pandas, NumPy, TensorFlow',
+      'Hardware:     ARM Cortex-M, STM32/K60, VHDL, Quartus',
     ].join('\n'),
   };
 
@@ -137,26 +137,26 @@ type TerminalOutput = { text: string; className?: string };
 
 const HELP_TEXT: TerminalOutput[] = [
   { text: '===========================================', className: 'term-dim' },
-  { text: '  CE-Linux 1.0 Available Commands', className: 'term-bright' },
+  { text: '  CE-Linux 1.0 Commands', className: 'term-bright' },
   { text: '===========================================', className: 'term-dim' },
   { text: '' },
   { text: '  ls              List directory contents' },
   { text: '  cd <path>       Change directory' },
-  { text: '  cat <section>   Jump to a section or project' },
+  { text: '  cat <file>      Read a file or jump to a project' },
   { text: '  clear           Reset terminal' },
   { text: '' },
-  { text: '  Tip: cd projects then cat <project-name>', className: 'term-dim' },
+  { text: '  Tip: cd projects, then cat a project file', className: 'term-dim' },
 ];
 
 const WELCOME_LINES: TerminalOutput[] = [
-  { text: 'Hi there!', className: 'term-bright term-header' },
+  { text: 'Signal locked.', className: 'term-bright term-header' },
   { text: '<span class="term-inverted term-header"> I\'m Amro Abed Moosa </span>' },
   { text: '' },
-  { text: 'A Computer Engineer', className: 'term-bright' },
+  { text: 'Computer Engineer / software builder', className: 'term-bright' },
   { text: '' },
   { text: '' },
   { text: 'Welcome to CE-Linux 1.0 LTS', className: 'term-bright' },
-  { text: '>> Scroll or type "help" to get started', className: 'term-dim' },
+  { text: '>> Scroll, or type "help" if you like poking around', className: 'term-dim' },
   { text: '' },
 ];
 
@@ -170,6 +170,7 @@ export class Terminal {
   private buffer: Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> = [];
   private onRenderCallback: () => void;
   private inputEl: HTMLInputElement;
+  private srLogsEl: HTMLDivElement;
 
   // GIF Animation State
   private gifFrames: any[] = [];
@@ -239,14 +240,32 @@ export class Terminal {
     this.canvas.height = 768;
     this.ctx = this.canvas.getContext('2d', { alpha: false }) as CanvasRenderingContext2D;
 
+    this.srLogsEl = document.createElement('div');
+    this.srLogsEl.setAttribute('role', 'log');
+    this.srLogsEl.setAttribute('aria-live', 'polite');
+    this.srLogsEl.style.position = 'absolute';
+    this.srLogsEl.style.width = '1px';
+    this.srLogsEl.style.height = '1px';
+    this.srLogsEl.style.overflow = 'hidden';
+    this.srLogsEl.style.clip = 'rect(1px, 1px, 1px, 1px)';
+    this.srLogsEl.style.whiteSpace = 'pre-wrap';
+    container.appendChild(this.srLogsEl);
+
     this.inputEl = document.createElement('input');
     this.inputEl.type = 'text';
     this.inputEl.style.position = 'absolute';
     this.inputEl.style.opacity = '0';
     this.inputEl.style.pointerEvents = 'none';
+    this.inputEl.setAttribute('aria-label', "CE-Linux 1.0 terminal input. Type commands here. Try typing 'help'.");
     container.appendChild(this.inputEl);
 
     document.addEventListener('keydown', () => {
+      const isModalActive = document.getElementById('image-modal')?.classList.contains('is-active');
+      const isMobileMenuActive = document.querySelector('.mobile-menu')?.classList.contains('active');
+      if (isModalActive || isMobileMenuActive) {
+        return;
+      }
+
       if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
         this.inputEl.focus({ preventScroll: true });
       }
@@ -436,7 +455,95 @@ export class Terminal {
   }
 
   private printLine(output: TerminalOutput): void {
-    this.buffer.push(this.parseOutput(output));
+    const maxChars = this.buffer.length < 10 ? 36 : 59;
+    const parsed = this.parseOutput(output);
+    const wrappedLines = this.wrapChunks(parsed, maxChars);
+
+    for (const line of wrappedLines) {
+      this.buffer.push(line);
+      if (this.srLogsEl) {
+        const lineText = line.map(c => c.text).join('');
+        this.srLogsEl.textContent += '\n' + lineText;
+      }
+    }
+  }
+
+  private wrapChunks(
+    chunks: Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>,
+    maxChars: number
+  ): Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> {
+    const lines: Array<Array<{ text: string; color: string; inverted?: boolean; large?: boolean }>> = [];
+    let currentLine: Array<{ text: string; color: string; inverted?: boolean; large?: boolean }> = [];
+    let currentLength = 0;
+
+    for (const chunk of chunks) {
+      const words = chunk.text.split(/(\s+)/);
+
+      for (const word of words) {
+        if (!word) continue;
+
+        if (currentLength + word.length <= maxChars) {
+          if (currentLine.length > 0 &&
+              currentLine[currentLine.length - 1].color === chunk.color &&
+              currentLine[currentLine.length - 1].inverted === chunk.inverted &&
+              currentLine[currentLine.length - 1].large === chunk.large) {
+            currentLine[currentLine.length - 1].text += word;
+          } else {
+            currentLine.push({ ...chunk, text: word });
+          }
+          currentLength += word.length;
+        } else {
+          if (/^\s+$/.test(word)) {
+            if (currentLine.length > 0) {
+              lines.push(currentLine);
+              currentLine = [];
+              currentLength = 0;
+            }
+            continue;
+          }
+
+          if (word.length > maxChars) {
+            let remaining = word;
+            while (remaining.length > 0) {
+              const take = maxChars - currentLength;
+              if (take <= 0) {
+                if (currentLine.length > 0) {
+                  lines.push(currentLine);
+                  currentLine = [];
+                  currentLength = 0;
+                }
+                continue;
+              }
+              const part = remaining.slice(0, take);
+              currentLine.push({ ...chunk, text: part });
+              currentLength += part.length;
+              remaining = remaining.slice(take);
+              if (remaining.length > 0) {
+                lines.push(currentLine);
+                currentLine = [];
+                currentLength = 0;
+              }
+            }
+          } else {
+            if (currentLine.length > 0) {
+              lines.push(currentLine);
+            }
+            currentLine = [{ ...chunk, text: word }];
+            currentLength = word.length;
+          }
+        }
+      }
+    }
+
+    if (currentLine.length > 0) {
+      lines.push(currentLine);
+    }
+
+    if (lines.length === 0) {
+      lines.push([{ text: '', color: '#ffbd33' }]);
+    }
+
+    return lines;
   }
 
   private printLines(outputs: TerminalOutput[]): void {
@@ -606,20 +713,61 @@ export class Terminal {
       return;
     }
 
+    // 1. Try to resolve via VFS
+    const resolved = resolvePath(this.root, this.cwd, target);
+    if (resolved.node && resolved.node.type === 'file') {
+      if (resolved.node.content) {
+        // Print content line-by-line
+        const lines = resolved.node.content.split('\n');
+        lines.forEach(line => this.printLine({ text: line }));
+
+        // Scroll to corresponding page section
+        const baseName = resolved.node.name.replace(/\.(txt|md)$/, '');
+        const slug = slugify(baseName);
+        const elementId = slug === 'about' ? 'about' : slug === 'skills' ? 'skills' : slug === 'contact' ? 'contact' : null;
+        if (elementId) {
+          const el = document.getElementById(elementId);
+          if (el) {
+            setTimeout(() => {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }
+        }
+        return;
+      }
+
+      // If project markdown file (VFS nodes have empty content, we scroll to project card)
+      if (resolved.node.name.endsWith('.md')) {
+        const baseName = resolved.node.name.replace(/\.md$/, '');
+        const project = projects.find((entry) => slugify(entry.title) === baseName);
+        if (project) {
+          this.scrollToProject(project.title);
+          return;
+        }
+      }
+    }
+
+    // 2. Fallback to slug-based matching (convenience)
     const cleanTarget = target.replace(/\.(txt|md)$/, '');
     const slug = slugify(cleanTarget);
-    const project = projects.find((entry) => slugify(entry.title) === slug);
+
+    const parts = cleanTarget.split('/');
+    const lastPart = parts[parts.length - 1];
+    const lastSlug = slugify(lastPart);
+
+    const project = projects.find((entry) => slugify(entry.title) === slug || slugify(entry.title) === lastSlug);
 
     if (!project) {
-      const matches = projects.filter((entry) => slugify(entry.title).includes(slug));
+      const matches = projects.filter((entry) => slugify(entry.title).includes(slug) || slugify(entry.title).includes(lastSlug));
       if (matches.length === 1) {
         this.scrollToProject(matches[0].title);
         return;
       }
 
-      if (['about', 'contact', 'skills', 'home', 'projects'].includes(slug)) {
-        document.getElementById(slug)?.scrollIntoView({ behavior: 'smooth' });
-        this.printLine({ text: `cating to ${cleanTarget}...`, className: 'term-dim' });
+      if (['about', 'contact', 'skills', 'home', 'projects'].includes(slug) || ['about', 'contact', 'skills', 'home', 'projects'].includes(lastSlug)) {
+        const targetId = ['about', 'contact', 'skills', 'home', 'projects'].includes(slug) ? slug : lastSlug;
+        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+        this.printLine({ text: `Jumping to ${targetId}...`, className: 'term-dim' });
         return;
       }
 
@@ -633,6 +781,9 @@ export class Terminal {
   private cmdClear(): void {
     this.buffer = [];
     this.cwd = [];
+    if (this.srLogsEl) {
+      this.srLogsEl.textContent = '';
+    }
     this.printLines(WELCOME_LINES);
   }
 
@@ -675,7 +826,7 @@ export class Terminal {
     this.ctx.fillStyle = '#0a0601';
     this.ctx.fillRect(0, 0, width, height);
 
-    this.ctx.font = 'bold 24px monospace';
+    this.ctx.font = "bold 24px 'JetBrains Mono', monospace";
     const padding = 40;
     let y = padding + 36;
     const totalLines = this.buffer.length + 1;
@@ -718,7 +869,7 @@ export class Terminal {
       if (isLargeLine) y += 8;
 
       for (const chunk of this.buffer[i]) {
-        this.ctx.font = chunk.large ? 'bold 44px monospace' : 'bold 24px monospace';
+        this.ctx.font = chunk.large ? "bold 44px 'JetBrains Mono', monospace" : "bold 24px 'JetBrains Mono', monospace";
         const textWidth = this.ctx.measureText(chunk.text).width;
         if (chunk.inverted) {
           this.ctx.fillStyle = chunk.color;
@@ -735,7 +886,7 @@ export class Terminal {
       y += lineH - (isLargeLine ? 8 : 0);
     }
 
-    this.ctx.font = 'bold 24px monospace';
+    this.ctx.font = "bold 24px 'JetBrains Mono', monospace";
 
     const prompt = `user:~$ `;
     this.ctx.fillStyle = '#ffbd33';
