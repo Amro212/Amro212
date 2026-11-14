@@ -1146,6 +1146,10 @@ body.scene-ready .three-container canvas {
   position: relative;
   z-index: 1;
   width: min(1120px, 100%);
+  /* Centred: without this the 1120px shell hugs the left edge on wide
+     screens (his ultrawide showed the whole Skills section left of
+     centre with a dead right half). Every other section centres itself. */
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(220px, 0.68fr) minmax(0, 1.32fr);
   gap: clamp(1.75rem, 4vw, 4rem);
