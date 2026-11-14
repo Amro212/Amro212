@@ -1,8 +1,5 @@
 import './style.css';
-import './components/ui/pixelact-ui/styles/styles.css';
-import './components/ui/pixelact-ui/button.css';
 import { projects, type Project } from './projects';
-import { initProjectsPixelTrail } from './projectsPixelTrail';
 import { inject } from '@vercel/analytics';
 
 // Initialize Vercel Web Analytics
@@ -341,139 +338,50 @@ function initMagneticElements(modules: AnimationModules): void {
 }
 
 // ─────────────────────────────────────
-// Pixel transitions (preserved for project panels)
+// CHAPTER 3 — PROJECT CARD RENDERING
+// Professional redesign Nov 14, 2026: clean dark cards in a 2-col grid.
+// No pixel transitions, no background images, no scrims, no full-height
+// cinematic panels, normal cursor. First preview image is the card image;
+// clicking it opens the modal gallery with all preview images.
 // ─────────────────────────────────────
-
-function initProjectPixelTransitions(): void {
-  const transitions = document.querySelectorAll<HTMLElement>('[data-pixel-transition]');
-  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-
-  transitions.forEach((transition) => {
-    if (transition.dataset.pixelTransitionReady === 'true') return;
-    transition.dataset.pixelTransitionReady = 'true';
-
-    const pixelLayer = transition.querySelector<HTMLElement>('.project-card__pixel-layer');
-    const gridSize = Number(transition.dataset.gridSize ?? '19');
-    const animationDuration = Number(transition.dataset.animationDuration ?? '0.4');
-    const pixelColor = transition.dataset.pixelColor ?? '#ffffff';
-
-    if (pixelLayer) {
-      pixelLayer.innerHTML = '';
-      const pixelSize = 100 / gridSize;
-
-      for (let row = 0; row < gridSize; row += 1) {
-        for (let col = 0; col < gridSize; col += 1) {
-          const pixel = document.createElement('span');
-          pixel.className = 'project-card__pixel';
-          pixel.style.width = `${pixelSize}%`;
-          pixel.style.height = `${pixelSize}%`;
-          pixel.style.left = `${col * pixelSize}%`;
-          pixel.style.top = `${row * pixelSize}%`;
-          pixel.style.backgroundColor = pixelColor;
-          pixel.style.setProperty('--pixel-burst-duration', `${Math.max(0.1, animationDuration)}s`);
-          pixel.addEventListener('animationend', (e: AnimationEvent) => {
-            if (e.animationName !== 'projectPixelBurst') return;
-            pixel.classList.remove('is-firing');
-            pixel.style.removeProperty('animation-delay');
-          });
-          pixelLayer.appendChild(pixel);
-        }
-      }
-    }
-
-    if (prefersReducedMotion()) return;
-
-    let isActive = false;
-    let swapTimer: number | undefined;
-
-    const animateTransition = (activate: boolean) => {
-      if (isActive === activate) return;
-      isActive = activate;
-
-      if (swapTimer) {
-        window.clearTimeout(swapTimer);
-      }
-
-      if (!pixelLayer) return;
-      const pixels = pixelLayer.querySelectorAll<HTMLElement>('.project-card__pixel');
-      const maxDelayMs = Math.max(1, Math.floor(animationDuration * 1000 * 0.7));
-
-      pixels.forEach((pixel) => {
-        pixel.classList.remove('is-firing');
-        pixel.style.animationDelay = `${Math.floor(Math.random() * maxDelayMs)}ms`;
-        void pixel.offsetWidth;
-        pixel.classList.add('is-firing');
-      });
-
-      swapTimer = window.setTimeout(() => {
-        transition.classList.toggle('is-active', activate);
-      }, Math.max(100, Math.floor(animationDuration * 1000)));
-    };
-
-    if (!isCoarsePointer) {
-      transition.addEventListener('mouseenter', () => animateTransition(true));
-      transition.addEventListener('mouseleave', () => animateTransition(false));
-      transition.addEventListener('focus', () => animateTransition(true));
-      transition.addEventListener('blur', () => animateTransition(false));
-    } else {
-      transition.addEventListener('click', () => animateTransition(!isActive));
-    }
-  });
-}
-
-// ═══════════════════════════════════════════
-// CHAPTER 3 — PROJECT PANEL RENDERING
-// Full-viewport cinematic panels
-// ═══════════════════════════════════════════
 
 function renderProjectPanels(): void {
   const container = document.getElementById('projects-grid');
   if (!container) return;
 
-  container.innerHTML = projects.map((project, index) => createProjectPanel(project, index)).join('');
-  initProjectPixelTransitions();
+  container.innerHTML = projects.map((project, index) => createProjectCard(project, index)).join('');
 }
 
-function createProjectPanel(project: Project, index: number): string {
+function createProjectCard(project: Project, index: number): string {
   const isPortrait = project.imageResolution && project.imageResolution.height > project.imageResolution.width;
-  const portraitClass = isPortrait ? ' work__panel-preview--portrait' : '';
+  const portraitClass = isPortrait ? ' work__card-media--portrait' : '';
 
-  // Build the image area
+  // Media: first preview image only. The rest live in the modal gallery.
   let mediaHtml: string;
-  if (project.previewImages && project.previewImages.length >= 2) {
-    const [firstImage, secondImage] = project.previewImages;
-    const res = project.imageResolution;
-    const resStyle = res ? ` style="--img-w:${res.width};--img-h:${res.height}"` : '';
-
+  if (project.previewImages && project.previewImages.length > 0) {
+    const imagesHtml = project.previewImages
+      .map(
+        (src, i) =>
+          `<img src="${src}" alt="${project.title} preview image ${i + 1}" loading="lazy" decoding="async" />`,
+      )
+      .join('');
     mediaHtml = `
-      <div class="work__panel-preview${portraitClass}">
-        <div class="project-card__pixel-transition"${resStyle} data-pixel-transition data-grid-size="19" data-animation-duration="0.4" data-pixel-color="#ffffff" tabindex="0" role="group" aria-label="Two previews for ${project.title}">
-          <img class="project-card__transition-image project-card__transition-image--base" src="${firstImage}" alt="${project.title} preview image one" loading="lazy" decoding="async" />
-          <img class="project-card__transition-image project-card__transition-image--alt" src="${secondImage}" alt="${project.title} preview image two" loading="lazy" decoding="async" />
-          <div class="project-card__pixel-layer" aria-hidden="true"></div>
-        </div>
-      </div>
-    `;
-  } else if (project.previewImages && project.previewImages.length === 1) {
-    mediaHtml = `
-      <div class="work__panel-preview${portraitClass}">
-        <img src="${project.previewImages[0]}" alt="${project.title} preview" loading="lazy" decoding="async" style="width:100%;display:block;border-radius:inherit;" />
+      <div class="work__card-media${portraitClass}" tabindex="0" role="button" aria-label="View ${project.title} preview images">
+        ${imagesHtml}
       </div>
     `;
   } else {
     mediaHtml = `
-      <div class="work__panel-placeholder">
-        <span class="work__panel-placeholder-label">${project.title}</span>
+      <div class="work__card-placeholder">
+        <span>${project.title}</span>
       </div>
     `;
   }
 
-  // Tags
   const tagsHtml = project.tags
-    .map((tag) => `<span class="work__panel-tag">${tag}</span>`)
+    .map((tag) => `<span class="work__card-tag">${tag}</span>`)
     .join('');
 
-  // Link
   const linkLabel = (() => {
     if (!project.link) return '';
     try {
@@ -485,34 +393,22 @@ function createProjectPanel(project: Project, index: number): string {
   })();
 
   const linkHtml = project.link
-    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="work__panel-cta" aria-label="Open ${project.title} in a new tab">
+    ? `<a href="${project.link}" target="_blank" rel="noopener noreferrer" class="work__card-cta" aria-label="Open ${project.title} in a new tab">
         <span>${linkLabel}</span>
-        <span class="work__panel-cta-arrow" aria-hidden="true">\u2192</span>
+        <span class="work__card-cta-arrow" aria-hidden="true">\u2192</span>
       </a>`
     : '';
 
-  // Background image (first preview for the clip-path reveal unless explicitly set)
-  const bgImage = project.backgroundImage || project.previewImages?.[0];
-  const bgHtml = bgImage
-    ? `<div class="work__panel-bg">
-        <img src="${bgImage}" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <div class="work__panel-scrim"></div>
-      </div>`
-    : '';
-
   return `
-    <article class="work__panel" data-project-index="${index}" aria-label="Project ${index + 1}: ${project.title}">
-      ${bgHtml}
-      <div class="work__panel-content">
-        <p class="work__panel-index">Project ${String(index + 1).padStart(2, '0')}</p>
-        <h3 class="work__panel-title">${project.title}</h3>
-        <p class="work__panel-year">${project.year}</p>
-        <div class="work__panel-tags" aria-label="Project technologies">${tagsHtml}</div>
-        <p class="work__panel-desc">${project.description}</p>
+    <article class="work__card" data-project-index="${index}" aria-label="Project ${index + 1}: ${project.title}">
+      ${mediaHtml}
+      <div class="work__card-body">
+        <p class="work__card-focus">${project.focus}</p>
+        <h3 class="work__card-title">${project.title}</h3>
+        <p class="work__card-year">${project.year}</p>
+        <div class="work__card-tags" aria-label="Project technologies">${tagsHtml}</div>
+        <p class="work__card-desc">${project.description}</p>
         ${linkHtml}
-      </div>
-      <div class="work__panel-media">
-        ${mediaHtml}
       </div>
     </article>
   `;
@@ -583,203 +479,79 @@ function initPrologueTimeline(modules: AnimationModules): void {
   }
 }
 
-// ---------- Chapter 2: Toolkit ----------
+// ---------- Chapter 2: Skills ----------
+// Professional redesign Nov 14, 2026: the old version pinned the section
+// with a scrub timeline (min-height 230vh, pinSpacing false). That pin is
+// what cut off the last group, Data & ML Systems. No pin, no scrub, no
+// clip-path reveal. The section is normal flow now and every group fades
+// up once, the same as the other sections.
 
 function initToolkitTimeline(modules: AnimationModules): void {
   if (toolkitInitialized) return;
   toolkitInitialized = true;
 
   const section = document.querySelector('.chapter--toolkit');
-  const pinWrapper = document.querySelector('.toolkit__pin-wrapper');
   const headingArea = document.querySelector('.toolkit__heading-area');
   const capabilities = modules.gsap.utils.toArray<HTMLElement>('.toolkit__capability');
   const railFill = document.querySelector<HTMLElement>('.toolkit__rail-fill');
-  const chips = modules.gsap.utils.toArray<HTMLElement>('.toolkit__chips li');
-  const isCompact = window.matchMedia('(max-width: 768px)').matches;
 
-  if (!section || !pinWrapper || capabilities.length === 0) return;
+  if (!section || capabilities.length === 0) return;
 
   if (prefersReducedMotion()) {
-    modules.gsap.set([headingArea, capabilities, railFill, chips].filter(Boolean), {
+    modules.gsap.set([headingArea, ...capabilities, railFill].filter(Boolean), {
       autoAlpha: 1,
       y: 0,
-      clipPath: 'none',
-      scale: 1,
       scaleY: 1,
     });
     capabilities.forEach((c) => c.classList.add('is-active'));
     return;
   }
 
-  const headingTargets = [headingArea].filter(Boolean);
-
-  if (isCompact) {
-    modules.gsap.from([...headingTargets, ...capabilities], {
-      autoAlpha: 0,
-      y: 22,
-      duration: 0.55,
-      stagger: 0.08,
-      ease: 'power3.out',
-      scrollTrigger: {
-        trigger: section,
-        start: 'top 82%',
-        once: true,
-      },
-    });
-    return;
+  if (railFill) {
+    modules.gsap.set(railFill, { scaleY: 1 });
   }
 
-  const timeline = modules.gsap.timeline({
-    defaults: { ease: 'power3.out' },
+  modules.gsap.from([headingArea, ...capabilities].filter(Boolean), {
+    autoAlpha: 0,
+    y: 22,
+    duration: 0.55,
+    stagger: 0.07,
+    ease: 'power3.out',
     scrollTrigger: {
       trigger: section,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 0.75,
-      pin: pinWrapper,
-      pinSpacing: false,
+      start: 'top 80%',
+      once: true,
     },
-  });
-
-  timeline
-    .from(headingTargets, { autoAlpha: 0, y: 30, filter: 'blur(8px)', duration: 0.22 })
-    .from(
-      capabilities,
-      {
-        autoAlpha: 0,
-        y: 26,
-        clipPath: 'inset(0 0 100% 0)',
-        duration: 0.48,
-        stagger: 0.075,
-      },
-      0.08,
-    )
-    .from(chips, { autoAlpha: 0, y: 8, duration: 0.32, stagger: 0.012 }, 0.18);
-
-  if (railFill) {
-    timeline.to(railFill, { scaleY: 1, duration: 0.64, ease: 'none' }, 0.08);
-  }
-
-  capabilities.forEach((capability, index) => {
-    const progressPoint = 0.22 + index * 0.105;
-    timeline.call(() => {
-      capabilities.forEach((item) => item.classList.remove('is-active'));
-      capability.classList.add('is-active');
-    }, [], progressPoint);
   });
 }
 
-// ---------- Chapter 3: The Work ----------
+// ---------- Chapter 3: Projects ----------
+// Professional redesign Nov 14, 2026: clean cards, one simple fade-up
+// per card. No clip-path background reveal, no alternating panels.
 
 function initWorkTimeline(modules: AnimationModules): void {
   if (workInitialized) return;
   workInitialized = true;
 
-  // Heading reveal
-  const heading = document.querySelector('.work__heading');
-  const panels = modules.gsap.utils.toArray<HTMLElement>('.work__panel');
+  const headingArea = document.querySelector('.work__heading-area');
+  const cards = modules.gsap.utils.toArray<HTMLElement>('.work__card');
 
   if (prefersReducedMotion()) {
-    if (heading) {
-      modules.gsap.set(heading, { opacity: 1, y: 0 });
-    }
-    panels.forEach((panel) => {
-      const bg = panel.querySelector<HTMLElement>('.work__panel-bg');
-      const preview = panel.querySelector<HTMLElement>('.work__panel-preview, .work__panel-placeholder');
-      const textElements = panel.querySelectorAll<HTMLElement>(
-        '.work__panel-index, .work__panel-title, .work__panel-year, .work__panel-tags, .work__panel-desc, .work__panel-cta',
-      );
-      if (bg) {
-        modules.gsap.set(bg, { clipPath: 'inset(0 0% 0 0%)' });
-      }
-      if (textElements.length > 0) {
-        modules.gsap.set(textElements, { opacity: 1, y: 0 });
-      }
-      if (preview) {
-        modules.gsap.set(preview, { opacity: 1, y: 0, scale: 1 });
-      }
-    });
+    modules.gsap.set([headingArea, ...cards].filter(Boolean), { opacity: 1, y: 0 });
     return;
   }
-  if (heading) {
-    modules.gsap.to(heading, {
-      opacity: 1,
-      y: 0,
-      duration: 0.7,
-      ease: 'power3.out',
-      scrollTrigger: {
-        trigger: heading,
-        start: 'top 85%',
-        once: true,
-      },
-    });
-  }
 
-  // Per-panel cinematic reveals
-
-  panels.forEach((panel, index) => {
-    const bg = panel.querySelector<HTMLElement>('.work__panel-bg');
-    const preview = panel.querySelector<HTMLElement>('.work__panel-preview, .work__panel-placeholder');
-    const textElements = panel.querySelectorAll<HTMLElement>(
-      '.work__panel-index, .work__panel-title, .work__panel-year, .work__panel-tags, .work__panel-desc, .work__panel-cta',
-    );
-    const isEven = index % 2 === 1;
-
-    // Timeline for each panel
-    const tl = modules.gsap.timeline({
-      scrollTrigger: {
-        trigger: panel,
-        start: 'top 75%',
-        once: true,
-      },
-    });
-
-    // 1. Clip-path reveal on the background
-    if (bg) {
-      const fromClip = isEven ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)';
-      const toClip = 'inset(0 0% 0 0%)';
-
-      tl.fromTo(
-        bg,
-        { clipPath: fromClip },
-        {
-          clipPath: toClip,
-          duration: 1.2,
-          ease: 'power3.inOut',
-        },
-        0,
-      );
-    }
-
-    // 2. Text elements stagger in
-    if (textElements.length > 0) {
-      tl.to(
-        textElements,
-        {
-          opacity: 1,
-          y: 0,
-          stagger: 0.08,
-          duration: 0.6,
-          ease: 'power3.out',
-        },
-        bg ? 0.4 : 0,
-      );
-    }
-
-    // 3. Preview image floats up
-    if (preview) {
-      tl.to(
-        preview,
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.8,
-          ease: 'power3.out',
-        },
-        bg ? 0.6 : 0.2,
-      );
-    }
+  modules.gsap.from([headingArea, ...cards].filter(Boolean), {
+    autoAlpha: 0,
+    y: 24,
+    duration: 0.6,
+    stagger: 0.08,
+    ease: 'power3.out',
+    scrollTrigger: {
+      trigger: '.chapter--work',
+      start: 'top 80%',
+      once: true,
+    },
   });
 }
 
@@ -997,9 +769,9 @@ function initImageModal(): void {
   });
 
   // Attach click to each project preview, collecting all its images
-  const panels = document.querySelectorAll<HTMLElement>('.work__panel');
+  const panels = document.querySelectorAll<HTMLElement>('.work__card');
   panels.forEach((panel) => {
-    const preview = panel.querySelector('.work__panel-preview');
+    const preview = panel.querySelector('.work__card-media');
     if (!preview) return;
 
     // Collect all <img> srcs within this preview (base + alt images)
@@ -1011,19 +783,14 @@ function initImageModal(): void {
 
     preview.addEventListener('click', () => open(imgs, 0));
 
-    // Keyboard support for custom triggers (Accessibility)
-    const transition = preview.querySelector('[data-pixel-transition]');
-    if (transition) {
-      transition.addEventListener('keydown', (e: Event) => {
-        const keyEvent = e as KeyboardEvent;
-        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-          keyEvent.preventDefault();
-          open(imgs, 0);
-        }
-      });
-      transition.setAttribute('role', 'button');
-      transition.setAttribute('aria-label', `View image preview gallery for ${panel.querySelector('.work__panel-title')?.textContent ?? 'project'}`);
-    }
+    // Keyboard support: Enter / Space on the preview opens the gallery.
+    preview.addEventListener('keydown', (e: Event) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+        keyEvent.preventDefault();
+        open(imgs, 0);
+      }
+    });
   });
 }
 
@@ -1034,7 +801,6 @@ function initImageModal(): void {
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   renderProjectPanels();
-  initProjectsPixelTrail();
   initImageModal();
   initScrollHandlers();
 

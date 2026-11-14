@@ -8,10 +8,40 @@ export interface Project {
   backgroundImage?: string;
   /** Native resolution of the preview images (width × height in px). */
   imageResolution?: { width: number; height: number };
-  category: 'hardware' | 'software' | 'research';
+  category: 'software' | 'research';
+  /** Short label shown above the title, e.g. the kind of work it proves. */
+  focus: string;
 }
 
 export const projects: Project[] = [
+  {
+    title: 'Kareer',
+    year: '2025–2026',
+    tags: ['TypeScript', 'JavaScript', 'Browser Extension', 'Ashby', 'Greenhouse', 'Lever', 'Workday', 'OpenRouter'],
+    description:
+      'Browser extension that fills in job applications from a resume, with a clear label for what was verified, saved, or guessed. Local-first with zero telemetry and no external backend, with dedicated adapters for Ashby, Greenhouse, Lever, and Workday. Open source, 640+ unit tests passing.',
+    link: 'https://kareer.itsamro.me/',
+    // Kareer preview loads from the live Kareer site itself: GitHub's push tools
+    // only accept text files, so the two PNGs cannot be uploaded through them.
+    // kareer1 is the real Kareer social preview, hosted on kareer.itsamro.me.
+    previewImages: ['https://kareer.itsamro.me/assets/kareer-social-preview.png'],
+    backgroundImage: '/project-previews/kareer/kareer1.png',
+    category: 'software',
+    focus: 'Applications Engineering · Software',
+  },
+  {
+    title: 'Syllabus Sync',
+    year: '2025–2026',
+    tags: ['SwiftUI', 'iOS', 'Supabase', 'Cloudflare Workers', 'TypeScript'],
+    description:
+      'iOS app that reads syllabus PDFs, pulls out dates and tasks, and turns them into editable plans with an in-app calendar and import tracking.',
+    link: 'https://github.com/Amro212/Syllabus-Sync',
+    previewImages: ['/project-previews/syllabus/syllabus2.png', '/project-previews/syllabus/syllabus1.png'],
+    backgroundImage: '/project-previews/syllabus/syllabus-bg-playful.png',
+    imageResolution: { width: 1206, height: 2622 },
+    category: 'software',
+    focus: 'Software · Mobile',
+  },
   {
     title: 'Sahara',
     year: '2026',
@@ -22,47 +52,17 @@ export const projects: Project[] = [
     previewImages: ['/project-previews/sahara/sahara1.png', '/project-previews/sahara/sahara2.png'],
     backgroundImage: '/project-previews/sahara/Sahara-background.png',
     category: 'software',
-  },
-  {
-    title: 'Syllabus Sync',
-    year: '2025-2026',
-    tags: ['SwiftUI', 'iOS', 'Cloudflare Workers', 'TypeScript', 'Core Data', 'CloudKit'],
-    description:
-      'iOS and serverless app that reads syllabus PDFs, pulls out dates and tasks, and turns them into editable plans with Apple Calendar sync.',
-    link: 'https://github.com/Amro212/Syllabus-Sync',
-    previewImages: ['/project-previews/syllabus/syllabus1.png', '/project-previews/syllabus/syllabus2.png'],
-    backgroundImage: '/project-previews/syllabus/syllabus-bg-playful.png',
-    imageResolution: { width: 1206, height: 2622 },
-    category: 'software',
+    focus: 'Software · Automation',
   },
   {
     title: 'LEGEND Community',
     year: '2026',
-    tags: ['Next.js', 'Tailwind CSS', 'Solana', 'DexScreener', 'Community UX'],
+    tags: ['Next.js', 'Tailwind CSS', 'Community UX'],
     description:
-      'Community site for LEGEND with token details, chart visibility, media updates, and a clearer path for people trying to understand the project quickly.',
+      'Community site for LEGEND at legend.guru, with chart visibility, media updates, and a clearer path for people trying to understand the project quickly.',
     link: 'https://legend.guru',
     previewImages: ['/project-previews/legend/legend1.png', '/project-previews/legend/legend2.png'],
     category: 'research',
-  },
-  {
-    title: 'BaseMCP',
-    year: '2025',
-    tags: ['MCP', 'Base Network', 'AgentKit', 'Coinbase', 'Onchain Tools'],
-    description:
-      'Frontend concept for BaseMCP, shaped around Coinbase-inspired product language and a straightforward explanation of the onchain tooling idea.',
-    link: 'https://www.basemcp.xyz',
-    previewImages: ['/project-previews/basemcp/basemcp1.png', '/project-previews/basemcp/basemcp2.png'],
-    category: 'software',
-  },
-  {
-    title: 'Gerk',
-    year: '2025',
-    tags: ['Solana', 'DexScreener', 'Community', 'Brand UX', 'Landing Page'],
-    description:
-      'Character-led landing page for $GERK with buy links, community entry points, live market context, and a brand voice that does not take itself too seriously.',
-    link: 'https://gerk.it.com',
-    previewImages: ['/project-previews/gerk/gerk1.png', '/project-previews/gerk/gerk2.png'],
-    category: 'research',
+    focus: 'Software · Community',
   },
 ];

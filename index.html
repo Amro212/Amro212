@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Amro Abed Moosa | Computer Engineering Portfolio</title>
   <meta name="description"
-    content="Computer Engineering portfolio for Amro Abed Moosa: software, automation, interface work, and embedded systems projects built with a practical engineer's eye." />
+    content="Computer Engineering portfolio for Amro Abed Moosa: Applications Engineering, software, automation, and interface work built with a practical engineer's eye." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <style>
@@ -103,6 +103,7 @@
       <a href="#about" class="mobile-menu__link">About</a>
       <a href="#skills" class="mobile-menu__link">Skills</a>
       <a href="#projects" class="mobile-menu__link">Projects</a>
+      <a href="#experience" class="mobile-menu__link">Experience</a>
       <a href="#contact" class="mobile-menu__link">Contact</a>
     </div>
 
@@ -125,19 +126,33 @@
     <section id="about" class="chapter chapter--prologue">
       <div class="prologue__inner">
         <div class="prologue__left">
-          <h2 class="prologue__heading">The story so far</h2>
+          <h2 class="prologue__heading">About me</h2>
           <div class="prologue__accent-line" aria-hidden="true"></div>
         </div>
         <div class="prologue__right">
           <div class="prologue__lines">
-            <p class="prologue__line" data-line="1">I'm Amro Abed Moosa, a Computer Engineering builder who likes the
-              part where hardware, software, and people all start arguing with each other.</p>
+            <p class="prologue__line prologue__line--lead" data-line="1">I'm Amro Abed Moosa, a Computer Engineering graduate from the
+              University of Guelph, working toward Applications Engineering and software roles in Canada.</p>
             <p class="prologue__line" data-line="2">I worked on tools for the messy bits: job hunts, syllabus chaos,
               community pages, browser automation, and the small systems that keep work moving.</p>
             <p class="prologue__line" data-line="3">My range runs from full-stack web apps to mobile apps, with a
               growing habit of using AI where it saves real time instead of just sounding impressive.</p>
             <p class="prologue__line" data-line="4">The goal is simple enough: build things that explain themselves when
               someone finally has to use them.</p>
+          </div>
+          <div class="prologue__stats">
+            <div class="prologue__stat">
+              <span class="prologue__stat-number">4</span>
+              <span class="prologue__stat-label">Co-op terms, all software, support, and QA</span>
+            </div>
+            <div class="prologue__stat">
+              <span class="prologue__stat-number">2026</span>
+              <span class="prologue__stat-label">B.Eng Computer Engineering, University of Guelph</span>
+            </div>
+            <div class="prologue__stat">
+              <span class="prologue__stat-number">640+</span>
+              <span class="prologue__stat-label">Unit tests passing on Kareer, my main project</span>
+            </div>
           </div>
         </div>
       </div>
@@ -152,7 +167,7 @@
         <div class="toolkit__shell">
           <div class="toolkit__heading-area">
             <p class="toolkit__kicker">What I reach for</p>
-            <h2 class="toolkit__heading">The Toolkit</h2>
+            <h2 class="toolkit__heading">Skills</h2>
             <p class="toolkit__summary">The tools change by project. The pattern stays pretty consistent: understand the
               weird input, make the path clearer, and ship something a person can actually operate.</p>
           </div>
@@ -219,7 +234,7 @@
                 <li>OpenAI</li>
                 <li>Claude</li>
                 <li>Prompt engineering</li>
-                <li>LangChain</li>
+                <li>AI coding tools</li>
                 <li>n8n Automations</li>
                 <li>Playwright</li>
                 <li>Document parsing</li>
@@ -246,15 +261,15 @@
             <article class="toolkit__capability" data-capability="systems">
               <div class="toolkit__capability-meta">
                 <span class="toolkit__index">06</span>
-                <h3 class="toolkit__capability-title">Embedded &amp; Platforms</h3>
+                <h3 class="toolkit__capability-title">Support, Demos &amp; Platforms</h3>
               </div>
-              <ul class="toolkit__chips" aria-label="Embedded and platform skills">
-                <li>ARM Cortex-M</li>
-                <li>STM32/K60</li>
-                <li>VHDL</li>
-                <li>FPGA fundamentals</li>
-                <li>Quartus</li>
-                <li>MATLAB/Simulink</li>
+              <ul class="toolkit__chips" aria-label="Support, demos and platform skills">
+                <li>Troubleshooting</li>
+                <li>Root cause analysis</li>
+                <li>Technical writing</li>
+                <li>Product demos</li>
+                <li>Docker</li>
+                <li>Linux</li>
                 <li>Jira</li>
                 <li>ServiceDesk Plus</li>
               </ul>
@@ -266,14 +281,81 @@
 
     <!-- ═══════════════════════════════════════════
          CHAPTER 3 — THE WORK (Projects)
-         Full-viewport cinematic panels
+         Clean, professional project cards.
+         The 3D terminal above is the showpiece;
+         from here on the site reads like a
+         portfolio a hiring manager can scan.
          ═══════════════════════════════════════════ -->
     <section id="projects" class="chapter chapter--work">
       <div class="work__heading-area">
-        <h2 class="work__heading">The Work</h2>
+        <p class="work__kicker">Selected work</p>
+        <h2 class="work__heading">Projects</h2>
+        <p class="work__summary">Applications Engineering and software first. Kareer leads because it is the
+          clearest proof of the work: demos, integrations, and explaining a tool to real users.</p>
       </div>
-      <div class="work__panels" id="projects-grid">
-        <!-- Panels injected by JS -->
+      <div class="work__grid" id="projects-grid">
+        <!-- Cards injected by JS -->
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         EXPERIENCE
+         Education and co-op history, plain and
+         scannable, no cinematic treatment.
+         ═══════════════════════════════════════════ -->
+    <section id="experience" class="chapter chapter--experience">
+      <div class="experience__inner">
+        <p class="experience__kicker">Experience</p>
+        <h2 class="experience__heading">Where I have worked</h2>
+        <p class="experience__summary">University of Guelph, B.Eng Computer Engineering (Co-op), September 2021
+          to June 2026. Four co-op terms, all software, support, and QA.</p>
+        <ol class="experience__list">
+          <li class="experience__item">
+            <div class="experience__meta">
+              <h3 class="experience__role">Software Developer Intern</h3>
+              <p class="experience__company">Sandbox Software Solutions · Guelph</p>
+              <p class="experience__date">September – December 2025</p>
+            </div>
+            <p class="experience__detail">Built a content pipeline that cut manual deployment time by 95%,
+              with DOCX-to-Gutenberg automation and Teamwork API workflows.</p>
+          </li>
+          <li class="experience__item">
+            <div class="experience__meta">
+              <h3 class="experience__role">IT Technician</h3>
+              <p class="experience__company">County of Dufferin · Orangeville</p>
+              <p class="experience__date">April – September 2025</p>
+            </div>
+            <p class="experience__detail">IT support and data migration for county staff, troubleshooting
+              real problems for non-technical users.</p>
+          </li>
+          <li class="experience__item">
+            <div class="experience__meta">
+              <h3 class="experience__role">Web Dev &amp; IT Support Coordinator</h3>
+              <p class="experience__company">University of Guelph</p>
+              <p class="experience__date">Summer 2024</p>
+            </div>
+            <p class="experience__detail">Web content and 10+ web apps on SharePoint and Office 365, to WCAG
+              accessibility standards, plus IT support for 50+ staff and faculty.</p>
+          </li>
+          <li class="experience__item">
+            <div class="experience__meta">
+              <h3 class="experience__role">Quality Assurance Analyst</h3>
+              <p class="experience__company">Camis Inc.</p>
+              <p class="experience__date">January – May 2024</p>
+            </div>
+            <p class="experience__detail">Tracked and resolved 100+ bugs in Jira, kept technical docs in
+              Confluence, and led a migration of 500+ tickets from Jira Software to Jira Cloud.</p>
+          </li>
+          <li class="experience__item">
+            <div class="experience__meta">
+              <h3 class="experience__role">Coding Expert, AI Training</h3>
+              <p class="experience__company">Outlier · Remote</p>
+              <p class="experience__date">January – September 2024</p>
+            </div>
+            <p class="experience__detail">Trained and evaluated AI-generated code, writing clear,
+              human-readable summaries of complex code.</p>
+          </li>
+        </ol>
       </div>
     </section>
 
@@ -284,8 +366,9 @@
     <section id="contact" class="chapter chapter--signal">
       <div class="signal__flash" aria-hidden="true"></div>
       <div class="signal__content">
-        <h2 class="signal__heading">Send a ping</h2>
-        <p class="signal__text">Open to software, AI automation, mobile, frontend, backend, and embedded-adjacent work.
+        <h2 class="signal__heading">Contact</h2>
+        <p class="signal__text">Open to Applications Engineering, Solutions Engineering, and software roles
+          in Canada, client-facing demo and integration work.
         </p>
         <p class="signal__text">If the role has real problems to untangle, I want to hear about it.</p>
         <a href="mailto:amromousa8@gmail.com" class="signal__email">amromousa8@gmail.com</a>

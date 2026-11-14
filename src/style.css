@@ -33,14 +33,14 @@
   --about-text: #d6d0e6;
   --about-heading: #f0e8ff;
 
-  /* Projects Section */
-  --projects-bg: #e8ecf0;
-  --projects-card-bg: #f5f7fa;
-  --projects-text: #2d3748;
-  --projects-heading: #1a202c;
-  --projects-border: #a0aec0;
-  --projects-tag-border: #718096;
-  --projects-tag-text: #4a5568;
+  /* Projects Section: dark, clean */
+  --projects-bg: #0d0916;
+  --projects-card-bg: #151022;
+  --projects-text: #d6d0e6;
+  --projects-heading: #f0e8ff;
+  --projects-border: rgba(255, 255, 255, 0.09);
+  --projects-tag-border: rgba(255, 255, 255, 0.14);
+  --projects-tag-text: #c9c2dd;
 
   /* Accent & Interactive */
   --accent: #29d7ff;
@@ -57,7 +57,9 @@
   --contact-text: #a0aec0;
 
   /* Typography Scale */
-  --font-pixel: 'Press Start 2P', monospace;
+  /* Professional type: no pixel font. --font-pixel now maps to Inter so
+     every old heading using it renders clean. */
+  --font-pixel: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 
@@ -98,6 +100,28 @@ body {
 body.mobile-menu-open {
   overflow: hidden;
   touch-action: none;
+}
+
+/* ─────────────────────────────────────
+   BACKGROUND TREATMENTS — Nov 14, 2026
+   From the Charles Liu reel "22 Backgrounds to Make Designs Less Flat"
+   (Try Later item). Three adopted, all backgrounds only, very low
+   opacity, never behind body text: film grain, blueprint grid, contour
+   lines. Everything pixel, thermal, or iridescent was left out on purpose.
+   ───────────────────────────────────── */
+
+/* 1. Grainy gradients: a faint film grain over the whole site. The grain
+   sits above backgrounds but below nothing interactive (pointer-events
+   none, 5% opacity), so text stays crisp and readable. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
 }
 
 a {
@@ -532,7 +556,8 @@ body.scene-ready .three-container canvas {
 }
 
 .projects--trail-enabled {
-  cursor: none;
+  /* Pixel trail removed Nov 14, 2026. Never hide the cursor again. */
+  cursor: auto;
 }
 
 .projects-pixeltrail-canvas {
@@ -619,70 +644,6 @@ body.scene-ready .three-container canvas {
   overflow: hidden;
   transform: translateZ(0);
   -webkit-mask-image: -webkit-radial-gradient(white, black);
-}
-
-.project-card__pixel-transition {
-  position: relative;
-  /* Use native image dimensions when provided; fall back to 16/10 landscape */
-  aspect-ratio: var(--img-w, 16) / var(--img-h, 10);
-  border-radius: inherit;
-  overflow: hidden;
-  background: #0f1724;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.project-card__pixel-transition:focus-visible {
-  outline: 3px solid #111827;
-  outline-offset: -3px;
-}
-
-.project-card__transition-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  object-fit: cover;
-  transition: opacity 220ms ease;
-}
-
-.project-card__transition-image--base {
-  opacity: 1;
-}
-
-.project-card__transition-image--alt {
-  opacity: 0;
-}
-
-.project-card__pixel-transition.is-active .project-card__transition-image--base {
-  opacity: 0;
-}
-
-.project-card__pixel-transition.is-active .project-card__transition-image--alt {
-  opacity: 1;
-}
-
-.project-card__pixel-layer {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 3;
-  contain: paint;
-}
-
-.project-card__pixel {
-  position: absolute;
-  display: block;
-  opacity: 0;
-  background: #ffffff;
-}
-
-.project-card__pixel.is-firing {
-  /* Avoid `forwards` — mobile WebKit can leave compositor artifacts; default fill resets to base opacity */
-  animation: projectPixelBurst var(--pixel-burst-duration, 0.4s) steps(1, end);
 }
 
 .project-card__placeholder {
@@ -834,19 +795,6 @@ body.scene-ready .three-container canvas {
   box-shadow: 0 3px 0 rgba(10, 18, 34, 0.22);
 }
 
-@keyframes projectPixelBurst {
-  0% {
-    opacity: 0;
-  }
-
-  25% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .project-card,
@@ -856,9 +804,6 @@ body.scene-ready .three-container canvas {
     transition: none;
   }
 
-  .project-card__pixel-layer {
-    display: none;
-  }
 
   .project-card__cta:hover,
   .project-card__cta:focus-visible,
@@ -1031,12 +976,15 @@ body.scene-ready .three-container canvas {
    Split layout, line-by-line text reveal
    ───────────────────────────────────── */
 .chapter--prologue {
-  min-height: 100vh;
+  /* Was min-height 100vh: a lot of dead negative space around short text. */
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(4rem, 10vw, 8rem) clamp(1.5rem, 5vw, 4rem);
-  background: transparent;
+  padding: clamp(4rem, 7vw, 5.5rem) clamp(1.5rem, 5vw, 4rem);
+  /* Solid: the 3D hero canvas is position: fixed and sat behind this
+     transparent section, blurring the body text. Same fix as Toolkit. */
+  background: #0d0916;
 }
 
 .prologue__inner {
@@ -1052,19 +1000,41 @@ body.scene-ready .three-container canvas {
   position: relative;
 }
 
+/* 3. Contour lines: thin topographic rings behind the About me heading,
+   used once on the whole site. Faint cyan strokes, behind the text. */
+.prologue__left::before {
+  content: '';
+  position: absolute;
+  top: -110px;
+  left: -90px;
+  width: 460px;
+  height: 460px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='460' viewBox='0 0 460 460' fill='none'%3E%3Cg stroke='%2375fcff' stroke-opacity='0.16' stroke-width='1.2'%3E%3Cpath d='M230 30 C 330 30 420 120 420 230 C 420 340 330 430 230 430 C 130 430 40 340 40 230 C 40 120 130 30 230 30 Z'/%3E%3Cpath d='M230 70 C 305 70 380 145 380 230 C 380 315 305 390 230 390 C 155 390 80 315 80 230 C 80 145 155 70 230 70 Z'/%3E%3Cpath d='M230 110 C 280 110 340 170 340 230 C 340 290 280 350 230 350 C 180 350 120 290 120 230 C 120 170 180 110 230 110 Z'/%3E%3Cpath d='M230 150 C 255 150 300 195 300 230 C 300 265 255 310 230 310 C 205 310 160 265 160 230 C 160 195 205 150 230 150 Z'/%3E%3Cpath d='M230 190 C 232 190 260 220 260 230 C 260 240 232 270 230 270 C 228 270 200 240 200 230 C 200 220 228 190 230 190 Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.prologue__heading,
+.prologue__accent-line {
+  position: relative;
+  z-index: 1;
+}
+
 .prologue__heading {
-  font-family: var(--font-pixel);
-  font-size: clamp(1.8rem, 4.5vw, 3.4rem);
-  line-height: 1.25;
-  letter-spacing: 0;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--about-heading);
   text-wrap: balance;
 }
 
 .prologue__accent-line {
   margin-top: 1.5rem;
-  width: 64px;
-  height: 3px;
+  width: 88px;
+  height: 4px;
   background: var(--accent);
   transform-origin: left;
   transform: scaleX(0);
@@ -1079,6 +1049,44 @@ body.scene-ready .three-container canvas {
   padding-top: 0.5rem;
 }
 
+.prologue__line--lead {
+  font-size: clamp(1.3rem, 2.1vw, 1.6rem);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--about-heading);
+}
+
+.prologue__stats {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: clamp(1.5rem, 3vw, 2rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.prologue__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 220px;
+}
+
+.prologue__stat-number {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent-bright);
+}
+
+.prologue__stat-label {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--about-text);
+}
+
 .prologue__lines {
   display: flex;
   flex-direction: column;
@@ -1087,11 +1095,12 @@ body.scene-ready .three-container canvas {
 
 .prologue__line {
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: clamp(0.88rem, 1.4vw, 1.05rem);
-  line-height: 1.85;
-  color: var(--about-text);
-  max-width: 52ch;
+  /* Was tiny JetBrains Mono at ~1rem: barely readable. Inter, larger. */
+  font-family: var(--font-body);
+  font-size: clamp(1.08rem, 1.6vw, 1.28rem);
+  line-height: 1.65;
+  color: #ece6ff;
+  max-width: 56ch;
   /* Initial hidden state for GSAP animation */
   opacity: 0;
   transform: translateY(28px);
@@ -1102,19 +1111,21 @@ body.scene-ready .three-container canvas {
    Capability console with measured scroll motion
    ───────────────────────────────────── */
 .chapter--toolkit {
-  min-height: 230vh;
-  background: transparent;
+  /* Was min-height 230vh with a pinned scrub timeline. That pin is what
+     cut off the last group (Data & ML Systems). Normal flow now. */
+  min-height: 0;
+  /* Solid: same fixed-canvas bleed-through as the About section. */
+  background: #0d0916;
+  padding: clamp(4rem, 8vw, 6rem) 0;
 }
 
 .toolkit__pin-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  justify-content: center;
+  min-height: 0;
+  display: block;
   padding: clamp(3.5rem, 6vw, 5.5rem) clamp(1rem, 4vw, 3.5rem);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .toolkit__pin-wrapper::before {
@@ -1142,18 +1153,18 @@ body.scene-ready .three-container canvas {
 }
 
 .toolkit__heading-area {
-  position: sticky;
-  top: clamp(5rem, 16vh, 8rem);
+  position: static;
   text-align: left;
 }
 
 .toolkit__heading {
-  font-family: var(--font-pixel);
-  font-size: clamp(1.55rem, 3.4vw, 3rem);
-  line-height: 1.35;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  line-height: 1.1;
   color: var(--about-heading);
   margin: 0 0 clamp(1rem, 2vw, 1.4rem);
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
@@ -1161,20 +1172,20 @@ body.scene-ready .three-container canvas {
   width: max-content;
   margin: 0 0 1.1rem;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--accent-bright);
   border-block: 1px solid rgba(117, 252, 255, 0.28);
   padding-block: 0.35rem;
 }
 
 .toolkit__summary {
-  max-width: 37ch;
+  max-width: 34ch;
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: clamp(0.86rem, 1.1vw, 0.98rem);
-  line-height: 1.8;
-  color: var(--about-text);
-  opacity: 0.86;
+  font-family: var(--font-body);
+  font-size: clamp(1.02rem, 1.4vw, 1.15rem);
+  line-height: 1.7;
+  color: #ece6ff;
+  opacity: 1;
   text-wrap: pretty;
 }
 
@@ -1266,8 +1277,9 @@ body.scene-ready .three-container canvas {
 
 .toolkit__capability-title {
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: clamp(0.88rem, 1.25vw, 1.05rem);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
   line-height: 1.4;
   color: var(--about-heading);
 }
@@ -1288,7 +1300,7 @@ body.scene-ready .three-container canvas {
   font-family: var(--font-mono);
   font-size: clamp(0.72rem, 0.9vw, 0.82rem);
   line-height: 1.2;
-  color: rgba(240, 232, 255, 0.86);
+  color: #ece6ff;
   transition:
     color 180ms var(--ease-out-quart),
     border-color 180ms var(--ease-out-quart),
@@ -1304,267 +1316,11 @@ body.scene-ready .three-container canvas {
 }
 
 /* ─────────────────────────────────────
-   CHAPTER 3 — THE WORK (Projects)
-   Full-viewport cinematic panels
+   CHAPTER 3 — PROJECTS
+   Old full-viewport cinematic panels removed Nov 14, 2026.
+   Current styles live at the end of this file under
+   "PROFESSIONAL REDESIGN".
    ───────────────────────────────────── */
-.chapter--work {
-  background: linear-gradient(180deg, #f3f6f8 0%, var(--projects-bg) 28%, #eef2f6 100%);
-  padding: clamp(4rem, 8vw, 6rem) 0;
-  overflow: hidden;
-}
-
-.work__heading-area {
-  text-align: center;
-  padding: 0 clamp(1.5rem, 5vw, 4rem);
-  margin-bottom: clamp(3rem, 6vw, 5rem);
-}
-
-.work__heading {
-  font-family: var(--font-pixel);
-  font-size: clamp(1.5rem, 4vw, 2.8rem);
-  color: var(--projects-heading);
-  margin: 0;
-  letter-spacing: 0;
-  opacity: 0;
-  transform: translateY(24px);
-}
-
-.work__panels {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* Individual project panel */
-.work__panel {
-  position: relative;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  overflow: hidden;
-  background-color: #1a202c;
-}
-
-.work__panel:nth-child(even) {
-  direction: rtl; /* flip layout for alternation */
-}
-
-.work__panel:nth-child(even) > * {
-  direction: ltr;
-}
-
-/* Clip-path image reveal background */
-.work__panel-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  clip-path: inset(0 100% 0 0); /* hidden by default — slides from left */
-}
-
-.work__panel:nth-child(even) .work__panel-bg {
-  clip-path: inset(0 0 0 100%); /* even panels slide from right */
-}
-
-.work__panel-bg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(0.42) saturate(0.82);
-}
-
-/* Scrim overlay for text legibility */
-.work__panel-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    to right,
-    rgba(26, 32, 44, 0.92) 0%,
-    rgba(26, 32, 44, 0.6) 50%,
-    transparent 100%
-  );
-  pointer-events: none;
-}
-
-.work__panel:nth-child(even) .work__panel-scrim {
-  background: linear-gradient(
-    to left,
-    rgba(26, 32, 44, 0.92) 0%,
-    rgba(26, 32, 44, 0.6) 50%,
-    transparent 100%
-  );
-}
-
-/* Panel text content */
-.work__panel-content {
-  position: relative;
-  z-index: 2;
-  padding: clamp(2rem, 5vw, 5rem);
-  max-width: 620px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-self: center;
-  margin-inline-start: 60px;
-}
-
-.work__panel-index {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(117, 252, 255, 0.7);
-  margin: 0 0 1rem;
-  opacity: 0;
-  transform: translateY(16px);
-}
-
-.work__panel-title {
-  font-family: var(--font-pixel);
-  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-  line-height: 1.35;
-  color: #f0f4f8;
-  margin: 0 0 0.6rem;
-  text-wrap: balance;
-  opacity: 0;
-  transform: translateY(16px);
-}
-
-.work__panel-year {
-  font-family: var(--font-mono);
-  font-size: clamp(1rem, 1.4vw, 1.15rem);
-  color: rgba(214, 208, 230, 0.7);
-  margin: 0 0 1.2rem;
-  opacity: 0;
-  transform: translateY(16px);
-  font-variant-numeric: tabular-nums;
-}
-
-.work__panel-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1.2rem;
-  opacity: 0;
-  transform: translateY(16px);
-  justify-content: center;
-}
-
-.work__panel-tag {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: rgba(214, 208, 230, 0.8);
-  padding: 0.45em 0.9em;
-  border: 1px solid rgba(117, 252, 255, 0.2);
-  border-radius: 2px;
-}
-
-.work__panel-desc {
-  font-family: var(--font-mono);
-  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
-  line-height: 1.8;
-  color: rgba(214, 208, 230, 0.9);
-  margin: 0 0 1.5rem;
-  max-width: 52ch;
-  opacity: 0;
-  transform: translateY(16px);
-}
-
-.work__panel-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--accent-bright);
-  text-decoration: none;
-  padding: 0.6em 0;
-  border-bottom: 1px solid rgba(117, 252, 255, 0.3);
-  transition: border-color 0.3s var(--ease-out-quart), color 0.3s var(--ease-out-quart);
-  opacity: 0;
-  transform: translateY(16px);
-}
-
-.work__panel-cta:hover,
-.work__panel-cta:focus-visible {
-  color: #fff;
-  border-color: #fff;
-}
-
-.work__panel-cta:focus-visible {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 4px;
-}
-
-.work__panel-cta-arrow {
-  display: inline-block;
-  transition: transform 0.25s var(--ease-out-quart);
-}
-
-.work__panel-cta:hover .work__panel-cta-arrow {
-  transform: translateX(4px);
-}
-
-/* Image preview area (right side of panel) */
-.work__panel-media {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(2rem, 4vw, 4rem);
-  height: 100%;
-}
-
-.work__panel-preview {
-  width: 100%;
-  max-width: 740px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  transform: translateY(40px) scale(0.95);
-  cursor: zoom-in;
-}
-
-/* Pixel transition container within project panels */
-.work__panel-preview .project-card__pixel-transition {
-  border-radius: inherit;
-}
-
-.work__panel-preview .project-card__transition-image {
-  border-radius: inherit;
-}
-
-/* Portrait image panels */
-.work__panel-preview--portrait {
-  max-width: min(380px, 45vw);
-}
-
-/* Placeholder panel (no images) */
-.work__panel-placeholder {
-  width: 100%;
-  max-width: 520px;
-  aspect-ratio: 16 / 10;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(117,252,255,0.04));
-  border: 1px dashed rgba(117, 252, 255, 0.15);
-  opacity: 0;
-  transform: translateY(40px) scale(0.95);
-}
-
-.work__panel-placeholder-label {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: rgba(214, 208, 230, 0.4);
-}
-
 /* ─────────────────────────────────────
    CHAPTER 4 — SIGNAL (Contact)
    Flash entrance + pulsing email
@@ -1599,26 +1355,28 @@ body.scene-ready .three-container canvas {
 }
 
 .signal__heading {
-  font-family: var(--font-pixel);
-  font-size: clamp(1.3rem, 3.5vw, 2.2rem);
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--about-heading);
   margin: 0 0 var(--space-xl);
-  letter-spacing: 0;
 }
 
 .signal__text {
-  font-family: var(--font-mono);
-  font-size: clamp(0.85rem, 1.3vw, 1rem);
-  color: var(--contact-text);
+  font-family: var(--font-body);
+  font-size: clamp(1.05rem, 1.5vw, 1.15rem);
+  color: #e6dff5;
   margin: 0 0 var(--space-md);
-  line-height: 1.8;
+  line-height: 1.7;
 }
 
 .signal__email {
   display: inline-block;
   margin-top: var(--space-lg);
   font-family: var(--font-mono);
-  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
   color: var(--accent-bright);
   text-decoration: none;
   padding: 0.5em 0;
@@ -1688,23 +1446,6 @@ body.scene-ready .three-container canvas {
 
   /* Work */
   .work__heading {
-    opacity: 1;
-    transform: none;
-  }
-  .work__panel-bg {
-    clip-path: inset(0 0 0 0);
-  }
-  .work__panel-index,
-  .work__panel-title,
-  .work__panel-year,
-  .work__panel-tags,
-  .work__panel-desc,
-  .work__panel-cta {
-    opacity: 1;
-    transform: none;
-  }
-  .work__panel-preview,
-  .work__panel-placeholder {
     opacity: 1;
     transform: none;
   }
@@ -1785,35 +1526,6 @@ body.scene-ready .three-container canvas {
     min-height: auto;
   }
 
-  /* Work — single column panels */
-  .work__panel {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding: clamp(2rem, 5vw, 3rem) 0;
-  }
-
-  .work__panel:nth-child(even) {
-    direction: ltr;
-  }
-
-  .work__panel-content {
-    padding: clamp(1.5rem, 4vw, 2.5rem);
-    max-width: none;
-    margin-inline-start: 0;
-  }
-
-  .work__panel-media {
-    padding: clamp(1rem, 3vw, 2rem);
-  }
-
-  .work__panel-preview {
-    max-width: 100%;
-  }
-
-  .work__panel-preview--portrait {
-    max-width: min(220px, 50vw);
-    margin-inline: auto;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1837,16 +1549,6 @@ body.scene-ready .three-container canvas {
   .toolkit__chips li {
     min-height: 1.9rem;
     padding-inline: 0.5rem;
-  }
-
-  /* Work panel text size adjustments */
-  .work__panel-content {
-    padding: 1.25rem;
-    align-items: center;
-    text-align: center;
-  }
-  .work__panel-tags {
-    justify-content: center;
   }
 }
 
@@ -1962,4 +1664,324 @@ body.scene-ready .three-container canvas {
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.1em;
   font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────
+   PROFESSIONAL REDESIGN — Nov 14, 2026
+   Dark, clean, plain names. No pixel font,
+   no pixel trail, no hidden cursor, no
+   project background images, no full-height
+   cinematic panels. The 3D CRT hero above
+   is untouched; everything after it is
+   a normal, scannable portfolio.
+   ───────────────────────────────────── */
+
+/* Work: dark section, left-aligned heading, 2-col card grid */
+.chapter--work {
+  /* 2. Blueprint grid: faint engineering grid, plus a soft grainy glow
+     behind the heading area. The grid is 4% opacity so it never fights
+     the card text. */
+  background:
+    radial-gradient(720px 340px at 18% 0%, rgba(41, 215, 255, 0.07), transparent 70%),
+    linear-gradient(rgba(117, 252, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(117, 252, 255, 0.04) 1px, transparent 1px),
+    #0d0916;
+  background-size: auto, 48px 48px, 48px 48px, auto;
+  padding: clamp(4rem, 8vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+  overflow: visible;
+}
+
+.work__heading-area {
+  max-width: 1120px;
+  margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
+  padding: 0;
+  text-align: left;
+}
+
+.work__kicker {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+
+.work__heading {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--projects-heading);
+  margin: 0 0 0.9rem;
+  opacity: 1;
+  transform: none;
+}
+
+.work__summary {
+  margin: 0;
+  max-width: 62ch;
+  font-family: var(--font-body);
+  font-size: 1.12rem;
+  line-height: 1.7;
+  color: #e6dff5;
+}
+
+.work__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.work__card {
+  background: var(--projects-card-bg);
+  border: 1px solid var(--projects-border);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease;
+}
+
+.work__card:hover,
+.work__card:focus-within {
+  border-color: rgba(117, 252, 255, 0.35);
+}
+
+.work__card-media {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0a0612;
+  cursor: pointer;
+}
+
+.work__card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.work__card-media--portrait img {
+  object-fit: cover;
+  object-position: top center;
+}
+
+.work__card-placeholder {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0612;
+  color: rgba(214, 208, 230, 0.5);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.work__card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.work__card-focus {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+
+.work__card-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.55rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--projects-heading);
+}
+
+.work__card-year {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: #a99fc4;
+  font-variant-numeric: tabular-nums;
+}
+
+.work__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.35rem;
+}
+
+.work__card-tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: #d6d0e6;
+  padding: 0.4em 0.75em;
+  border: 1px solid var(--projects-tag-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.work__card-desc {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: #e6dff5;
+  flex: 1;
+}
+
+.work__card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent-bright);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(117, 252, 255, 0.3);
+  padding-bottom: 0.15rem;
+  width: max-content;
+}
+
+.work__card-cta:hover,
+.work__card-cta:focus-visible {
+  color: #fff;
+  border-color: #fff;
+}
+
+.work__card-cta:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+}
+
+.work__card-cta-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+
+.work__card-cta:hover .work__card-cta-arrow {
+  transform: translateX(4px);
+}
+
+/* Experience: plain, scannable list */
+.chapter--experience {
+  background:
+    radial-gradient(720px 340px at 82% 0%, rgba(122, 255, 190, 0.06), transparent 70%),
+    linear-gradient(rgba(117, 252, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(117, 252, 255, 0.04) 1px, transparent 1px),
+    #0d0916;
+  background-size: auto, 48px 48px, 48px 48px, auto;
+  padding: clamp(4rem, 8vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+}
+
+.experience__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.experience__kicker {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+
+.experience__heading {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--projects-heading);
+}
+
+.experience__summary {
+  margin: 0 0 2.5rem;
+  max-width: 62ch;
+  font-family: var(--font-body);
+  font-size: 1.12rem;
+  line-height: 1.7;
+  color: #e6dff5;
+}
+
+.experience__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.experience__item {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem 2.5rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.experience__item:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.experience__role {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  color: var(--projects-heading);
+}
+
+.experience__company {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--projects-text);
+}
+
+.experience__date {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: #a99fc4;
+}
+
+.experience__detail {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: #e6dff5;
+}
+
+@media (max-width: 820px) {
+  .prologue__stats {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .work__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .experience__item {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
 }

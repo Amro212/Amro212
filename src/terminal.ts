@@ -28,13 +28,13 @@ function buildFileSystem(): FSNode {
       '===========================================',
       '',
       'Computer Engineering builder working across',
-      'software, automation, interfaces, and embedded labs.',
+      'Applications Engineering, software, automation, and interfaces.',
       '',
       'Current orbit:',
       '  - Job-search and browser automation',
       '  - iOS tools for student planning',
       '  - Frontend systems with a strong visual point of view',
-      '  - Embedded and FPGA coursework',
+      '  - Demos, onboarding, and user support',
       '  - AI workflows that save actual time',
     ].join('\n'),
   };
@@ -64,9 +64,9 @@ function buildFileSystem(): FSNode {
       'Languages:    TypeScript, JavaScript, Python, Java, C/C++',
       'Interfaces:   React, SwiftUI, Tailwind CSS, Vite',
       'Backend:      Node.js, Flask, REST APIs, Cloudflare Workers',
-      'AI/Auto:      Claude, OpenAI, LangChain, n8n Automation, Playwright',
+      'AI/Auto:      Claude, OpenAI, AI coding tools, n8n, Playwright',
       'Data/ML:      PyTorch, CUDA, pandas, NumPy, TensorFlow',
-      'Hardware:     ARM Cortex-M, STM32/K60, VHDL, Quartus',
+      'Support / AE: Demos, troubleshooting, technical writing, Jira',
     ].join('\n'),
   };
 
@@ -789,10 +789,10 @@ export class Terminal {
 
   private scrollToProject(title: string): void {
     const slug = slugify(title);
-    const projectPanels = document.querySelectorAll('.work__panel');
+    const projectPanels = document.querySelectorAll('.work__card');
 
     for (const panel of projectPanels) {
-      const panelTitle = panel.querySelector('.work__panel-title')?.textContent?.toLowerCase() ?? '';
+      const panelTitle = panel.querySelector('.work__card-title')?.textContent?.toLowerCase() ?? '';
       if (slugify(panelTitle) === slug) {
         panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
         panel.classList.add('project-card--highlight');
