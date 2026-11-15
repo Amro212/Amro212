@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { EXPERIENCE, EXPERIENCE_ARIA_LABEL, HERO } from '../data/clone';
 import { AMRO_SIGNATURE_DATA_URI } from '../data/signature';
+import { MASCOT_SPRITE } from '../data/mascot';
 
 function PillIcon({ kind }: { kind: 'design' | 'code' | 'ai' }) {
   if (kind === 'design') {
@@ -155,7 +156,7 @@ export default function Hero() {
         <button
           type="button"
           className="mascot"
-          aria-label="Boop Krish"
+          aria-label="Boop Amro"
           ref={mascot.btnRef}
           onClick={mascot.onBoop}
         >
@@ -163,7 +164,7 @@ export default function Hero() {
             <span
               className="mascot-frames"
               ref={mascot.framesRef}
-              style={{ backgroundImage: 'url(https://www.designengineer.fyi/mascot/krish-directions.webp)', backgroundPosition: '50% 50%' }}
+              style={{ backgroundImage: `url(${MASCOT_SPRITE})`, backgroundPosition: '50% 50%' }}
             />
           </span>
         </button>
