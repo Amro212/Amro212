@@ -30,12 +30,17 @@ export function initAudio() {
     comp.threshold.value = -10;
     master.connect(comp);
     comp.connect(t.destination);
-    // 90ms decaying-noise stereo impulse for the convolver.
+    // 90ms decaying-noise stereo impulse for the convolver: one-pole
+    // smoothed noise x (1-e/t)^4, as in the original.
     const len = Math.floor(t.sampleRate * 0.09);
     const impulse = t.createBuffer(2, len, t.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = impulse.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2);
+      let r = 0;
+      for (let i = 0; i < len; i++) {
+        r += 0.35 * (2 * Math.random() - 1 - r);
+        d[i] = r * Math.pow(1 - i / len, 4);
+      }
     }
     convolver = t.createConvolver();
     convolver.buffer = impulse;
@@ -124,6 +129,7 @@ function burst(t: AudioContext, when: number, out: AudioNode, o: BurstOpts) {
     const f = t.createBiquadFilter();
     f.type = 'highpass';
     f.frequency.value = o.hp;
+    f.Q.value = 0.7;
     node.connect(f);
     node = f;
   }
@@ -131,17 +137,18 @@ function burst(t: AudioContext, when: number, out: AudioNode, o: BurstOpts) {
     const f = t.createBiquadFilter();
     f.type = 'lowpass';
     f.frequency.value = o.lp;
+    f.Q.value = 0.7;
     node.connect(f);
     node = f;
   }
   const g = t.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, o.gain), when + 0.0003);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + o.decay);
+  g.gain.setValueAtTime(0.0002, when);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, o.gain), when + 0.0003);
+  g.gain.exponentialRampToValueAtTime(0.0002, when + o.decay);
   node.connect(g);
   g.connect(out);
   src.start(when);
-  src.stop(when + o.decay + 0.05);
+  src.stop(when + o.decay + 0.02);
 }
 
 /** f() — sine blip with frequency glide. */
@@ -151,13 +158,13 @@ function blip(t: AudioContext, when: number, out: AudioNode, from: number, to: n
   osc.frequency.setValueAtTime(from, when);
   osc.frequency.exponentialRampToValueAtTime(Math.max(1, to), when + dur);
   const g = t.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.003);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  g.gain.setValueAtTime(0.0002, when);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), when + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.0002, when + dur);
   osc.connect(g);
   g.connect(out);
   osc.start(when);
-  osc.stop(when + dur + 0.05);
+  osc.stop(when + dur + 0.02);
 }
 
 /** y() — scroll-velocity ambience bed. */
@@ -226,45 +233,47 @@ export function glideTick() {
   burst(t, t.currentTime, n, { gain: 0.06, decay: 0.003, band: 5200 * jit(0.08), q: 2 });
 }
 
-/** Slider snap tick (inline sound + haptic). */
-export function snapTick(velocityFactor: number) {
+/** Carousel SNAP (inline sound in the original's slider rAF loop). */
+export function snapTick(velocityKnobPxPerSec: number, pan = 0) {
   const t = live();
   if (!t) return;
   const n = t.currentTime;
-  const a = send(t, -0.35);
-  const i = Math.min(1, velocityFactor);
-  burst(t, n, a, { gain: 0.1 * i, decay: 0.006, hp: 1800 * jit(0.06), lp: 6800 });
-  burst(t, n, a, { gain: 0.08 * i, decay: 0.01, band: 900 * jit(0.06), q: 1.8 });
-  burst(t, n + 0.008, a, { gain: 0.06 * i, decay: 0.004, band: 3300 * jit(0.06), q: 2.4 });
+  const a = send(t, 0.6 * pan);
+  const i = 0.5 + 0.5 * Math.min(1, Math.abs(velocityKnobPxPerSec) / 900);
+  const lp = (3400 + 2400 * i) * jit(0.06);
+  burst(t, n, a, { gain: 0.6 * i, decay: 0.008, hp: 1100 * jit(0.08), lp });
+  burst(t, n, a, { gain: 0.32 * i, decay: 0.02, band: 640 * jit(0.08), q: 2 });
+  burst(t, n + 0.006 + 0.004 * Math.random(), a, { gain: 0.16 * i, decay: 0.005, hp: 1700, lp });
   blip(t, n, a, 120 * jit(0.06), 62, 0.09 * i, 0.035);
   vibrate(8);
 }
 
-/** Slider soft tick while passing a stop at speed. */
+/** Carousel SOFT tick while passing a non-stop 1/40 knob step at speed. */
 let lastSoftTick = 0;
-export function softTick(speed: number) {
+export function softTick(speedKnobPxPerSec: number, pan = 0) {
   const now = performance.now();
   if (now - lastSoftTick < 18) return;
   lastSoftTick = now;
   const t = live();
   if (!t) return;
-  burst(t, t.currentTime, send(t, -0.35), {
-    gain: 0.04 + 0.08 * Math.min(1, speed / 1400),
+  burst(t, t.currentTime, send(t, 0.6 * pan), {
+    gain: 0.04 + 0.08 * Math.min(1, Math.abs(speedKnobPxPerSec) / 1500),
     decay: 0.003,
     band: 4200 * jit(0.15),
     q: 1.8,
   });
 }
 
-/** Slider hard-stop thud at a track end. */
-export function hardStopThud() {
+/** Carousel HARD-STOP thud at a track end. */
+export function hardStopThud(velocityFactor = 1, pan = 0) {
   const t = live();
   if (!t) return;
   const n = t.currentTime;
-  const a = send(t, -0.35);
-  burst(t, n, a, { gain: 0.3, decay: 0.02, band: 500 * jit(0.06), q: 1.4 });
-  burst(t, n, a, { gain: 0.2, decay: 0.01, hp: 1500, lp: 6000 });
-  blip(t, n, a, 95, 40, 0.26, 0.1);
+  const a = send(t, 0.6 * pan);
+  const i = 0.5 + 0.5 * Math.min(1, Math.abs(velocityFactor));
+  burst(t, n, a, { gain: 0.5 * i, decay: 0.045, band: 360 * jit(0.06), q: 1.3 });
+  burst(t, n, a, { gain: 0.22 * i, decay: 0.012, hp: 600, lp: 2400 });
+  blip(t, n, a, 95, 40, 0.26 * i, 0.1);
   vibrate(12);
 }
 

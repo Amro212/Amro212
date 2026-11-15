@@ -22,16 +22,61 @@ function ExternalArrow() {
   );
 }
 
+/** Original en() card styling from offset/pitch. Shared by the React
+ * render (initial paint) and App's per-frame imperative pass, so the
+ * blur/tilt track the spring instead of going stale between React
+ * state updates. */
+export function cardBodyStyle(offsetPx: number, pitch: number): {
+  transform: string;
+  filter: string;
+  shade: string;
+  lift: string;
+  glint: string;
+  glintX: string;
+  rim: string;
+} {
+  const e = offsetPx / (pitch || 1);
+  const ae = Math.abs(e);
+  const angle = Math.max(-34, Math.min(34, -22 * e));
+  const translateZ = -(70 * Math.min(1.5, ae));
+  const blur = 2.4 * Math.max(0, Math.min(1.4, ae) - 0.15);
+  const s = (angle * Math.PI) / 180;
+  const l = -0.5 * Math.sin(s) + 0.79 * Math.cos(s) - 0.79;
+  return {
+    transform: `perspective(1500px) translateZ(${translateZ.toFixed(1)}px) rotateY(${angle.toFixed(2)}deg)`,
+    filter: blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : '',
+    shade: Math.max(0, -(1.6 * l) + 0.12 * Math.min(1, ae)).toFixed(2),
+    lift: Math.max(0, 1.4 * l).toFixed(2),
+    glint: (0.1 + 0.16 * Math.max(0, 1 - Math.abs(angle + 8) / 30)).toFixed(2),
+    glintX: `${Math.max(0, Math.min(100, 50 - 2.4 * angle)).toFixed(1)}%`,
+    rim: (0.08 + 0.32 * Math.max(0, -angle / 34)).toFixed(2),
+  };
+}
+
+/** Apply the computed style to a live .card-body element. */
+export function applyCardBodyStyle(el: HTMLElement, offsetPx: number, pitch: number) {
+  const s = cardBodyStyle(offsetPx, pitch);
+  el.style.transform = s.transform;
+  el.style.filter = s.filter;
+  el.style.setProperty('--shade', s.shade);
+  el.style.setProperty('--lift', s.lift);
+  el.style.setProperty('--glint', s.glint);
+  el.style.setProperty('--glint-x', s.glintX);
+  el.style.setProperty('--rim', s.rim);
+}
+
 interface Props {
   project: CloneProject;
   index: number;
   /** Offset of this card's centre from the viewport centre, in px. */
   offsetPx: number;
+  /** Track pitch in px (624 at 1440x900). */
+  pitch: number;
   active: boolean;
   onCardClick: (e: React.MouseEvent) => void;
 }
 
-export default function ProjectCard({ project, index, offsetPx, active, onCardClick }: Props) {
+export default function ProjectCard({ project, index, offsetPx, pitch, active, onCardClick }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -46,19 +91,21 @@ export default function ProjectCard({ project, index, offsetPx, active, onCardCl
     }
   }, [active]);
 
-  // 3D tilt: side cards lean away from the viewer, the active card is flat.
-  const angle = Math.max(-20, Math.min(20, -offsetPx * 0.03));
-  const dist = Math.min(Math.abs(offsetPx) / 1500, 0.45);
+  // Original en(): e = offset/pitch; rotateY = clamp(-22*e, ±34);
+  // translateZ = -(70*min(1.5,|e|)); blur = 2.4*max(0, min(1.4,|e|)-0.15).
+  const cs = cardBodyStyle(offsetPx, pitch);
   const media = project.media;
   const reflectionSrc = media.type === 'video' ? media.poster : media.src;
 
   const bodyStyle: CSSProperties = {
-    transform: `perspective(1500px) rotateY(${angle.toFixed(2)}deg)`,
+    transform: cs.transform,
+    filter: cs.filter,
     // @ts-expect-error CSS custom properties for the card shading/glint
-    '--shade': dist.toFixed(2),
-    '--lift': Math.abs(offsetPx) < 60 ? 1 : 0,
-    '--glint': Math.abs(offsetPx) < 60 ? 0.1 : 0.04,
-    '--glint-x': `${Math.max(0, Math.min(100, 50 - offsetPx * 0.04))}%`,
+    '--shade': cs.shade,
+    '--lift': cs.lift,
+    '--glint': cs.glint,
+    '--glint-x': cs.glintX,
+    '--rim': cs.rim,
   };
 
   const inner = (

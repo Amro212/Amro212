@@ -80,6 +80,7 @@ export default function ContactMenu({ onOpenResume }: { onOpenResume: (from: DOM
   const listRef = useRef<HTMLUListElement>(null);
   const glideRef = useRef<HTMLSpanElement>(null);
   const pillRectRef = useRef<DOMRect | null>(null);
+  const closeAnimsRef = useRef<Animation[]>([]);
   const keyboardRef = useRef(false);
   const copyTimer = useRef<number | undefined>(undefined);
   const resumeOpenRef = useRef(false);
@@ -141,7 +142,8 @@ export default function ContactMenu({ onOpenResume }: { onOpenResume: (from: DOM
     const finish = () => {
       if (done) return;
       done = true;
-      anim.cancel();
+      // Do NOT cancel here: cancelling removes the fill while the rows
+      // are still mounted. The original only sets state on finish.
       setPhase('open');
     };
     anim.onfinish = finish;
@@ -163,15 +165,28 @@ export default function ContactMenu({ onOpenResume }: { onOpenResume: (from: DOM
       [{ width: `${openRect.width}px`, height: `${openRect.height}px` }, { width: `${pill.width}px`, height: `${pill.height}px` }],
       { duration: 380, delay: 60, easing: 'cubic-bezier(0.6, 0, 0.3, 1)', fill: 'forwards' },
     );
+    closeAnimsRef.current = [anim, ...rowAnims];
     let done = false;
     const finish = () => {
       if (done) return;
       done = true;
-      anim.cancel();
+      // Do NOT cancel here: cancelling removes the fill before React
+      // commits the unmount, flashing the menu open for a frame.
+      // Cancellation happens in the phase === 'closed' effect below,
+      // after the rows have unmounted (the original's S.current pattern).
       setPhase('closed');
     };
     anim.onfinish = finish;
     return () => { anim.cancel(); rowAnims.forEach((a) => a.cancel()); };
+  }, [phase]);
+
+  // Cancel the close animations only after the closed commit unmounted
+  // the rows, so the cap's natural size is already the pill size.
+  useLayoutEffect(() => {
+    if (phase === 'closed') {
+      closeAnimsRef.current.forEach((a) => a.cancel());
+      closeAnimsRef.current = [];
+    }
   }, [phase]);
 
   // Focus management.

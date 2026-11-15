@@ -271,12 +271,22 @@ function buildGeom(L: number, width: number, height: number, kind: 'koi' | 'fry'
     const g = profileG(x);
     const hw = Math.max(0.3, width * g);
     const hh = Math.max(0.3, height * g);
+    // Original body is a HALF tube (th 0..PI, the camera-facing dome),
+    // not a full tube: with a full tube the far side's dark, downward
+    // normals render over the top and the fish reads as a black silhouette.
+    // Normals are the profile-slope term plus the (height, width) scaled
+    // radial components, exactly as in the original.
+    const u = ((profileG(x + 0.004) - profileG(x - 0.004)) / 0.008) * (width / L);
     for (let a = 0; a <= around; a++) {
-      const th = (a / around) * Math.PI * 2;
+      const th = (a / around) * Math.PI;
       const co = Math.cos(th); const si = Math.sin(th);
       loc.push(x, hw * co, hh * si);
       pos.push(x, hw * co, hh * si);
-      nor.push(0, co, si);
+      const ay = co * hh; const az = si * hw;
+      const rr = Math.hypot(ay, az) || 1;
+      const c = [-0.8 * u, ay / rr, az / rr];
+      const nl = Math.hypot(c[0], c[1], c[2]) || 1;
+      nor.push(c[0] / nl, c[1] / nl, c[2] / nl);
       coord.push(x, co);
       kinds.push(0);
       fin.push(0, 0, 0);
@@ -327,24 +337,36 @@ function buildGeom(L: number, width: number, height: number, kind: 'koi' | 'fry'
     loc: [0.8, 0, 0], coord: [ri / 16, ci / 28 * 2 - 1],
     finv: [ci / 28 * 2 - 1, ri / 16, 0], kind: 1,
   }));
-  // Paired fins.
+  // Paired fins: original b() — 3-row fan (root + half + outer rows,
+  // 11 columns), root on the flank, radius shaped widest mid-sweep.
   const pairs: [number, number, number, number][] =
     kind === 'koi' ? [[0.22, 0.15, 0.32, 1.25], [0.5, 0.075, 0.25, 0.85]] : [[0.24, 0.1, 0.4, 1.1]];
   for (const [rx, len, a0, a1] of pairs) {
     for (const side of [1, -1]) {
-      addGrid(6, 6, (ci, ri) => ({
-        loc: [rx, 0, 0], coord: [ri / 6, (a0 + (a1 - a0) * (ci / 6)) * side],
-        finv: [a0 + (a1 - a0) * (ci / 6), (ri / 6) * len * L, side], kind: 2,
-      }));
+      const rootY = side * Math.max(0.3, width * profileG(rx)) * 0.82;
+      addGrid(10, 2, (ci, ri) => {
+        const t = ci / 10;
+        const ang = a0 + (a1 - a0) * t;
+        const outer = len * L * (0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, 1.15 * t)));
+        const radius = ri === 0 ? 0 : ri === 1 ? 0.5 * outer : outer;
+        return {
+          loc: [rx, rootY, -2],
+          coord: ri === 0 ? [0, 0] : [ri / 2, 2 * t - 1],
+          finv: [ang, radius, side], kind: 2,
+        };
+      });
     }
   }
-  // Dorsal fin (koi only): 12 segments along x 0.3..0.66.
+  // Dorsal fin (koi only): original 13 x 2 strip, loc.y = ±W*0.07,
+  // aCoord = [o, ±1], kind 3.
   if (kind === 'koi') {
-    addGrid(12, 4, (ci, ri) => {
+    addGrid(12, 1, (ci, ri) => {
       const x = 0.3 + (0.36 * ci) / 12;
+      const sgn = ri === 0 ? -1 : 1;
       return {
-        loc: [x, 0, height * profileG(x) + 1.2], coord: [ri / 4, ci / 12 * 2 - 1],
-        finv: [ci / 12, ri / 4, 0], kind: 3,
+        loc: [x, sgn * width * 0.07, height * profileG(x) + 1.2],
+        coord: [ci / 12, sgn],
+        finv: [0, 0, 0], kind: 3,
       };
     });
   }
@@ -462,15 +484,20 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       const mk = (s: number, a: number, rs: number, ra: number, c: THREE.Vector3): Patch => ({ s, a, rs, ra, c });
       if (roll < 0.3) {
         base = WHITE.clone(); sheen = 0.32;
+        // One patch colour per fish: 60% red / 40% orange.
+        const pc = Math.random() < 0.6 ? RED : ORANGE;
         const n = 2 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < n; i++) patches.push(mk(u(0.06, 0.72), u(-0.4, 0.4), u(0.07, 0.14), u(0.6, 1.4), Math.random() < 0.5 ? ORANGE : RED));
+        for (let i = 0; i < n; i++) patches.push(mk(u(0.06, 0.72), u(-0.4, 0.4), u(0.07, 0.14), u(0.6, 1.4), pc));
       } else if (roll < 0.42) {
         base = WHITE.clone(); sheen = 0.32;
         patches.push(mk(0.1, 0, 0.055, 0.45, RED));
       } else if (roll < 0.62) {
         base = ORANGE.clone(); sheen = 0.32;
-        const n = 2 + Math.floor(Math.random() * 2);
-        for (let i = 0; i < n; i++) patches.push(mk(u(0.06, 0.72), u(-0.4, 0.4), u(0.025, 0.13), u(0.25, 1.3), Math.random() < 0.5 ? ORANGE : BLACK));
+        // 2-3 orange patches AND 2-3 black patches, 4-6 total.
+        const nO = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < nO; i++) patches.push(mk(u(0.08, 0.7), u(-0.4, 0.4), u(0.07, 0.13), u(0.6, 1.3), ORANGE));
+        const nB = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < nB; i++) patches.push(mk(u(0.22, 0.78), u(-0.4, 0.4), u(0.025, 0.05), u(0.25, 0.45), BLACK));
       } else if (roll < 0.76) {
         base = ORANGE.clone(); sheen = 0.38;
         const n = Math.floor(Math.random() * 3);
@@ -478,10 +505,10 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       } else if (roll < 0.86) { base = GOLD.clone(); sheen = 0.6; }
       else if (roll < 0.94) {
         base = BLACK.clone(); sheen = 0.45;
-        patches.push(mk(u(0.2, 0.5), u(-0.3, 0.3), u(0.05, 0.1), u(0.4, 0.9), WHITE));
-        patches.push(mk(u(0.5, 0.75), u(-0.3, 0.3), u(0.05, 0.1), u(0.4, 0.9), WHITE));
-        patches.push(mk(u(0.2, 0.6), u(-0.3, 0.3), u(0.04, 0.08), u(0.3, 0.7), RED));
-        patches.push(mk(u(0.4, 0.7), u(-0.3, 0.3), u(0.04, 0.08), u(0.3, 0.7), RED));
+        patches.push(mk(u(0.1, 0.7), u(-0.4, 0.4), u(0.07, 0.12), u(0.6, 1.2), WHITE));
+        patches.push(mk(u(0.1, 0.7), u(-0.4, 0.4), u(0.07, 0.12), u(0.6, 1.2), WHITE));
+        patches.push(mk(u(0.05, 0.6), u(-0.4, 0.4), u(0.05, 0.1), u(0.5, 1.0), RED));
+        patches.push(mk(u(0.05, 0.6), u(-0.4, 0.4), u(0.05, 0.1), u(0.5, 1.0), RED));
       } else { base = SILVER.clone(); sheen = 0.7; }
     }
     const uPatch = Array.from({ length: 6 }, (_, i) => patches[i]
@@ -524,14 +551,25 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     if (reduced) {
       x = u(C * 0.1, C * 0.9); y = u(P * 0.15, P * 0.85);
     } else if (spawnEdge) {
-      const edge = (index) % 4;
-      const out = u(0, 90) + 30 * index;
-      if (edge === 0) { x = -out; y = u(0, P); }
-      else if (edge === 1) { x = C + out; y = u(0, P); }
-      else if (edge === 2) { x = u(0, C); y = -out; }
-      else { x = u(0, C); y = P + out; }
-      const tx = u(C * 0.3, C * 0.7); const ty = u(P * 0.3, P * 0.7);
-      a = Math.atan2(ty - y, tx - x);
+      if (kind === 'fry') {
+        // Whole fry school enters as one cluster from a single edge,
+        // 60 px out, ±70 px jitter, heading for the school target.
+        const edge = (koiEdgeRot + 2) % 4;
+        if (edge === 0) { x = -60; y = school.y + u(-70, 70); }
+        else if (edge === 1) { x = C + 60; y = school.y + u(-70, 70); }
+        else if (edge === 2) { x = school.x + u(-70, 70); y = -60; }
+        else { x = school.x + u(-70, 70); y = P + 60; }
+        a = Math.atan2(school.y - y, school.x - x);
+      } else {
+        const edge = (koiEdgeRot + index) % 4;
+        const out = u(0, 90) + 30 * index;
+        if (edge === 0) { x = -out; y = u(0, P); }
+        else if (edge === 1) { x = C + out; y = u(0, P); }
+        else if (edge === 2) { x = u(0, C); y = -out; }
+        else { x = u(0, C); y = P + out; }
+        const tx = u(C * 0.3, C * 0.7); const ty = u(P * 0.3, P * 0.7);
+        a = Math.atan2(ty - y, tx - x);
+      }
     } else {
       x = school.x + u(-70, 70); y = school.y + u(-70, 70);
       a = Math.atan2(school.y - y, school.x - x);
@@ -556,8 +594,22 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     return fish;
   }
 
+  // Random edge rotation shared by koi spawn (n+i)%4 and the fry
+  // school entry edge (n+2)%4, mirroring the original.
+  const koiEdgeRot = Math.floor(Math.random() * 4);
+
   for (let i = 0; i < koiCount; i++) fishes.push(makeFish('koi', i, true));
-  for (let i = 0; i < fryCount; i++) fishes.push(makeFish('fry', i, i === 0));
+  for (let i = 0; i < fryCount; i++) fishes.push(makeFish('fry', i, true));
+  // D6: sort koi by depth first, then assign uZ/renderOrder, so a deep
+  // (dim) koi can never render over a shallow one.
+  fishes
+    .filter((f) => f.kind === 'koi')
+    .sort((a, b) => a.depth - b.depth)
+    .forEach((f, t) => {
+      (f.mat.uniforms.uZ as { value: number }).value = 100 + 140 * t;
+      f.bodyMesh.renderOrder = 2 * t;
+      f.finMesh.renderOrder = 2 * t + 1;
+    });
 
   const startle = (x: number, y: number, strength: number) => {
     for (const f of fishes) {
@@ -794,12 +846,14 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   let nextAmbientKoi = u(7, 14);
 
   const frame = (now: number) => {
-    if (disposed) return;
+    if (disposed) { raf = 0; return; }
     const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 1 / 30) : 1 / 60;
     lastFrame = now;
     const throttled = !fullyLive() || !!T.dataset.sliding;
     if (throttled && lastProcessed && now - lastProcessed < 30) {
-      if (mayRun()) raf = requestAnimationFrame(frame);
+      // Clear the id when the loop stops, or start() bails forever on
+      // tab return (stale non-zero raf). Mirrors the original.
+      raf = mayRun() ? requestAnimationFrame(frame) : 0;
       return;
     }
     lastProcessed = now;
@@ -832,7 +886,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       if (clock >= delayed[i].at) { drop(delayed[i].x, delayed[i].y, delayed[i].r, delayed[i].s); delayed.splice(i, 1); }
     }
     renderFrame(dt);
-    if (mayRun()) raf = requestAnimationFrame(frame);
+    raf = mayRun() ? requestAnimationFrame(frame) : 0;
   };
 
   const start = () => {

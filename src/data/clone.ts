@@ -13,7 +13,7 @@ export interface ExperienceEntry {
 }
 
 export const HERO = {
-  name: 'Shai Krishna',
+  name: 'Amro Abed Moosa',
   tagline: 'Staff Product Designer & Design Engineer',
   bio: [
     { text: 'I ', pill: null },

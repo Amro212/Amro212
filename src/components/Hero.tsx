@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { EXPERIENCE, EXPERIENCE_ARIA_LABEL, HERO } from '../data/clone';
-
-const SIGNATURE_PATHS = [
-  'M300 40 C285 135 250 235 215 330',
-  'M560 45 C470 85 360 140 278 172 C338 190 395 225 432 258 C447 272 462 258 472 238 C484 213 492 190 507 178 C520 168 530 180 540 186 C552 192 567 186 580 178 C588 198 592 220 606 218 C620 216 630 196 638 180 C644 168 660 164 668 172 C678 183 664 202 648 212 C672 214 696 204 714 190 C752 150 795 85 820 44 C832 24 816 18 802 38 C780 75 762 150 748 222 C764 196 784 174 804 174 C822 174 820 200 828 216 C834 228 854 222 872 208 C960 175 1100 168 1300 175',
-];
+import { AMRO_SIGNATURE_DATA_URI } from '../data/signature';
 
 function PillIcon({ kind }: { kind: 'design' | 'code' | 'ai' }) {
   if (kind === 'design') {
@@ -110,21 +106,8 @@ function useMascot() {
 }
 
 export default function Hero() {
-  const sigRef = useRef<SVGSVGElement>(null);
   const [expanded, setExpanded] = useState(0);
   const mascot = useMascot();
-
-  // Measure signature paths so the draw-on animation has real lengths.
-  useEffect(() => {
-    const svg = sigRef.current;
-    if (!svg) return;
-    svg.querySelectorAll('path').forEach((path, i) => {
-      const len = path.getTotalLength();
-      path.style.setProperty('--len', `${len}`);
-      path.style.setProperty('--dur', '0.9s');
-      path.style.setProperty('--delay', `${0.15 + i * 0.45}s`);
-    });
-  }, []);
 
   const toggleRow = (i: number) => setExpanded((cur) => (cur === i ? -1 : i));
   const onRowKey = (e: KeyboardEvent, i: number) => {
@@ -157,21 +140,16 @@ export default function Hero() {
 
   return (
     <section className="intro">
-      <svg
-        ref={sigRef}
+      {/* Amro's own handwritten signature (raster, transparent
+          background). Same placement/sizing as the original's SVG
+          scribble; it wipes in left-to-right instead of a stroke draw. */}
+      <img
         className="signature"
-        viewBox="80 20 1240 330"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="13"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        src={AMRO_SIGNATURE_DATA_URI}
+        alt=""
         aria-hidden="true"
-      >
-        {SIGNATURE_PATHS.map((d) => (
-          <path key={d.slice(0, 12)} d={d} />
-        ))}
-      </svg>
+        draggable={false}
+      />
 
       <header className="header">
         <button

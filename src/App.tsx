@@ -2,35 +2,46 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ContactMenu from './components/ContactMenu';
 import { FilmLight } from './components/Effects';
 import Hero from './components/Hero';
-import IntroOverlay from './components/IntroOverlay';
 import Pond from './components/Pond';
-import ProjectCard from './components/ProjectCard';
+import ProjectCard, { applyCardBodyStyle } from './components/ProjectCard';
 import ProjectDetail from './components/ProjectDetail';
 import ResumeModal from './components/ResumeModal';
 import Slider from './components/Slider';
 import { PROJECTS } from './data/clone';
-import { initAudio, installAudioUnlock, scrollAmbience, snapTick, softTick } from './audio';
+import { hardStopThud, initAudio, installAudioUnlock, scrollAmbience, snapTick, softTick } from './audio';
 
 const SLIDE_COUNT = 10; // 00 intro + 09 projects
 
+// Original track spring (ee()): semi-implicit Euler, 1/240 s substeps,
+// dt clamped to 1/30, settle epsilon 0.05 px / 0.05 px/s.
+const TRACK_K = 170;
+const TRACK_C = 26;
+const SUBSTEP = 1 / 240;
+
 export default function App() {
-  const [introDone, setIntroDone] = useState(false);
   const [progress, setProgress] = useState(0);
   const [resumeReq, setResumeReq] = useState<{ from: DOMRect; home: () => HTMLElement | null } | null>(null);
   const [openProject, setOpenProject] = useState<number | null>(null);
+  const [directProjectLoad, setDirectProjectLoad] = useState(false);
 
   const progressRef = useRef(0);
-  const targetRef = useRef(0);
+  const pxRef = useRef(0);
+  const pxVelRef = useRef(0);
+  const targetPxRef = useRef(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const introLayerRef = useRef<HTMLDivElement>(null);
   const sliderWrapRef = useRef<HTMLDivElement>(null);
-  const geomRef = useRef({ firstStep: 740, pitch: 624 });
+  const geomRef = useRef({ firstStep: 740, pitch: 624, maxPx: 5732 });
+  const railWidthRef = useRef(0);
   const snapTimer = useRef<number | undefined>(undefined);
-  const wheelAccum = useRef(0);
-  const dragRef = useRef<{ pointerId: number; startX: number; startProgress: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startPx: number; moved: boolean; captured: boolean } | null>(null);
   const draggedRef = useRef(false);
+  const heldRef = useRef(false);
+  const overshootRef = useRef(0);
   const lastIndexRef = useRef(0);
-  const lastVelRef = useRef(0);
+  const lastKnobStepRef = useRef(0);
+  const lastTickMsRef = useRef(0);
+  const prevKnobPxRef = useRef(0);
 
   const current = Math.max(0, Math.min(9, Math.round(progress)));
 
@@ -43,27 +54,69 @@ export default function App() {
     const first = cards[0];
     const firstStep = first.offsetLeft + first.offsetWidth / 2 - vw / 2;
     const pitch = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : first.offsetWidth;
-    geomRef.current = { firstStep, pitch };
+    // Max scroll = track width - viewport, exactly as the original clamps
+    // its last stop (5812 -> 5732 at 1440x900), leaving the last card
+    // 80 px right of centre by design.
+    const maxPx = Math.max(0, track.scrollWidth - vw);
+    geomRef.current = { firstStep, pitch, maxPx };
+    const rail = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-rail');
+    if (rail) railWidthRef.current = rail.getBoundingClientRect().width;
   }, []);
 
   useEffect(() => {
-    document.documentElement.dataset.intro = 'on';
+    // No intro overlay: the hero is the first thing shown.
+    document.documentElement.dataset.intro = 'done';
     measure();
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure).catch(() => undefined);
     installAudioUnlock();
+    // Deep link: a fresh load of /projects/<slug> opens the viewer,
+    // like the original's real detail routes.
+    const m = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
+    if (m) {
+      const idx = PROJECTS.findIndex((p) => !p.external && p.href === `/projects/${m[1]}`);
+      if (idx >= 0) {
+        setDirectProjectLoad(true);
+        setOpenProject(idx);
+      }
+    }
     return () => window.removeEventListener('resize', measure);
   }, [measure]);
 
+  // Track px for a slide position, clamped to the original's max scroll.
   const pxFromProgress = useCallback((s: number) => {
-    const { firstStep, pitch } = geomRef.current;
-    return s <= 1 ? s * firstStep : firstStep + (s - 1) * pitch;
+    const { firstStep, pitch, maxPx } = geomRef.current;
+    const px = s <= 1 ? s * firstStep : firstStep + (s - 1) * pitch;
+    return Math.max(0, Math.min(maxPx, px));
   }, []);
+
+  const pxToProgress = useCallback((px: number) => {
+    const { firstStep, pitch } = geomRef.current;
+    return px <= firstStep ? px / firstStep : 1 + (px - firstStep) / pitch;
+  }, []);
+
+  const stopPxList = useCallback(() => {
+    const stops: number[] = [];
+    for (let s = 0; s < SLIDE_COUNT; s++) stops.push(pxFromProgress(s));
+    return stops;
+  }, [pxFromProgress]);
+
+  const nearestStopPx = useCallback((px: number) => {
+    const stops = stopPxList();
+    let best = stops[0];
+    for (const s of stops) if (Math.abs(s - px) < Math.abs(best - px)) best = s;
+    return best;
+  }, [stopPxList]);
 
   // Drive the track/intro/knob transforms imperatively; React state only
   // changes when the snapped index changes (no full-tree re-render at 60fps).
-  const applyTransforms = useCallback((p: number) => {
-    const translate = -pxFromProgress(p);
+  // Card blur/tilt is also applied imperatively every frame: the React
+  // `progress` state only updates on index change, so render-time props
+  // would go stale mid-spring and the settled card would keep the
+  // previous slide's blur.
+  const applyTransformsPx = useCallback((px: number) => {
+    const p = pxToProgress(px);
+    const translate = -px;
     const introOpacity = 1 - Math.max(0, Math.min(1, p / 0.6));
     const intro = introLayerRef.current;
     if (intro) {
@@ -71,88 +124,114 @@ export default function App() {
       intro.style.opacity = `${introOpacity}`;
     }
     const track = trackRef.current;
-    if (track) track.style.transform = `translateX(${translate.toFixed(1)}px)`;
+    if (track) {
+      track.style.transform = `translateX(${translate.toFixed(1)}px)`;
+      const { firstStep, pitch } = geomRef.current;
+      track.querySelectorAll<HTMLElement>('[data-card]').forEach((card, i) => {
+        const body = card.querySelector<HTMLElement>('.card-body');
+        if (body) applyCardBodyStyle(body, firstStep + i * pitch - px, pitch);
+      });
+    }
     const knob = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-knob');
-    if (knob) knob.style.left = `${(Math.max(0, Math.min(1, p / 9)) * 100).toFixed(2)}%`;
-  }, [pxFromProgress]);
+    if (knob) knob.style.left = `${(Math.max(0, Math.min(1, px / geomRef.current.maxPx)) * 100).toFixed(2)}%`;
+  }, [pxToProgress]);
 
-  // Spring the continuous progress toward its snap target.
+  // Spring the continuous track px toward its snap target, and fire the
+  // carousel sounds from the knob's rounded 1/40-step changes.
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let prev = progressRef.current;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      const target = targetRef.current;
-      const p = progressRef.current;
-      const diff = target - p;
-      if (Math.abs(diff) < 0.0005) {
-        if (p !== target) {
-          progressRef.current = target;
-          applyTransforms(target);
-          const idx = Math.round(target);
-          if (idx !== lastIndexRef.current) {
-            lastIndexRef.current = idx;
-            snapTick(0.5);
-            setProgress(target);
-          }
-          scrollAmbience(0);
-        }
-        return;
+      const target = targetPxRef.current;
+      let px = pxRef.current;
+      let vel = pxVelRef.current;
+      // Original spring: 1/240 s substeps, settle epsilon 0.05.
+      const steps = Math.max(1, Math.ceil(dt / SUBSTEP));
+      const h = dt / steps;
+      for (let i = 0; i < steps; i++) {
+        vel += (TRACK_K * (target - px) - TRACK_C * vel) * h;
+        px += vel * h;
       }
-      const next = p + diff * (1 - Math.exp(-dt * 14));
-      progressRef.current = next;
-      applyTransforms(next);
-      // Scroll ambience bed: velocity in px/s, pan by knob position.
-      const velPx = ((next - prev) / Math.max(dt, 1e-4)) * geomRef.current.pitch;
-      const crossed = Math.floor(next) !== Math.floor(prev);
-      prev = next;
-      lastVelRef.current = velPx;
-      scrollAmbience(Math.abs(velPx), (Math.max(0, Math.min(1, next / 9)) * 2 - 1));
-      // Soft tick when passing a stop at speed.
-      if (Math.abs(velPx) > 40 && crossed) softTick(Math.abs(velPx));
-      const idx = Math.round(next);
+      if (Math.abs(target - px) < 0.05 && Math.abs(vel) < 0.05) {
+        px = target;
+        vel = 0;
+      }
+      pxRef.current = px;
+      pxVelRef.current = vel;
+      const p = pxToProgress(px);
+      progressRef.current = p;
+      applyTransformsPx(px);
+      // Knob position in rail px (0..railWidth), step = railWidth/40.
+      const railW = railWidthRef.current || 1;
+      const maxPx = geomRef.current.maxPx || 1;
+      const knobPx = (px / maxPx) * railW;
+      const stepPx = railW / 40;
+      const knobVel = dt > 0 ? (knobPx - prevKnobPxRef.current) / dt : 0;
+      prevKnobPxRef.current = knobPx;
+      const pan = Math.max(-1, Math.min(1, (knobPx / railW) * 2 - 1));
+      scrollAmbience(Math.abs(knobVel) * (heldRef.current ? 1 : 0.6), pan);
+      // Snap / soft tick on rounded-step change, during motion.
+      const nStep = Math.round(knobPx / stepPx);
+      if (nStep !== lastKnobStepRef.current) {
+        lastKnobStepRef.current = nStep;
+        const stopSteps = new Set(stopPxList().map((s) => Math.round((s / maxPx) * 40)));
+        if (stopSteps.has(nStep)) {
+          snapTick(Math.abs(knobVel), pan);
+        } else if (now - lastTickMsRef.current > 18 && Math.abs(knobVel) > 40) {
+          lastTickMsRef.current = now;
+          softTick(Math.abs(knobVel), pan);
+        }
+      }
+      const idx = Math.round(p);
       if (idx !== lastIndexRef.current) {
         lastIndexRef.current = idx;
-        setProgress(next);
+        setProgress(p);
       }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [applyTransforms]);
+  }, [applyTransformsPx, pxToProgress]);
 
   const goTo = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(9, index));
-    targetRef.current = clamped;
-  }, []);
+    targetPxRef.current = pxFromProgress(clamped);
+  }, [pxFromProgress]);
 
-  const setProgressDirect = useCallback((value: number) => {
-    const clamped = Math.max(0, Math.min(9, value));
-    progressRef.current = clamped;
-    targetRef.current = clamped;
-    applyTransforms(clamped);
-    const idx = Math.round(clamped);
+  const setProgressDirect = useCallback((fraction: number) => {
+    const px = Math.max(0, Math.min(geomRef.current.maxPx, fraction * geomRef.current.maxPx));
+    pxRef.current = px;
+    pxVelRef.current = 0;
+    targetPxRef.current = px;
+    applyTransformsPx(px);
+    const p = pxToProgress(px);
+    progressRef.current = p;
+    const idx = Math.round(p);
     if (idx !== lastIndexRef.current) {
       lastIndexRef.current = idx;
-      setProgress(clamped);
+      setProgress(p);
     }
-  }, [applyTransforms]);
+  }, [applyTransformsPx, pxToProgress]);
 
   const scheduleSnap = useCallback(() => {
     window.clearTimeout(snapTimer.current);
     snapTimer.current = window.setTimeout(() => {
-      targetRef.current = Math.max(0, Math.min(9, Math.round(progressRef.current)));
-    }, 140);
-  }, []);
-
-  const handleIntroDone = useCallback(() => {
-    setIntroDone(true);
-    document.documentElement.dataset.intro = 'done';
-    document.documentElement.style.setProperty('--sig-end', '1.2s');
-  }, []);
+      // Snap the accumulated TARGET (wheel destination), not the current
+      // spring position: snapping the position 180 ms in would drag a
+      // 700px flick back to the slide it started from.
+      targetPxRef.current = nearestStopPx(targetPxRef.current);
+      // Hard-stop thud if the wheel/drag pushed past a track end.
+      if (overshootRef.current > 80) {
+        const maxPx = geomRef.current.maxPx || 1;
+        const pan = Math.max(-1, Math.min(1, (pxRef.current / maxPx) * 2 - 1));
+        hardStopThud(Math.min(1, overshootRef.current / 900), pan);
+      }
+      overshootRef.current = 0;
+    }, 180);
+  }, [nearestStopPx]);
 
   const closeProject = useCallback(() => {
     setOpenProject((cur) => {
@@ -173,7 +252,7 @@ export default function App() {
   // Arrow-key navigation when focus is not inside the slider or contact menu.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (!introDone || resumeReq || openProject !== null) return;
+      if (resumeReq || openProject !== null) return;
       const active = document.activeElement as HTMLElement | null;
       if (active?.closest('.slider, .contact, input, textarea')) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -186,10 +265,13 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [introDone, resumeReq, openProject, current, goTo]);
+  }, [resumeReq, openProject, current, goTo]);
 
+  // Original wheel mapping (eu()): continuous track px, 1 wheel px =
+  // 1 track px, deltaMode line x16 / page x viewport width, snap 180 ms
+  // after the last event.
   const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!introDone || resumeReq || openProject !== null) return;
+    if (resumeReq || openProject !== null) return;
     if ((e.target as HTMLElement).closest('.slider, .contact')) return;
     const layer = introLayerRef.current;
     if (layer && Math.abs(e.deltaY) > Math.abs(e.deltaX) && layer.scrollHeight > layer.clientHeight + 4) {
@@ -197,35 +279,54 @@ export default function App() {
       const atBottom = layer.scrollTop + layer.clientHeight >= layer.scrollHeight - 1 && e.deltaY > 0;
       if (!atTop && !atBottom) return;
     }
-    wheelAccum.current += e.deltaY + e.deltaX;
-    while (Math.abs(wheelAccum.current) >= 100) {
-      const step = wheelAccum.current > 0 ? 1 : -1;
-      wheelAccum.current -= step * 100;
-      targetRef.current = Math.max(0, Math.min(9, targetRef.current + step));
+    const dominant = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    const modeFactor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerWidth : 1;
+    const deltaPx = dominant * modeFactor;
+    const { maxPx } = geomRef.current;
+    const next = targetPxRef.current + deltaPx;
+    if ((next < 0 && deltaPx < 0) || (next > maxPx && deltaPx > 0)) {
+      // Pushing past a track end: record overshoot velocity (knob px/s
+      // estimate) for the hard-stop thud.
+      const railW = railWidthRef.current || 1;
+      const knobVelEst = Math.abs(deltaPx) * 60 * (railW / (maxPx || 1));
+      overshootRef.current = Math.max(overshootRef.current, knobVelEst);
     }
+    targetPxRef.current = Math.max(0, Math.min(maxPx, next));
+    scheduleSnap();
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!introDone || resumeReq || openProject !== null) return;
+    if (resumeReq || openProject !== null) return;
     if ((e.target as HTMLElement).closest('.slider, .contact, button, .tree-row')) return;
-    dragRef.current = { pointerId: e.pointerId, startX: e.clientX, startProgress: progressRef.current, moved: false };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Do NOT capture here: capturing retargets pointerup to <main> and a
+    // plain click never reaches the card. Capture lazily on real drag.
+    dragRef.current = { pointerId: e.pointerId, startX: e.clientX, startPx: pxRef.current, moved: false, captured: false };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || e.pointerId !== drag.pointerId) return;
     const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 6) drag.moved = true;
+    if (Math.abs(dx) > 6) {
+      drag.moved = true;
+      heldRef.current = true;
+      if (!drag.captured) {
+        drag.captured = true;
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      }
+    }
     if (!drag.moved) return;
-    const next = Math.max(0, Math.min(9, drag.startProgress - dx / geomRef.current.pitch));
-    progressRef.current = next;
-    targetRef.current = next;
-    applyTransforms(next);
-    const idx = Math.round(next);
+    const next = Math.max(0, Math.min(geomRef.current.maxPx, drag.startPx - dx));
+    pxRef.current = next;
+    pxVelRef.current = 0;
+    targetPxRef.current = next;
+    applyTransformsPx(next);
+    const p = pxToProgress(next);
+    progressRef.current = p;
+    const idx = Math.round(p);
     if (idx !== lastIndexRef.current) {
       lastIndexRef.current = idx;
-      setProgress(next);
+      setProgress(p);
     }
   };
 
@@ -233,12 +334,13 @@ export default function App() {
     const drag = dragRef.current;
     if (!drag || e.pointerId !== drag.pointerId) return;
     dragRef.current = null;
+    heldRef.current = false;
     if (drag.moved) {
       draggedRef.current = true;
-      targetRef.current = Math.max(0, Math.min(9, Math.round(progressRef.current)));
+      targetPxRef.current = nearestStopPx(pxRef.current);
       window.setTimeout(() => {
         draggedRef.current = false;
-      }, 50);
+      }, 0);
     }
   };
 
@@ -255,9 +357,8 @@ export default function App() {
   return (
     <>
       <FilmLight />
-      {!introDone ? <IntroOverlay onDone={handleIntroDone} /> : null}
       <main className="page" onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onClickCapture={onClickCapture}>
-        <Pond ready={introDone} />
+        <Pond ready />
         <div
           className="intro-layer"
           ref={introLayerRef}
@@ -276,7 +377,8 @@ export default function App() {
                 project={project}
                 index={i}
                 offsetPx={offsetPx}
-                active={i === current - 1 && introDone}
+                pitch={pitch}
+                active={i === current - 1}
                 onCardClick={(e) => {
                   if (project.external) return;
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -293,8 +395,8 @@ export default function App() {
             progress={progress}
             current={current}
             onJump={goTo}
-            onScrub={(fraction) => setProgressDirect(fraction * (SLIDE_COUNT - 1))}
-            onScrubEnd={scheduleSnap}
+            onScrub={(fraction) => { heldRef.current = true; setProgressDirect(fraction); }}
+            onScrubEnd={() => { heldRef.current = false; scheduleSnap(); }}
           />
         </div>
       </main>
@@ -302,7 +404,7 @@ export default function App() {
         <ResumeModal from={resumeReq.from} home={resumeReq.home} onClose={() => setResumeReq(null)} />
       ) : null}
       {openProject !== null ? (
-        <ProjectDetail project={PROJECTS[openProject]} index={openProject} onClose={closeProject} />
+        <ProjectDetail project={PROJECTS[openProject]} index={openProject} onClose={closeProject} directLoad={directProjectLoad} />
       ) : null}
     </>
   );
