@@ -115,9 +115,10 @@ export default function App() {
     measure();
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure).catch(() => undefined);
-    installAudioUnlock();
+    const removeAudioUnlock = installAudioUnlock();
     return () => {
       cancelled = true;
+      removeAudioUnlock();
       window.clearTimeout(fontTimeout);
       window.clearTimeout(revealTimer);
       cancelAnimationFrame(revealFrame);
