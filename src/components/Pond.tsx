@@ -1,6 +1,6 @@
 // WebGL2 pond port — faithful port of the original's pond module
 // (three.js, heightfield water sim, procedural koi + fry).
-// No image assets; everything procedural. See rea-evidence/round2/pond-spec.md.
+// No image assets; everything procedural. See docs/reference-interaction-audit.md.
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
@@ -334,7 +334,7 @@ function buildGeom(L: number, width: number, height: number, kind: 'koi' | 'fry'
   };
   // Tail fan 28 x 16, rooted at x = 0.8.
   addGrid(28, 16, (ci, ri) => ({
-    loc: [0.8, 0, 0], coord: [ri / 16, ci / 28 * 2 - 1],
+    loc: [0.8, 0, -1], coord: [ri / 16, ci / 28 * 2 - 1],
     finv: [ci / 28 * 2 - 1, ri / 16, 0], kind: 1,
   }));
   // Paired fins: original b() — 3-row fan (root + half + outer rows,
@@ -395,7 +395,12 @@ interface Fish {
 }
 
 export function canRunPond(): boolean {
-  try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    if (!gl) return false;
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
+  } catch { return false; }
 }
 
 export function mountPond(canvas: HTMLCanvasElement): () => void {
@@ -461,6 +466,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   let lastProcessed = 0;
   let raf = 0;
   let disposed = false;
+  let contextLost = false;
 
   const drop = (x: number, y: number, r: number, s: number) => {
     if (queue.length < 96) queue.push(x, y, r, s);
@@ -485,22 +491,22 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       if (roll < 0.3) {
         base = WHITE.clone(); sheen = 0.32;
         // One patch colour per fish: 60% red / 40% orange.
+        const n = Math.round(u(2, 4));
         const pc = Math.random() < 0.6 ? RED : ORANGE;
-        const n = 2 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n; i++) patches.push(mk(u(0.06, 0.72), u(-0.4, 0.4), u(0.07, 0.14), u(0.6, 1.4), pc));
       } else if (roll < 0.42) {
         base = WHITE.clone(); sheen = 0.32;
         patches.push(mk(0.1, 0, 0.055, 0.45, RED));
       } else if (roll < 0.62) {
-        base = ORANGE.clone(); sheen = 0.32;
+        base = WHITE.clone(); sheen = 0.32;
         // 2-3 orange patches AND 2-3 black patches, 4-6 total.
-        const nO = 2 + Math.floor(Math.random() * 2);
+        const nO = Math.round(u(2, 3));
         for (let i = 0; i < nO; i++) patches.push(mk(u(0.08, 0.7), u(-0.4, 0.4), u(0.07, 0.13), u(0.6, 1.3), ORANGE));
-        const nB = 2 + Math.floor(Math.random() * 2);
+        const nB = Math.round(u(2, 3));
         for (let i = 0; i < nB; i++) patches.push(mk(u(0.22, 0.78), u(-0.4, 0.4), u(0.025, 0.05), u(0.25, 0.45), BLACK));
       } else if (roll < 0.76) {
         base = ORANGE.clone(); sheen = 0.38;
-        const n = Math.floor(Math.random() * 3);
+        const n = Math.round(u(0, 2));
         for (let i = 0; i < n; i++) patches.push(mk(u(0.3, 0.75), u(-0.4, 0.4), u(0.05, 0.1), u(0.4, 0.9), WHITE));
       } else if (roll < 0.86) { base = GOLD.clone(); sheen = 0.6; }
       else if (roll < 0.94) {
@@ -515,16 +521,14 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       ? new THREE.Vector4(patches[i].s, patches[i].a, patches[i].rs, patches[i].ra)
       : new THREE.Vector4(0, 0, 0, 0));
     const uPatchCol = Array.from({ length: 6 }, (_, i) => patches[i] ? patches[i].c.clone() : new THREE.Vector3());
-    let tailRoot = base.clone();
-    let best = Infinity;
-    for (const p of patches) { const d = Math.abs(p.s - 0.76); if (d < best) { best = d; tailRoot = p.c.clone(); } }
+    const tailRoot = (patches.find((p) => Math.abs(p.s - 0.76) < 1.4 * p.rs)?.c ?? base).clone();
     const tailLen = Lpx * TAIL_LEN[kind];
     const uniforms = {
       uSpine: { value: Array.from({ length: 24 }, () => new THREE.Vector4()) },
       uLength: { value: Lpx }, uZ: { value: kind === 'koi' ? 100 + 140 * index : 1220 + 10 * index },
       uFlap: { value: new THREE.Vector2() },
-      uTail: { value: new THREE.Vector4(0, 1, 0, 0.04) },
-      uTailShape: { value: new THREE.Vector3(tailLen, Math.max(0.3, Wpx * profileG(0.8)) * 0.9, 0.6) },
+      uTail: { value: new THREE.Vector4(0, 1, u(0, 6.28), 0.05) },
+      uTailShape: { value: new THREE.Vector3(tailLen, Wpx * profileG(0.8) * 0.9, 0.6) },
       uBase: { value: base }, uPatch: { value: uPatch }, uPatchCol: { value: uPatchCol },
       uSeed: { value: u(0, 100) },
       uClarity: { value: kind === 'koi' ? 0.5 + 0.38 * depth : u(0.62, 0.8) },
@@ -587,7 +591,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
       gliding: Math.random() < 0.5, rhythm: u(0.5, 2),
       startle: 0, boost: 0, flee: 0, pending: null, travel: 0,
       wander: [u(0.05, 0.09), u(0, 6.28), u(0.13, 0.2), u(0, 6.28), u(0.27, 0.4), u(0, 6.28)],
-      tail: { bend: 0, bendV: 0, spread: 1, phase: 0, lat: 0 },
+      tail: { bend: 0, bendV: 0, spread: 1, phase: u(0, 6.28), lat: Number.NaN },
       mat, bodyMesh, finMesh, uSpine: uniforms.uSpine.value as THREE.Vector4[], uTail: uniforms.uTail.value as THREE.Vector4,
     };
     fish.v = fish.vb;
@@ -739,41 +743,42 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     }
   };
 
+  const posedSpine = new Float32Array(48);
   const updateUniforms = (dt: number) => {
     for (const f of fishes) {
-      // Lateral body wave + spine uniforms.
-      const pts: [number, number][] = [];
       for (let i = 0; i < 24; i++) {
+        const j = Math.min(i, 22);
+        const dx = f.spine[j * 2] - f.spine[(j + 1) * 2];
+        const dy = f.spine[j * 2 + 1] - f.spine[(j + 1) * 2 + 1];
+        const length = Math.hypot(dx, dy) || 1;
         const r = i / 23;
         const off = f.L * f.amp * (Math.pow(r, 1.6) * Math.sin(f.beat - 5 * r) - 0.12 * (1 - r) * Math.sin(f.beat));
-        const x = f.spine[i * 2]; const y = f.spine[i * 2 + 1];
-        const nx = i < 23 ? f.spine[(i + 1) * 2] - x : x - f.spine[(i - 1) * 2];
-        const ny = i < 23 ? f.spine[(i + 1) * 2 + 1] - y : y - f.spine[(i - 1) * 2 + 1];
-        const nl = Math.hypot(nx, ny) || 1;
-        pts.push([x + (-ny / nl) * off, y + (nx / nl) * off]);
+        posedSpine[i * 2] = f.spine[i * 2] - dy / length * off;
+        posedSpine[i * 2 + 1] = f.spine[i * 2 + 1] + dx / length * off;
       }
       for (let i = 0; i < 24; i++) {
-        const [x, y] = pts[i];
-        const [x2, y2] = pts[Math.min(23, i + 1)];
-        const [x0, y0] = pts[Math.max(0, i - 1)];
-        const tx = x2 - x0; const ty = y2 - y0;
-        const tl = Math.hypot(tx, ty) || 1;
-        f.uSpine[i].set(x, -y, tx / tl, -ty / tl);
+        const prev = Math.max(0, i - 1);
+        const next = Math.min(23, i + 1);
+        // The shaders extend fins along the headward tangent.
+        const dx = posedSpine[prev * 2] - posedSpine[next * 2];
+        const dy = posedSpine[prev * 2 + 1] - posedSpine[next * 2 + 1];
+        const length = Math.hypot(dx, dy) || 1;
+        f.uSpine[i].set(posedSpine[i * 2], -posedSpine[i * 2 + 1], dx / length, -dy / length);
       }
       (f.mat.uniforms.uFlap.value as THREE.Vector2).set(0.3 * Math.sin(f.flap), 0.3 * Math.sin(f.flap + Math.PI));
-      // Tail spring.
-      const tailLen = f.L * TAIL_LEN[f.kind];
-      const i18 = Math.round(0.8 * 23);
-      const endX = pts[23][0] - pts[i18][0]; const endY = pts[23][1] - pts[i18][1];
-      const tanX = pts[i18][0] - pts[Math.max(0, i18 - 1)][0]; const tanY = pts[i18][1] - pts[Math.max(0, i18 - 1)][1];
-      const rate = (-endX * tanY + endY * tanX) / (Math.hypot(tanX, tanY) || 1);
-      const target = clamp(-0.28 * ((rate - f.tail.lat) / Math.max(dt, 1e-4)) / tailLen, -0.7, 0.7);
-      f.tail.lat = rate;
-      f.tail.bendV += (70 * (target - f.tail.bend) - 7 * f.tail.bendV) * dt;
-      f.tail.bend += f.tail.bendV * dt;
-      const spreadTarget = f.boost > 0.15 ? 0.78 : f.gliding ? 1.08 : 1.0;
-      f.tail.spread += (spreadTarget - f.tail.spread) * (1 - Math.exp(-dt / 0.35));
-      f.tail.phase += 2 * Math.PI * dt * (1.1 + 0.5 * Math.min(f.v / f.vb, 4));
+      const root = f.uSpine[Math.round(0.8 * 23)];
+      const tip = f.uSpine[23];
+      const lateral = -(tip.x - root.x) * root.w + (tip.y - root.y) * root.z;
+      if (dt > 0 && !Number.isNaN(f.tail.lat)) {
+        const tailLen = f.L * TAIL_LEN[f.kind];
+        const target = clamp(-0.28 * (lateral - f.tail.lat) / dt / tailLen, -0.7, 0.7);
+        f.tail.bendV += (70 * (target - f.tail.bend) - 7 * f.tail.bendV) * dt;
+        f.tail.bend += f.tail.bendV * dt;
+        const spreadTarget = f.boost > 0.15 ? 0.78 : f.gliding ? 1.08 : 1;
+        f.tail.spread += (spreadTarget - f.tail.spread) * (1 - Math.exp(-dt / 0.35));
+        f.tail.phase += 6.283 * dt * (1.1 + 0.5 * Math.min(f.v / f.vb, 4));
+      }
+      f.tail.lat = lateral;
       f.uTail.set(f.tail.bend, f.tail.spread, f.tail.phase, 0.04 + 0.03 * Math.min(1, f.v / f.vb) + 0.05 * f.boost);
     }
   };
@@ -834,10 +839,13 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   let resizeTimer = 0;
   const onResize = () => {
     window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => { resize(); if (reduced) renderFrame(1 / 30); }, 120);
+    resizeTimer = window.setTimeout(() => {
+      if (disposed || contextLost) return;
+      resize(); if (reduced) renderFrame(1 / 30);
+    }, 120);
   };
 
-  const mayRun = () => T.dataset.intro !== 'on' && !document.hidden;
+  const mayRun = () => T.dataset.intro !== 'on' && T.dataset.carouselDragging === undefined && !document.hidden && !contextLost;
   const fullyLive = () => mayRun() && T.dataset.project !== 'open';
 
   let ambientFryAt = clock + u(1.5, 3.5);
@@ -846,7 +854,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   let nextAmbientKoi = u(7, 14);
 
   const frame = (now: number) => {
-    if (disposed) { raf = 0; return; }
+    if (disposed || !mayRun()) { raf = 0; return; }
     const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 1 / 30) : 1 / 60;
     lastFrame = now;
     const throttled = !fullyLive() || !!T.dataset.sliding;
@@ -890,18 +898,18 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   };
 
   const start = () => {
-    if (reduced || raf || !mayRun()) return;
+    if (disposed || reduced || raf || !mayRun()) return;
     lastFrame = 0;
+    lastProcessed = 0;
     raf = requestAnimationFrame(frame);
   };
-  const onVisibility = () => { if (mayRun()) start(); };
 
   // Pointer interaction (window-level, inert when reduced motion / not live).
-  let dragging = false;
+  let dragPointer: number | null = null;
   let lastDragX = 0; let lastDragY = 0;
   let lastMoveX = -1; let lastMoveY = -1;
   const onPointerDown = (e: PointerEvent) => {
-    if (reduced || !fullyLive()) return;
+    if (reduced || !fullyLive() || !e.isPrimary || e.button !== 0) return;
     const t = e.target as HTMLElement | null;
     if (t?.closest('a, button, [role="slider"], [data-card], .contact, .rs')) return;
     const x = e.clientX; const y = e.clientY;
@@ -914,38 +922,66 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     }
     delayed.push({ at: clock + 0.42, x, y, r: 9, s: 0.4 });
     startle(x, y, 1);
-    dragging = true; lastDragX = x; lastDragY = y;
+    dragPointer = e.pointerId; lastDragX = x; lastDragY = y;
   };
   const onPointerMove = (e: PointerEvent) => {
+    if (reduced || !fullyLive()) { resetPointer(); return; }
     if (e.pointerType === 'mouse') { mouse.x = e.clientX; mouse.y = e.clientY; mouse.present = true; }
     if (lastMoveX >= 0 && Math.hypot(e.clientX - lastMoveX, e.clientY - lastMoveY) > 3) mouse.still = 0;
     lastMoveX = e.clientX; lastMoveY = e.clientY;
-    if (reduced || !fullyLive() || !dragging) return;
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) dragPointer = null;
+    if (e.pointerId !== dragPointer) return;
     if (Math.hypot(e.clientX - lastDragX, e.clientY - lastDragY) > 14) {
       drop(e.clientX, e.clientY, 9, 0.28);
       startle(e.clientX, e.clientY, 0.45);
       lastDragX = e.clientX; lastDragY = e.clientY;
     }
   };
-  const onPointerUp = () => { dragging = false; };
-  const onPointerLeave = () => { mouse.present = false; };
+  const onPointerUp = (e: PointerEvent) => { if (e.pointerId === dragPointer) dragPointer = null; };
+  const resetPointer = () => {
+    dragPointer = null;
+    mouse.present = false;
+    mouse.still = 0;
+    lastMoveX = -1; lastMoveY = -1;
+  };
+  const syncPlayback = () => {
+    if (mayRun()) { start(); return; }
+    cancelAnimationFrame(raf); raf = 0;
+    lastFrame = 0; lastProcessed = 0;
+    resetPointer();
+    queue.length = 0; delayed.length = 0;
+  };
   const onContextLost = (e: Event) => {
     e.preventDefault();
-    cancelAnimationFrame(raf); raf = 0;
+    contextLost = true;
+    window.clearTimeout(resizeTimer);
+    syncPlayback();
     canvas.removeAttribute('data-ready');
+  };
+  const onContextRestored = () => {
+    if (disposed) return;
+    resetPointer();
+    queue.length = 0; delayed.length = 0;
+    resize();
+    if (reduced) renderFrame(1 / 30);
+    contextLost = false;
+    canvas.dataset.ready = '';
+    syncPlayback();
   };
 
   window.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true });
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('pointerup', onPointerUp, { passive: true });
   window.addEventListener('pointercancel', onPointerUp, { passive: true });
-  document.documentElement.addEventListener('pointerleave', onPointerLeave, { passive: true });
+  document.documentElement.addEventListener('pointerleave', resetPointer, { passive: true });
+  window.addEventListener('blur', resetPointer);
   window.addEventListener('resize', onResize);
-  document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('visibilitychange', syncPlayback);
   canvas.addEventListener('webglcontextlost', onContextLost);
+  canvas.addEventListener('webglcontextrestored', onContextRestored);
 
-  const observer = new MutationObserver(() => start());
-  observer.observe(T, { attributes: true, attributeFilter: ['data-intro', 'data-project'] });
+  const observer = new MutationObserver(syncPlayback);
+  observer.observe(T, { attributes: true, attributeFilter: ['data-intro', 'data-project', 'data-carousel-dragging'] });
 
   resize();
   if (reduced) {
@@ -959,18 +995,22 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   return () => {
     disposed = true;
     cancelAnimationFrame(raf);
+    window.clearTimeout(resizeTimer);
     observer.disconnect();
     window.removeEventListener('pointerdown', onPointerDown, { capture: true });
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
-    document.documentElement.removeEventListener('pointerleave', onPointerLeave);
+    document.documentElement.removeEventListener('pointerleave', resetPointer);
+    window.removeEventListener('blur', resetPointer);
     window.removeEventListener('resize', onResize);
-    document.removeEventListener('visibilitychange', onVisibility);
+    document.removeEventListener('visibilitychange', syncPlayback);
     canvas.removeEventListener('webglcontextlost', onContextLost);
+    canvas.removeEventListener('webglcontextrestored', onContextRestored);
     for (const f of fishes) {
       f.bodyMesh.geometry.dispose(); f.finMesh.geometry.dispose();
       f.mat.dispose();
+      (f.finMesh.material as THREE.Material).dispose();
     }
     quad.dispose(); waveMat.dispose(); compMat.dispose();
     fishTarget.dispose(); waterA.dispose(); waterB.dispose();
@@ -986,8 +1026,9 @@ export default function Pond({ ready }: { ready: boolean }) {
     let dispose: (() => void) | undefined;
     let unmounted = false;
     const tryMount = () => {
-      if (unmounted || document.documentElement.dataset.intro === 'on') return;
+      if (unmounted || dispose || document.documentElement.dataset.intro === 'on') return;
       if (!canRunPond()) return;
+      observer.disconnect();
       try { dispose = mountPond(canvas); } catch { /* silent, like the original */ }
     };
     const observer = new MutationObserver(() => {

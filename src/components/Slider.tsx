@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { clickSound, initAudio } from '../audio';
 
@@ -39,7 +39,7 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // Clicking a stop number jumps directly instead of starting a scrub.
     if ((e.target as HTMLElement).closest('.slider-stop')) return;
-    if (e.button !== 0) return;
+    if (e.button !== 0 || !e.isPrimary) return;
     initAudio();
     clickSound(true, pan());
     e.preventDefault();
@@ -61,6 +61,22 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
     clickSound(false, pan());
     onScrubEnd();
   };
+
+  useEffect(() => {
+    const cancel = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      sliderRef.current?.removeAttribute('data-active');
+      onScrubEnd();
+    };
+    const onVisibility = () => { if (document.hidden) cancel(); };
+    window.addEventListener('blur', cancel);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', cancel);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [onScrubEnd]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -107,12 +123,13 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
       onPointerMove={onPointerMove}
       onPointerUp={endScrub}
       onPointerCancel={endScrub}
+      onLostPointerCapture={endScrub}
       onKeyDown={onKeyDown}
     >
       <div className="slider-well">
         <span className="slider-groove" />
         <div className="slider-rail" ref={railRef}>
-          <div className="slider-knob" style={{ left: `${fraction * 100}%` }}>
+          <div className="slider-knob">
             <span className="slider-cap" />
           </div>
         </div>

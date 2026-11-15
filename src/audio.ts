@@ -17,6 +17,25 @@ let unlocked = false;
 const jit = (e: number) => 1 + (2 * Math.random() - 1) * e;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+// Reference module 83847: pink noise gives the scroll bed its paper texture.
+function pinkNoise(t: AudioContext, seconds: number): AudioBuffer {
+  const buffer = t.createBuffer(1, Math.floor(t.sampleRate * seconds), t.sampleRate);
+  const data = buffer.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < data.length; i++) {
+    const white = 2 * Math.random() - 1;
+    b0 = 0.99886 * b0 + 0.0555179 * white;
+    b1 = 0.99332 * b1 + 0.0750759 * white;
+    b2 = 0.969 * b2 + 0.153852 * white;
+    b3 = 0.8665 * b3 + 0.3104856 * white;
+    b4 = 0.55 * b4 + 0.5329522 * white;
+    b5 = -0.7616 * b5 - 0.016898 * white;
+    data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + 0.5362 * white) * 0.11;
+    b6 = 0.115926 * white;
+  }
+  return buffer;
+}
+
 /** p() — init / resume, idempotent. Call on first user gesture. */
 export function initAudio() {
   if (!ctx) {
@@ -54,10 +73,7 @@ export function initAudio() {
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
     // Looping filtered-noise ambience bed (scroll velocity).
     const src = t.createBufferSource();
-    const bedBuf = t.createBuffer(1, Math.floor(t.sampleRate * 2.5), t.sampleRate);
-    src.buffer = bedBuf;
-    const sd = bedBuf.getChannelData(0);
-    for (let i = 0; i < sd.length; i++) sd[i] = Math.random() * 2 - 1;
+    src.buffer = pinkNoise(t, 2.5);
     src.loop = true;
     const band = t.createBiquadFilter();
     band.type = 'bandpass';
@@ -66,7 +82,7 @@ export function initAudio() {
     const level = t.createGain();
     level.gain.value = 0;
     const lfoSrc = t.createBufferSource();
-    lfoSrc.buffer = src.buffer;
+    lfoSrc.buffer = pinkNoise(t, 1.7);
     lfoSrc.loop = true;
     lfoSrc.playbackRate.value = 0.03;
     const lfoGain = t.createGain();
@@ -142,9 +158,9 @@ function burst(t: AudioContext, when: number, out: AudioNode, o: BurstOpts) {
     node = f;
   }
   const g = t.createGain();
-  g.gain.setValueAtTime(0.0002, when);
+  g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0002, o.gain), when + 0.0003);
-  g.gain.exponentialRampToValueAtTime(0.0002, when + o.decay);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + o.decay);
   node.connect(g);
   g.connect(out);
   src.start(when);
@@ -158,9 +174,9 @@ function blip(t: AudioContext, when: number, out: AudioNode, from: number, to: n
   osc.frequency.setValueAtTime(from, when);
   osc.frequency.exponentialRampToValueAtTime(Math.max(1, to), when + dur);
   const g = t.createGain();
-  g.gain.setValueAtTime(0.0002, when);
+  g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), when + 0.003);
-  g.gain.exponentialRampToValueAtTime(0.0002, when + dur);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
   osc.connect(g);
   g.connect(out);
   osc.start(when);

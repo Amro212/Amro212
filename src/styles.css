@@ -118,7 +118,17 @@ img, video { display: block; }
   overflow: hidden;
   transform-origin: 50% 45%;
 }
-html[data-intro="on"] .page { opacity: 0; }
+html[data-intro="on"] .page { opacity: 0; pointer-events: none; }
+html[data-intro="reveal"] .page { animation: landing-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+html[data-carousel-dragging] .page { cursor: grabbing; user-select: none; }
+html[data-carousel-dragging] .film-light { animation-play-state: paused; }
+@keyframes landing-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro="reveal"] .page { animation: none; }
+}
 html[data-resume-motion] .page {
   transition: filter 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
