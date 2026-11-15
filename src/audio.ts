@@ -2,6 +2,11 @@
 // Everything is synthesized; no audio files exist. Master gain 1.3,
 // DynamicsCompressor threshold -10, convolver reverb with a generated
 // 90ms impulse, reverb send gain 0.16, looping filtered-noise ambience bed.
+//
+// Exception: the duck quack is a real recorded rubber duck squeak
+// (src/data/quack.ts), not synthesized, at the user's request.
+
+import { QUACK_MP3 } from './data/quack';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -13,6 +18,24 @@ let bed: {
   pan: StereoPannerNode;
 } | null = null;
 let unlocked = false;
+let quackBuf: AudioBuffer | null = null;
+let quackLoading: Promise<AudioBuffer | null> | null = null;
+
+/** Decode the real rubber duck squeak once, cache it, reuse it. */
+function loadQuack(t: AudioContext): Promise<AudioBuffer | null> {
+  if (quackBuf) return Promise.resolve(quackBuf);
+  if (!quackLoading) {
+    quackLoading = fetch(QUACK_MP3)
+      .then((r) => r.arrayBuffer())
+      .then((ab) => t.decodeAudioData(ab))
+      .then((buf) => {
+        quackBuf = buf;
+        return buf;
+      })
+      .catch(() => null);
+  }
+  return quackLoading;
+}
 
 const jit = (e: number) => 1 + (2 * Math.random() - 1) * e;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -117,10 +140,26 @@ export function initAudio() {
   // 'interrupted' after a call, Siri, or an alarm, and resume() is a
   // no-op when already running, so this is safe to call on every gesture.
   if (ctx.state !== 'running') void ctx.resume();
+  // Preload the real quack in the background so the first duck click
+  // has the sample decoded and ready instead of decoding on the click.
+  void loadQuack(ctx);
 }
 
 function live(): AudioContext | null {
   return ctx && unlocked && master && convolver && noiseBuf && ctx.state !== 'closed' ? ctx : null;
+}
+
+/**
+ * live() for the rAF loop only. Gesture sounds use live(): they are
+ * scheduled inside an activation gesture, so the context resumes
+ * imminently and the scheduled nodes play on resume. Loop sounds fire
+ * every frame with no gesture attached, so while suspended they would
+ * queue up at the frozen currentTime and burst all at once on resume.
+ * Dropping them while suspended keeps the loop honest.
+ */
+function liveRunning(): AudioContext | null {
+  const t = live();
+  return t && t.state === 'running' ? t : null;
 }
 
 /** g() — stereo panner wired dry (master) + wet (convolver). */
@@ -199,7 +238,7 @@ function blip(t: AudioContext, when: number, out: AudioNode, from: number, to: n
 
 /** y() — scroll-velocity ambience bed. */
 export function scrollAmbience(velocity: number, pan = 0) {
-  const n = live();
+  const n = liveRunning();
   if (!n || !bed) return;
   const a = Math.min(1, velocity / 1400);
   const r = n.currentTime;
@@ -265,7 +304,7 @@ export function glideTick() {
 
 /** Carousel SNAP (inline sound in the original's slider rAF loop). */
 export function snapTick(velocityKnobPxPerSec: number, pan = 0) {
-  const t = live();
+  const t = liveRunning();
   if (!t) return;
   const n = t.currentTime;
   const a = send(t, 0.6 * pan);
@@ -284,7 +323,7 @@ export function softTick(speedKnobPxPerSec: number, pan = 0) {
   const now = performance.now();
   if (now - lastSoftTick < 18) return;
   lastSoftTick = now;
-  const t = live();
+  const t = liveRunning();
   if (!t) return;
   burst(t, t.currentTime, send(t, 0.6 * pan), {
     gain: 0.04 + 0.08 * Math.min(1, Math.abs(speedKnobPxPerSec) / 1500),
@@ -296,7 +335,7 @@ export function softTick(speedKnobPxPerSec: number, pan = 0) {
 
 /** Carousel HARD-STOP thud at a track end. */
 export function hardStopThud(velocityFactor = 1, pan = 0) {
-  const t = live();
+  const t = liveRunning();
   if (!t) return;
   const n = t.currentTime;
   const a = send(t, 0.6 * pan);
@@ -307,34 +346,19 @@ export function hardStopThud(velocityFactor = 1, pan = 0) {
   vibrate(12);
 }
 
-/** Duck quack: two short descending sawtooth quacks with a raspy noise burst. */
+/** Duck quack: plays the real recorded rubber duck squeak (src/data/quack.ts). */
 export function quackSound(pan = 0) {
   const t = live();
   if (!t) return;
-  const n = t.currentTime;
-  const a = send(t, 0.6 * pan);
-  const quack = (when: number, peak: number, from: number) => {
-    const osc = t.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(from, when);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(1, from * 0.45), when + 0.11);
-    const f = t.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = 900 * jit(0.05);
-    f.Q.value = 1.2;
-    const g = t.createGain();
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), when + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.13);
-    osc.connect(f);
-    f.connect(g);
-    g.connect(a);
-    osc.start(when);
-    osc.stop(when + 0.15);
-    burst(t, when, a, { gain: peak * 0.5, decay: 0.05, band: 1100 * jit(0.08), q: 1.5 });
-  };
-  quack(n, 0.22, 420);
-  quack(n + 0.17, 0.16, 360);
+  loadQuack(t).then((buf) => {
+    if (!buf) return;
+    const ctx = live();
+    if (!ctx) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(send(ctx, 0.6 * pan));
+    src.start();
+  });
 }
 
 /** k() — haptics. */
@@ -353,7 +377,12 @@ export function installAudioUnlock() {
   // every gesture re-runs initAudio, which resumes it. initAudio is
   // idempotent and cheap when the context is already running.
   const unlock = () => initAudio();
-  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const) {
+  // Wheel grants no user activation and touch activation lands on the
+  // *up* event, not the down event, so the up-events are the unlock
+  // that makes the first swipe audible: without them a touch swipe's
+  // touchend sets activation but nothing resumes the context until
+  // the next gesture that calls initAudio (e.g. the contact click).
+  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel', 'pointerup', 'touchend'] as const) {
     window.addEventListener(ev, unlock, { passive: true });
   }
   // Coming back to the tab resumes the context before the next gesture.
