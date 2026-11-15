@@ -3,6 +3,12 @@
 Date: 2026-11-15. Branch: `redesign/designengineer-fyi`.
 Reference: https://www.designengineer.fyi/ . Scope: fish appearance, unwanted ripple bursts, scroll sound, project dragging, landing entrance. The reference's computer/3D introduction is excluded.
 
+## Current navigation policy (user revision)
+
+The user subsequently requested wheel-only pointer navigation and an uninterrupted background. Card/page dragging, slider scrubbing and slider-label clicks are removed. The slider remains a position indicator with keyboard navigation for accessibility. Wheel input works over both cards and the indicator. Carousel pause flags, film-light pause styling and project/scroll-dependent pond frame throttling are removed. Foreground card/slider pointer input no longer affects pond hover/drag state; direct background interactions remain available. Hidden-tab lifecycle safety, context recovery and reduced-motion preferences remain in place.
+
+Current validation: production build and diff whitespace checks pass; the Chromium interaction checks pass against the production preview. `/tmp/portfolio-wheel-only-check.cjs` checks inert card/page drags and slider clicks/scrubs, working wheel input over cards and indicator, continuous pond draws/film animation, keyboard navigation, and project viewer opening/closing while the pond continues rendering. `/tmp/portfolio-pointer-isolation-check.cjs` invokes the actual pond input handlers to verify foreground input isolation and working direct-background ripples. The evidence and freeze-behavior checks below record the earlier investigation, before this policy revision.
+
 ## Evidence index
 
 REA was used for live scenario capture, network inventory, passive source inspection, screenshots, static pond-bundle analysis, and a local keyboard-navigation scenario. Source comparisons and fixes used ordinary repository tools.

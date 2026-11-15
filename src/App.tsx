@@ -25,7 +25,6 @@ export default function App() {
   const [openProject, setOpenProject] = useState<number | null>(null);
   const [directProjectLoad, setDirectProjectLoad] = useState(false);
 
-  const progressRef = useRef(0);
   const pxRef = useRef(0);
   const pxVelRef = useRef(0);
   const targetPxRef = useRef(0);
@@ -35,9 +34,6 @@ export default function App() {
   const geomRef = useRef({ firstStep: 740, pitch: 624, maxPx: 5732 });
   const railWidthRef = useRef(0);
   const snapTimer = useRef<number | undefined>(undefined);
-  const dragRef = useRef<{ pointerId: number; startX: number; startPx: number; moved: boolean; captured: boolean } | null>(null);
-  const draggedRef = useRef(false);
-  const heldRef = useRef(false);
   const overshootRef = useRef(0);
   const lastIndexRef = useRef(0);
   const lastKnobStepRef = useRef(0);
@@ -189,7 +185,6 @@ export default function App() {
       pxRef.current = px;
       pxVelRef.current = vel;
       const p = pxToProgress(px);
-      progressRef.current = p;
       applyTransformsPx(px);
       // Knob position in rail px (0..railWidth), step = railWidth/40.
       const railW = railWidthRef.current || 1;
@@ -197,9 +192,9 @@ export default function App() {
       const knobTarget = (target / maxPx) * railW;
       let knobPx = knobPxRef.current;
       let knobVel = knobVelocityRef.current;
-      const knobK = heldRef.current ? 1400 : 420;
-      const knobC = heldRef.current ? 75 : 41;
-      if (motion.matches && !heldRef.current) {
+      const knobK = 420;
+      const knobC = 41;
+      if (motion.matches) {
         knobPx = knobTarget;
         knobVel = 0;
       } else {
@@ -224,7 +219,7 @@ export default function App() {
       if (knob) knob.style.left = `${(Math.max(0, Math.min(1, knobPx / railW)) * 100).toFixed(2)}%`;
       const stepPx = railW / 40;
       const pan = Math.max(-1, Math.min(1, (knobPx / railW) * 2 - 1));
-      scrollAmbience(Math.abs(knobVel) * (heldRef.current ? 1 : 0.6), pan);
+      scrollAmbience(Math.abs(knobVel) * 0.6, pan);
       // Snap / soft tick on rounded-step change, during motion.
       const nStep = Math.round(knobPx / stepPx);
       if (nStep !== lastKnobStepRef.current) {
@@ -250,47 +245,21 @@ export default function App() {
   }, [applyTransformsPx, pxToProgress]);
 
   useEffect(() => {
-    const cancelGesture = () => {
-      const drag = dragRef.current;
-      dragRef.current = null;
-      heldRef.current = false;
-      delete document.documentElement.dataset.carouselDragging;
-      window.clearTimeout(snapTimer.current);
-      if (drag?.moved) {
-        draggedRef.current = true;
-        targetPxRef.current = nearestStopPx(pxRef.current);
-      }
-      scrollAmbience(0);
-    };
-    const onVisibility = () => { if (document.hidden) cancelGesture(); };
-    window.addEventListener('blur', cancelGesture);
-    document.addEventListener('visibilitychange', onVisibility);
+    const mute = () => scrollAmbience(0);
+    window.addEventListener('blur', mute);
+    document.addEventListener('visibilitychange', mute);
     return () => {
-      cancelGesture();
-      window.removeEventListener('blur', cancelGesture);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.clearTimeout(snapTimer.current);
+      mute();
+      window.removeEventListener('blur', mute);
+      document.removeEventListener('visibilitychange', mute);
     };
-  }, [nearestStopPx]);
+  }, []);
 
   const goTo = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(MAX_INDEX, index));
     targetPxRef.current = pxFromProgress(clamped);
   }, [pxFromProgress]);
-
-  const setProgressDirect = useCallback((fraction: number) => {
-    const px = Math.max(0, Math.min(geomRef.current.maxPx, fraction * geomRef.current.maxPx));
-    pxRef.current = px;
-    pxVelRef.current = 0;
-    targetPxRef.current = px;
-    applyTransformsPx(px);
-    const p = pxToProgress(px);
-    progressRef.current = p;
-    const idx = Math.round(p);
-    if (idx !== lastIndexRef.current) {
-      lastIndexRef.current = idx;
-      setProgress(p);
-    }
-  }, [applyTransformsPx, pxToProgress]);
 
   const scheduleSnap = useCallback(() => {
     window.clearTimeout(snapTimer.current);
@@ -299,7 +268,7 @@ export default function App() {
       // spring position: snapping the position 180 ms in would drag a
       // 700px flick back to the slide it started from.
       targetPxRef.current = nearestStopPx(targetPxRef.current);
-      // Hard-stop thud if the wheel/drag pushed past a track end.
+      // Hard-stop thud if the wheel pushed past a track end.
       if (overshootRef.current > 80) {
         const maxPx = geomRef.current.maxPx || 1;
         const pan = Math.max(-1, Math.min(1, (pxRef.current / maxPx) * 2 - 1));
@@ -348,7 +317,7 @@ export default function App() {
   // after the last event.
   const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (resumeReq || openProject !== null) return;
-    if ((e.target as HTMLElement).closest('.slider, .contact')) return;
+    if ((e.target as HTMLElement).closest('.contact')) return;
     const layer = introLayerRef.current;
     if (layer && Math.abs(e.deltaY) > Math.abs(e.deltaX) && layer.scrollHeight > layer.clientHeight + 4) {
       const atTop = layer.scrollTop <= 0 && e.deltaY < 0;
@@ -371,75 +340,13 @@ export default function App() {
     scheduleSnap();
   };
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (resumeReq || openProject !== null) return;
-    if (e.button !== 0 || !e.isPrimary) return;
-    draggedRef.current = false;
-    if ((e.target as HTMLElement).closest('.slider, .contact, button, .tree-row')) return;
-    window.clearTimeout(snapTimer.current);
-    // Do NOT capture here: capturing retargets pointerup to <main> and a
-    // plain click never reaches the card. Capture lazily on real drag.
-    dragRef.current = { pointerId: e.pointerId, startX: e.clientX, startPx: pxRef.current, moved: false, captured: false };
-  };
-
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || e.pointerId !== drag.pointerId) return;
-    const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) > 6) {
-      drag.moved = true;
-      heldRef.current = true;
-      document.documentElement.dataset.carouselDragging = '';
-      if (!drag.captured) {
-        drag.captured = true;
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-      }
-    }
-    if (!drag.moved) return;
-    const next = Math.max(0, Math.min(geomRef.current.maxPx, drag.startPx - dx));
-    pxRef.current = next;
-    pxVelRef.current = 0;
-    targetPxRef.current = next;
-    applyTransformsPx(next);
-    const p = pxToProgress(next);
-    progressRef.current = p;
-    const idx = Math.round(p);
-    if (idx !== lastIndexRef.current) {
-      lastIndexRef.current = idx;
-      setProgress(p);
-    }
-  };
-
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || e.pointerId !== drag.pointerId) return;
-    dragRef.current = null;
-    heldRef.current = false;
-    delete document.documentElement.dataset.carouselDragging;
-    if (drag.captured && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    if (drag.moved) {
-      draggedRef.current = true;
-      targetPxRef.current = nearestStopPx(pxRef.current);
-      window.setTimeout(() => {
-        draggedRef.current = false;
-      }, 0);
-    }
-  };
-
-  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (draggedRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
-
   const translate = -pxFromProgress(progress);
   const introOpacity = 1 - Math.max(0, Math.min(1, progress / 0.6));
 
   return (
     <>
       <FilmLight />
-      <main className="page" onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onLostPointerCapture={onPointerUp} onClickCapture={onClickCapture}>
+      <main className="page" onWheel={onWheel}>
         <Pond ready />
         <div
           className="intro-layer"
@@ -479,8 +386,6 @@ export default function App() {
             count={SLIDE_COUNT}
             labels={['Intro', ...PROJECTS.map((p) => p.title)]}
             onJump={goTo}
-            onScrub={(fraction) => { heldRef.current = true; document.documentElement.dataset.carouselDragging = ''; setProgressDirect(fraction); }}
-            onScrubEnd={() => { heldRef.current = false; delete document.documentElement.dataset.carouselDragging; scheduleSnap(); }}
           />
         </div>
       </main>

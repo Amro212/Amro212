@@ -120,8 +120,6 @@ img, video { display: block; }
 }
 html[data-intro="on"] .page { opacity: 0; pointer-events: none; }
 html[data-intro="reveal"] .page { animation: landing-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
-html[data-carousel-dragging] .page { cursor: grabbing; user-select: none; }
-html[data-carousel-dragging] .film-light { animation-play-state: paused; }
 @keyframes landing-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -452,8 +450,8 @@ html[data-intro="done"] .card {
   bottom: calc(22px + env(safe-area-inset-bottom));
   z-index: 2;
   width: var(--slider-w);
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: auto;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -461,7 +459,6 @@ html[data-intro="done"] .card {
   position: fixed;
   transform: translate(-50%);
 }
-.slider[data-active] { cursor: grabbing; }
 .slider:focus-visible { outline: none; }
 .slider:focus-visible .slider-well {
   outline: 1px solid var(--text-muted);
@@ -537,8 +534,7 @@ html[data-intro="done"] .card {
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
   opacity: 0.7;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
   background: none;
   border: 0;
   padding: 0;

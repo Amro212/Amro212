@@ -463,7 +463,6 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   const delayed: { at: number; x: number; y: number; r: number; s: number }[] = [];
   let clock = 0;
   let lastFrame = 0;
-  let lastProcessed = 0;
   let raf = 0;
   let disposed = false;
   let contextLost = false;
@@ -845,7 +844,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     }, 120);
   };
 
-  const mayRun = () => T.dataset.intro !== 'on' && T.dataset.carouselDragging === undefined && !document.hidden && !contextLost;
+  const mayRun = () => T.dataset.intro !== 'on' && !document.hidden && !contextLost;
   const fullyLive = () => mayRun() && T.dataset.project !== 'open';
 
   let ambientFryAt = clock + u(1.5, 3.5);
@@ -857,14 +856,6 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     if (disposed || !mayRun()) { raf = 0; return; }
     const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 1 / 30) : 1 / 60;
     lastFrame = now;
-    const throttled = !fullyLive() || !!T.dataset.sliding;
-    if (throttled && lastProcessed && now - lastProcessed < 30) {
-      // Clear the id when the loop stops, or start() bails forever on
-      // tab return (stale non-zero raf). Mirrors the original.
-      raf = mayRun() ? requestAnimationFrame(frame) : 0;
-      return;
-    }
-    lastProcessed = now;
     clock += dt;
     if (mouse.present && fullyLive()) mouse.still += dt;
     // School target drift.
@@ -900,7 +891,6 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   const start = () => {
     if (disposed || reduced || raf || !mayRun()) return;
     lastFrame = 0;
-    lastProcessed = 0;
     raf = requestAnimationFrame(frame);
   };
 
@@ -911,7 +901,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   const onPointerDown = (e: PointerEvent) => {
     if (reduced || !fullyLive() || !e.isPrimary || e.button !== 0) return;
     const t = e.target as HTMLElement | null;
-    if (t?.closest('a, button, [role="slider"], [data-card], .contact, .rs')) return;
+    if (t?.closest('a, button, [role="slider"], [data-card], .contact, .rs, .pv')) return;
     const x = e.clientX; const y = e.clientY;
     drop(x, y, 20, 0.85);
     const base = u(0, Math.PI * 2);
@@ -926,6 +916,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   };
   const onPointerMove = (e: PointerEvent) => {
     if (reduced || !fullyLive()) { resetPointer(); return; }
+    if (e.target instanceof Element && e.target.closest('a, button, [role="slider"], [data-card], .contact, .rs, .pv')) { resetPointer(); return; }
     if (e.pointerType === 'mouse') { mouse.x = e.clientX; mouse.y = e.clientY; mouse.present = true; }
     if (lastMoveX >= 0 && Math.hypot(e.clientX - lastMoveX, e.clientY - lastMoveY) > 3) mouse.still = 0;
     lastMoveX = e.clientX; lastMoveY = e.clientY;
@@ -947,7 +938,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   const syncPlayback = () => {
     if (mayRun()) { start(); return; }
     cancelAnimationFrame(raf); raf = 0;
-    lastFrame = 0; lastProcessed = 0;
+    lastFrame = 0;
     resetPointer();
     queue.length = 0; delayed.length = 0;
   };
@@ -981,7 +972,7 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
   canvas.addEventListener('webglcontextrestored', onContextRestored);
 
   const observer = new MutationObserver(syncPlayback);
-  observer.observe(T, { attributes: true, attributeFilter: ['data-intro', 'data-project', 'data-carousel-dragging'] });
+  observer.observe(T, { attributes: true, attributeFilter: ['data-intro'] });
 
   resize();
   if (reduced) {
