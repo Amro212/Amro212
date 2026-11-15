@@ -38,6 +38,17 @@ function pinkNoise(t: AudioContext, seconds: number): AudioBuffer {
 
 /** p() — init / resume, idempotent. Call on first user gesture. */
 export function initAudio() {
+  // If the context was closed, the whole graph is dead: live() returns
+  // null forever and sounds never come back. iOS closes the context on
+  // interruption (call, Siri, alarm) or after the tab sits backgrounded
+  // for a long time, so drop the dead graph and build a fresh one.
+  if (ctx && ctx.state === 'closed') {
+    ctx = null;
+    master = null;
+    convolver = null;
+    noiseBuf = null;
+    bed = null;
+  }
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
@@ -102,7 +113,10 @@ export function initAudio() {
     bed = { level, band, pan };
   }
   unlocked = true;
-  if (ctx.state === 'suspended') void ctx.resume();
+  // Resume from any non-running state, not just 'suspended': iOS reports
+  // 'interrupted' after a call, Siri, or an alarm, and resume() is a
+  // no-op when already running, so this is safe to call on every gesture.
+  if (ctx.state !== 'running') void ctx.resume();
 }
 
 function live(): AudioContext | null {
@@ -293,6 +307,36 @@ export function hardStopThud(velocityFactor = 1, pan = 0) {
   vibrate(12);
 }
 
+/** Duck quack: two short descending sawtooth quacks with a raspy noise burst. */
+export function quackSound(pan = 0) {
+  const t = live();
+  if (!t) return;
+  const n = t.currentTime;
+  const a = send(t, 0.6 * pan);
+  const quack = (when: number, peak: number, from: number) => {
+    const osc = t.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(from, when);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, from * 0.45), when + 0.11);
+    const f = t.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 900 * jit(0.05);
+    f.Q.value = 1.2;
+    const g = t.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), when + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.13);
+    osc.connect(f);
+    f.connect(g);
+    g.connect(a);
+    osc.start(when);
+    osc.stop(when + 0.15);
+    burst(t, when, a, { gain: peak * 0.5, decay: 0.05, band: 1100 * jit(0.08), q: 1.5 });
+  };
+  quack(n, 0.22, 420);
+  quack(n + 0.17, 0.16, 360);
+}
+
 /** k() — haptics. */
 export function vibrate(ms: number) {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
@@ -304,8 +348,16 @@ export function audioState(): string {
   return ctx.state;
 }
 export function installAudioUnlock() {
+  // Persistent, not once: the context can be suspended or interrupted
+  // again at any point (backgrounded tab, lock screen, call, Siri), so
+  // every gesture re-runs initAudio, which resumes it. initAudio is
+  // idempotent and cheap when the context is already running.
   const unlock = () => initAudio();
-  for (const ev of ['pointerdown', 'keydown', 'touchstart'] as const) {
-    window.addEventListener(ev, unlock, { once: true, passive: true });
+  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const) {
+    window.addEventListener(ev, unlock, { passive: true });
   }
+  // Coming back to the tab resumes the context before the next gesture.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) initAudio(); });
+  window.addEventListener('pageshow', unlock);
+  window.addEventListener('focus', unlock);
 }

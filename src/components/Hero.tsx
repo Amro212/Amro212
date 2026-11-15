@@ -3,6 +3,7 @@ import type { CSSProperties, KeyboardEvent } from 'react';
 import { EXPERIENCE, EXPERIENCE_ARIA_LABEL, HERO } from '../data/clone';
 import { AMRO_SIGNATURE_DATA_URI } from '../data/signature';
 import { MASCOT_SPRITE } from '../data/mascot';
+import { initAudio, quackSound } from '../audio';
 
 function PillIcon({ kind }: { kind: 'design' | 'code' | 'ai' }) {
   if (kind === 'design') {
@@ -29,9 +30,10 @@ function PillIcon({ kind }: { kind: 'design' | 'code' | 'ai' }) {
   );
 }
 
-/** Mascot: window-level pointer tracking, 8 compass sectors of 45 deg,
- * 70px dead zone, ~29.4 deg hysteresis, 114px at all widths, WAAPI boop
- * (420ms, 5-keyframe squash), idle auto-cycle on coarse pointers only. */
+/** Mascot: a rubber duck, window-level pointer tracking, 8 compass sectors
+ * of 45 deg, 70px dead zone, ~29.4 deg hysteresis, 114px at all widths,
+ * WAAPI squash (420ms, 5-keyframe) + a synthesized quack on click,
+ * idle auto-cycle on coarse pointers only. */
 const DIRECTIONS = ['up-left', 'up', 'up-right', 'left', 'center', 'right', 'down-left', 'down', 'down-right'];
 const SECTORS = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
 const SECTOR = (2 * Math.PI) / SECTORS.length;
@@ -98,12 +100,14 @@ function useMascot() {
     return () => { window.clearTimeout(timer); io.disconnect(); };
   }, []);
 
-  const onBoop = () => {
+  const onQuack = () => {
+    initAudio();
+    quackSound();
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     bodyRef.current?.animate(BOOP_KEYFRAMES, { duration: 420, easing: 'linear' });
   };
 
-  return { btnRef, bodyRef, framesRef, onBoop };
+  return { btnRef, bodyRef, framesRef, onQuack };
 }
 
 export default function Hero() {
@@ -156,9 +160,9 @@ export default function Hero() {
         <button
           type="button"
           className="mascot"
-          aria-label="Boop Amro"
+          aria-label="Quack the duck"
           ref={mascot.btnRef}
-          onClick={mascot.onBoop}
+          onClick={mascot.onQuack}
         >
           <span className="mascot-body" ref={mascot.bodyRef}>
             <span

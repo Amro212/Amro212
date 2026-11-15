@@ -52,10 +52,11 @@ export default function App() {
     const first = cards[0];
     const firstStep = first.offsetLeft + first.offsetWidth / 2 - vw / 2;
     const pitch = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : first.offsetWidth;
-    // Max scroll = track width - viewport, exactly as the original clamps
-    // its last stop (5812 -> 5732 at 1440x900), leaving the last card
-    // 80 px right of centre by design.
-    const maxPx = Math.max(0, track.scrollWidth - vw);
+    // Max scroll centers the last card exactly. The original clamps to
+    // track width - viewport, which leaves its last card 80 px right of
+    // centre; this site centers every slide symmetrically instead.
+    const last = cards[cards.length - 1];
+    const maxPx = Math.max(0, last.offsetLeft + last.offsetWidth / 2 - vw / 2);
     geomRef.current = { firstStep, pitch, maxPx };
     const rail = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-rail');
     if (rail) railWidthRef.current = rail.getBoundingClientRect().width;
@@ -106,7 +107,7 @@ export default function App() {
     };
   }, [measure]);
 
-  // Track px for a slide position, clamped to the original's max scroll.
+  // Track px for a slide position, clamped to the last card's centre.
   const pxFromProgress = useCallback((s: number) => {
     const { firstStep, pitch, maxPx } = geomRef.current;
     const px = s <= 1 ? s * firstStep : firstStep + (s - 1) * pitch;
