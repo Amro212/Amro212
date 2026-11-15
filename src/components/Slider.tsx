@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import { clickSound, initAudio } from '../audio';
 
 interface Props {
   /** Continuous slide position, 0 (intro) through 9 (last project). */
@@ -25,9 +26,18 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
     return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   };
 
+  // et(): knob position mapped to -1..1 for stereo pan.
+  const pan = () => {
+    const f = Math.max(0, Math.min(1, progress / 9));
+    return f * 2 - 1;
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // Clicking a stop number jumps directly instead of starting a scrub.
     if ((e.target as HTMLElement).closest('.slider-stop')) return;
+    if (e.button !== 0) return;
+    initAudio();
+    clickSound(true, pan());
     e.preventDefault();
     draggingRef.current = true;
     sliderRef.current?.setPointerCapture(e.pointerId);
@@ -44,22 +54,35 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
     if (!draggingRef.current) return;
     draggingRef.current = false;
     sliderRef.current?.removeAttribute('data-active');
+    clickSound(false, pan());
     onScrubEnd();
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
+      initAudio();
       onJump(Math.min(9, current + 1));
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
+      initAudio();
       onJump(Math.max(0, current - 1));
     } else if (e.key === 'Home') {
       e.preventDefault();
+      initAudio();
       onJump(0);
     } else if (e.key === 'End') {
       e.preventDefault();
+      initAudio();
       onJump(9);
+    } else if (e.key === 'PageDown') {
+      e.preventDefault();
+      initAudio();
+      onJump(Math.min(9, current + 1));
+    } else if (e.key === 'PageUp') {
+      e.preventDefault();
+      initAudio();
+      onJump(Math.max(0, current - 1));
     }
   };
 
@@ -100,6 +123,7 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
             style={{ left: `${(i / 9) * 100}%` }}
             onClick={(e) => {
               e.stopPropagation();
+              initAudio();
               onJump(i);
             }}
             aria-label={`Go to ${LABELS[i]}`}

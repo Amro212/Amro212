@@ -32,34 +32,81 @@ function PillIcon({ kind }: { kind: 'design' | 'code' | 'ai' }) {
   );
 }
 
-/** 3x3 direction sprite: the face looks toward the pointer. */
+/** Mascot: window-level pointer tracking, 8 compass sectors of 45 deg,
+ * 70px dead zone, ~29.4 deg hysteresis, 114px at all widths, WAAPI boop
+ * (420ms, 5-keyframe squash), idle auto-cycle on coarse pointers only. */
+const DIRECTIONS = ['up-left', 'up', 'up-right', 'left', 'center', 'right', 'down-left', 'down', 'down-right'];
+const SECTORS = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
+const SECTOR = (2 * Math.PI) / SECTORS.length;
+
+const BOOP_KEYFRAMES: Keyframe[] = [
+  { transform: 'scale(1, 1)', easing: 'ease-in' },
+  { transform: 'scale(1.08, 0.9)', offset: 0.18, easing: 'ease-out' },
+  { transform: 'scale(0.96, 1.06)', offset: 0.45, easing: 'ease-in-out' },
+  { transform: 'scale(1.02, 0.98)', offset: 0.72, easing: 'ease-in-out' },
+  { transform: 'scale(1, 1)' },
+];
+
 function useMascot() {
+  const btnRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLSpanElement>(null);
   const framesRef = useRef<HTMLSpanElement>(null);
-  const [boop, setBoop] = useState(false);
 
-  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
-    const btn = e.currentTarget;
-    const rect = btn.getBoundingClientRect();
-    const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-    const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-    const col = dx < -0.33 ? 0 : dx > 0.33 ? 2 : 1;
-    const row = dy < -0.33 ? 0 : dy > 0.33 ? 2 : 1;
-    if (framesRef.current) {
-      framesRef.current.style.backgroundPosition = `${col * 50}% ${row * 50}%`;
+  const setDirection = (dir: string) => {
+    const d = DIRECTIONS.indexOf(dir);
+    if (d < 0 || !framesRef.current) return;
+    framesRef.current.style.backgroundPosition = `${(d % 3) * 50}% ${50 * Math.floor(d / 3)}%`;
+  };
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (fine) {
+      let sector = -1;
+      const onMove = (e: PointerEvent) => {
+        const btn = btnRef.current;
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const sx = e.clientX - (rect.left + rect.width / 2);
+        const sy = e.clientY - (rect.top + rect.height / 2);
+        if (Math.hypot(sx, sy) < 70) { sector = -1; setDirection('center'); return; }
+        const ang = Math.atan2(sy, sx);
+        if (sector !== -1) {
+          const diff = Math.abs(Math.atan2(Math.sin(ang - sector * SECTOR), Math.cos(ang - sector * SECTOR)));
+          if (diff < SECTOR / 2 + 0.12) return;
+        }
+        sector = (Math.round(ang / SECTOR) + SECTORS.length) % SECTORS.length;
+        setDirection(SECTORS[sector]);
+      };
+      window.addEventListener('pointermove', onMove, { passive: true });
+      return () => window.removeEventListener('pointermove', onMove);
     }
-  };
-
-  const onPointerLeave = () => {
-    if (framesRef.current) framesRef.current.style.backgroundPosition = '50% 50%';
-  };
+    // Coarse pointers: idle auto-cycle, paused while hidden / off-screen.
+    const cycle: [string, number][] = [
+      ['right', 1500], ['down-right', 1100], ['down-left', 1100],
+      ['left', 1500], ['down-left', 1100], ['down-right', 1100],
+    ];
+    let i = 0;
+    let timer = 0;
+    let visible = true;
+    const step = () => {
+      if (document.hidden || !visible) { timer = window.setTimeout(step, 900); return; }
+      setDirection(cycle[i][0]);
+      timer = window.setTimeout(() => { i = (i + 1) % cycle.length; step(); }, cycle[i][1] + Math.random() * 500);
+    };
+    const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }, { threshold: 0 });
+    if (btnRef.current) io.observe(btnRef.current);
+    setDirection(cycle[0][0]);
+    timer = window.setTimeout(() => { i = 1; step(); }, cycle[0][1] + Math.random() * 500);
+    return () => { window.clearTimeout(timer); io.disconnect(); };
+  }, []);
 
   const onBoop = () => {
-    setBoop(false);
-    requestAnimationFrame(() => setBoop(true));
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    bodyRef.current?.animate(BOOP_KEYFRAMES, { duration: 420, easing: 'linear' });
   };
 
-  return { bodyRef, framesRef, boop, onPointerMove, onPointerLeave, onBoop };
+  return { btnRef, bodyRef, framesRef, onBoop };
 }
 
 export default function Hero() {
@@ -131,12 +178,10 @@ export default function Hero() {
           type="button"
           className="mascot"
           aria-label="Boop Krish"
-          style={{ width: 104, height: 104 }}
-          onPointerMove={mascot.onPointerMove}
-          onPointerLeave={mascot.onPointerLeave}
+          ref={mascot.btnRef}
           onClick={mascot.onBoop}
         >
-          <span className="mascot-body" ref={mascot.bodyRef} data-boop={mascot.boop ? '' : undefined}>
+          <span className="mascot-body" ref={mascot.bodyRef}>
             <span
               className="mascot-frames"
               ref={mascot.framesRef}

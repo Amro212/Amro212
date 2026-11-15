@@ -164,7 +164,7 @@ export const PROJECTS: CloneProject[] = [
 ];
 
 export const CONTACT = {
-  email: 'shai@gmail.com',
+  email: 'heyfromshai@gmail.com',
   linkedin: 'https://www.linkedin.com/in/shaiii/',
   mentorship: 'https://topmate.io/shai',
 };

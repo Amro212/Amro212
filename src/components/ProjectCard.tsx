@@ -61,53 +61,78 @@ export default function ProjectCard({ project, index, offsetPx, active, onCardCl
     '--glint-x': `${Math.max(0, Math.min(100, 50 - offsetPx * 0.04))}%`,
   };
 
-  return (
-    <a
-      className="card"
-      href={project.href}
-      target={project.external ? '_blank' : undefined}
-      rel={project.external ? 'noopener' : undefined}
-      data-card
-      draggable={false}
-      style={{ '--i': index } as CSSProperties}
-      onClick={onCardClick}
-    >
-      <span className="card-body" style={bodyStyle}>
-        {project.eyebrow ? <span className="card-eyebrow">{project.eyebrow}</span> : null}
-        <span className="card-media">
-          {media.type === 'video' ? (
-            <span className="loop-video">
-              <video
-                ref={videoRef}
-                poster={media.poster}
-                muted
-                loop
-                playsInline
-                preload="none"
-                disablePictureInPicture
-                aria-label={project.title}
-              >
-                {media.av1 ? <source src={media.av1} type='video/mp4; codecs="av01.0.05M.08"' /> : null}
-                <source src={media.mp4} type="video/mp4" />
-              </video>
-            </span>
-          ) : (
-            <img alt={media.alt} src={media.src} draggable={false} loading="eager" decoding="async" />
-          )}
-        </span>
-        <span className="card-floor" aria-hidden="true">
-          <img className="card-reflection" src={reflectionSrc} alt="" draggable={false} loading="lazy" decoding="async" />
-        </span>
-        <span className="card-meta">
-          <span className="card-title" data-mini="text">
-            {project.title}
+  const inner = (
+    <span className="card-body" style={bodyStyle}>
+      {project.eyebrow ? <span className="card-eyebrow">{project.eyebrow}</span> : null}
+      <span className="card-media">
+        {media.type === 'video' ? (
+          <span className="loop-video">
+            <video
+              ref={videoRef}
+              poster={media.poster}
+              muted
+              loop
+              playsInline
+              preload="none"
+              disablePictureInPicture
+              aria-label={project.title}
+            >
+              {media.av1 ? <source src={media.av1} type='video/mp4; codecs="av01.0.05M.08"' /> : null}
+              <source src={media.mp4} type="video/mp4" />
+            </video>
           </span>
-          <span className="card-kind" data-mini="text">
-            {project.kind}
-            {project.external ? <ExternalArrow /> : null}
-          </span>
+        ) : (
+          <img alt={media.alt} src={media.src} draggable={false} loading="eager" decoding="async" />
+        )}
+      </span>
+      <span className="card-floor" aria-hidden="true">
+        <img className="card-reflection" src={reflectionSrc} alt="" draggable={false} loading="lazy" decoding="async" />
+      </span>
+      <span className="card-meta">
+        <span className="card-title" data-mini="text">
+          {project.title}
+        </span>
+        <span className="card-kind" data-mini="text">
+          {project.kind}
+          {project.external ? <ExternalArrow /> : null}
         </span>
       </span>
-    </a>
+    </span>
+  );
+
+  if (project.external) {
+    return (
+      <a
+        className="card"
+        href={project.href}
+        target="_blank"
+        rel="noopener"
+        data-card
+        data-external
+        draggable={false}
+        style={{ '--i': index } as CSSProperties}
+        onClick={onCardClick}
+      >
+        {inner}
+      </a>
+    );
+  }
+  // Case-study cards are divs that open the project viewer in place.
+  return (
+    <div
+      className="card"
+      data-card
+      draggable={false}
+      tabIndex={0}
+      role="button"
+      aria-label={`${project.title} case study`}
+      style={{ '--i': index } as CSSProperties}
+      onClick={onCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardClick(e as unknown as React.MouseEvent); }
+      }}
+    >
+      {inner}
+    </div>
   );
 }
