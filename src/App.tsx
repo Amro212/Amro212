@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import ContactMenu from './components/ContactMenu';
 import { FilmLight } from './components/Effects';
 import Hero from './components/Hero';
@@ -8,7 +8,7 @@ import ProjectDetail from './components/ProjectDetail';
 import ResumeModal from './components/ResumeModal';
 import Slider from './components/Slider';
 import { PROJECTS } from './data/clone';
-import { hardStopThud, initAudio, installAudioUnlock, scrollAmbience, snapTick, softTick } from './audio';
+import { clickSound, hardStopThud, initAudio, installAudioUnlock, isAudioReady, primeAudioOutput, scrollAmbience, subscribeAudioState, snapTick, softTick } from './audio';
 
 const SLIDE_COUNT = PROJECTS.length + 1; // 00 intro + one slide per project
 const MAX_INDEX = SLIDE_COUNT - 1;
@@ -20,6 +20,7 @@ const TRACK_C = 26;
 const SUBSTEP = 1 / 240;
 
 export default function App() {
+  const audioReady = useSyncExternalStore(subscribeAudioState, isAudioReady);
   const [progress, setProgress] = useState(0);
   const [resumeReq, setResumeReq] = useState<{ from: DOMRect; home: () => HTMLElement | null } | null>(null);
   const [openProject, setOpenProject] = useState<number | null>(null);
@@ -517,6 +518,11 @@ export default function App() {
           })}
         </div>
         <ContactMenu onOpenResume={(from, home) => setResumeReq({ from, home })} />
+        {!audioReady && ('AudioContext' in window || 'webkitAudioContext' in window) ? (
+          <button className="enable-sound" type="button" onClick={() => { primeAudioOutput(); clickSound(true); }}>
+            Enable sound
+          </button>
+        ) : null}
         <div ref={sliderWrapRef}>
           <Slider
             progress={progress}

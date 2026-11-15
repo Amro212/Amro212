@@ -18,6 +18,14 @@ let bed: {
   pan: StereoPannerNode;
 } | null = null;
 let unlocked = false;
+let outputPrimed = false;
+const audioListeners = new Set<() => void>();
+const notifyAudioState = () => { for (const listener of audioListeners) listener(); };
+export const isAudioReady = () => outputPrimed && ctx?.state === 'running';
+export function subscribeAudioState(listener: () => void) {
+  audioListeners.add(listener);
+  return () => { audioListeners.delete(listener); };
+}
 let quackBuf: AudioBuffer | null = null;
 let quackLoading: Promise<AudioBuffer | null> | null = null;
 
@@ -62,11 +70,13 @@ function pinkNoise(t: AudioContext, seconds: number): AudioBuffer {
 /** Short effects have no playback position to preserve after an interruption. */
 function resetAudio() {
   const previous = ctx;
+  outputPrimed = false;
   ctx = null;
   master = null;
   convolver = null;
   noiseBuf = null;
   bed = null;
+  notifyAudioState();
   if (previous && previous.state !== 'closed') void previous.close().catch(() => undefined);
 }
 
@@ -79,6 +89,7 @@ export function initAudio() {
     if (!AC) return;
     const t = new AC();
     ctx = t;
+    t.onstatechange = notifyAudioState;
     master = t.createGain();
     master.gain.value = 1.3;
     const comp = t.createDynamicsCompressor();
@@ -138,18 +149,30 @@ export function initAudio() {
     bed = { level, band, pan };
   }
   unlocked = true;
-  if (ctx.state !== 'running') {
-    // Start a silent frame synchronously inside the gesture for Safari's unlock.
-    const silent = ctx.createBufferSource();
-    silent.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-    silent.connect(ctx.destination);
-    silent.start();
-    // Autoplay rejection is recoverable: the next activation retries this.
-    void ctx.resume().catch(() => undefined);
-  }
+  if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
   // Preload the real quack in the background so the first duck click
   // has the sample decoded and ready instead of decoding on the click.
   void loadQuack(ctx);
+}
+
+/** Context state alone does not confirm Safari has unlocked the output. */
+export function primeAudioOutput() {
+  initAudio();
+  const t = ctx;
+  if (!t || (outputPrimed && t.state === 'running')) return;
+  const source = t.createBufferSource();
+  source.buffer = t.createBuffer(1, 1, t.sampleRate);
+  source.connect(t.destination);
+  source.onended = () => {
+    source.disconnect();
+    if (ctx === t) {
+      outputPrimed = true;
+      notifyAudioState();
+    }
+  };
+  // Always start from the gesture, including when state already says running.
+  source.start();
+  void t.resume().catch(() => undefined);
 }
 
 function live(): AudioContext | null {
@@ -380,7 +403,7 @@ export function audioState(): string {
 }
 export function installAudioUnlock() {
   let backgrounded = false;
-  const unlock = () => initAudio();
+  const unlock = () => primeAudioOutput();
   // Capture reaches even interactions whose component handlers stop bubbling.
   // Keep touchstart as well as touchend: a swipe is not a tap activation on iOS.
   const events = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown', 'wheel'] as const;
