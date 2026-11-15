@@ -468,13 +468,19 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
 }
 
 /* ── slider ──────────────────────────────────────────────────── */
+.slider,
+.slider-well,
+.slider-rail,
+.slider-knob,
+.slider-cap {
+  touch-action: none;
+}
 .slider {
   left: 50%;
   bottom: calc(22px + env(safe-area-inset-bottom));
   z-index: 2;
   width: var(--slider-w);
-  cursor: default;
-  touch-action: auto;
+  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -557,17 +563,25 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
   opacity: 0.7;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   background: none;
   border: 0;
-  padding: 0;
+  padding: 6px 10px;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
   transition: color 0.25s, opacity 0.25s;
   position: absolute;
-  top: 13px;
+  top: 4px;
   transform: translate(-50%);
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .slider-stop[data-on] { color: var(--text-strong); opacity: 1; }
 
@@ -1161,7 +1175,12 @@ html[data-intro="on"] .contact { visibility: hidden; }
   .pill { border-radius: 7px; gap: 5px; height: 26px; margin-right: 3px; padding: 0 7px; }
   .pill-icon { width: 15px; height: 15px; }
   .tree { font-size: min(13.5px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 26px; }
-  .intro-layer { padding: 96px 24px 130px; }
+  .intro-layer {
+    padding: calc(110px + env(safe-area-inset-top, 0px)) 24px calc(140px + env(safe-area-inset-bottom, 0px));
+  }
+  .intro {
+    margin-top: calc(48px + env(safe-area-inset-top, 0px));
+  }
   :root {
     --slider-w: min(560px, 100vw - 48px);
     --intro-gap: 48px;

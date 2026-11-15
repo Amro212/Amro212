@@ -261,6 +261,15 @@ export default function App() {
     targetPxRef.current = pxFromProgress(clamped);
   }, [pxFromProgress]);
 
+  const onScrub = useCallback((fraction: number) => {
+    window.clearTimeout(snapTimer.current);
+    targetPxRef.current = fraction * geomRef.current.maxPx;
+  }, []);
+
+  const onScrubEnd = useCallback((fraction: number) => {
+    targetPxRef.current = nearestStopPx(fraction * geomRef.current.maxPx);
+  }, [nearestStopPx]);
+
   const scheduleSnap = useCallback(() => {
     window.clearTimeout(snapTimer.current);
     snapTimer.current = window.setTimeout(() => {
@@ -340,13 +349,104 @@ export default function App() {
     scheduleSnap();
   };
 
+  // Mobile touch gesture tracking (swipe between cards).
+  const touchSwipeRef = useRef<{
+    startX: number;
+    startY: number;
+    lastX: number;
+    isHorizontal: boolean | null;
+    samples: { t: number; x: number }[];
+  } | null>(null);
+  const swipedRef = useRef(false);
+
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (resumeReq || openProject !== null) return;
+    if (e.touches.length !== 1) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.contact, .slider, input, textarea, button, a')) return;
+    initAudio();
+    const touch = e.touches[0];
+    touchSwipeRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      isHorizontal: null,
+      samples: [{ t: performance.now(), x: touch.clientX }],
+    };
+    swipedRef.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const swipe = touchSwipeRef.current;
+    if (!swipe) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipe.startX;
+    const dy = touch.clientY - swipe.startY;
+
+    if (swipe.isHorizontal === null) {
+      if (Math.abs(dx) > 7 || Math.abs(dy) > 7) {
+        swipe.isHorizontal = Math.abs(dx) > Math.abs(dy);
+        if (swipe.isHorizontal) swipedRef.current = true;
+      }
+    }
+
+    if (swipe.isHorizontal) {
+      if (e.cancelable) e.preventDefault();
+      swipedRef.current = true;
+      const stepDelta = touch.clientX - swipe.lastX;
+      swipe.lastX = touch.clientX;
+      swipe.samples.push({ t: performance.now(), x: touch.clientX });
+      if (swipe.samples.length > 8) swipe.samples.shift();
+
+      // Moving finger left (stepDelta < 0) advances carousel forward (increases targetPx)
+      const { maxPx } = geomRef.current;
+      const next = targetPxRef.current - stepDelta;
+      targetPxRef.current = Math.max(0, Math.min(maxPx, next));
+      scheduleSnap();
+    }
+  };
+
+  const onTouchEnd = () => {
+    const swipe = touchSwipeRef.current;
+    if (!swipe) return;
+    if (swipe.isHorizontal) {
+      const now = performance.now();
+      const recent = swipe.samples.filter((s) => now - s.t < 150);
+      let velocity = 0;
+      if (recent.length >= 2) {
+        const first = recent[0];
+        const last = recent[recent.length - 1];
+        if (last.t > first.t) velocity = ((last.x - first.x) / (last.t - first.t)) * 1000;
+      }
+      const totalDx = swipe.lastX - swipe.startX;
+      if (velocity < -200 || totalDx < -40) {
+        goTo(current + 1);
+      } else if (velocity > 200 || totalDx > 40) {
+        goTo(current - 1);
+      } else {
+        targetPxRef.current = nearestStopPx(targetPxRef.current);
+      }
+      window.setTimeout(() => {
+        swipedRef.current = false;
+      }, 120);
+    }
+    touchSwipeRef.current = null;
+  };
+
   const translate = -pxFromProgress(progress);
   const introOpacity = 1 - Math.max(0, Math.min(1, progress / 0.6));
 
   return (
     <>
       <FilmLight />
-      <main className="page" onWheel={onWheel}>
+      <main
+        className="page"
+        onWheel={onWheel}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+      >
         <Pond ready />
         <div
           className="intro-layer"
@@ -369,6 +469,7 @@ export default function App() {
                 pitch={pitch}
                 active={i === current - 1}
                 onCardClick={(e) => {
+                  if (swipedRef.current) return;
                   if (project.external && !project.slug) return;
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                   e.preventDefault();
@@ -386,6 +487,8 @@ export default function App() {
             count={SLIDE_COUNT}
             labels={['Intro', ...PROJECTS.map((p) => p.title)]}
             onJump={goTo}
+            onScrub={onScrub}
+            onScrubEnd={onScrubEnd}
           />
         </div>
       </main>

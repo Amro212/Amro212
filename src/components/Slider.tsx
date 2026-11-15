@@ -1,4 +1,5 @@
-import { initAudio } from '../audio';
+import { useCallback, useEffect, useRef } from 'react';
+import { clickSound, initAudio } from '../audio';
 
 interface Props {
   /** Continuous slide position, 0 (intro) through count-1 (last project). */
@@ -9,11 +10,156 @@ interface Props {
   /** Slide names for aria labels, index 0 is the intro. */
   labels: string[];
   onJump: (index: number) => void;
+  onScrub?: (fraction: number) => void;
+  onScrubEnd?: (fraction: number) => void;
 }
 
-export default function Slider({ progress, current, count, labels, onJump }: Props) {
-  /** Last slide index; guarded so a single-slide list never divides by zero. */
+export default function Slider({ progress, current, count, labels, onJump, onScrub, onScrubEnd }: Props) {
   const max = Math.max(1, count - 1);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const knobRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ id: number; offset: number; fraction: number; isTouch?: boolean; samples: { t: number; p: number }[] } | null>(null);
+
+  const getKnobFraction = useCallback(() => {
+    return Math.max(0, Math.min(1, progress / max));
+  }, [progress, max]);
+
+  const pan = useCallback(() => {
+    return Math.max(-1, Math.min(1, getKnobFraction() * 2 - 1));
+  }, [getKnobFraction]);
+
+  const finish = useCallback((fraction?: number) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    dragRef.current = null;
+    const slider = sliderRef.current;
+    slider?.removeAttribute('data-active');
+    try {
+      if (slider && !drag.isTouch && slider.hasPointerCapture(drag.id)) {
+        slider.releasePointerCapture(drag.id);
+      }
+    } catch {
+      // Ignored for environments where pointer capture is already released
+    }
+    clickSound(false, pan());
+    const finalFraction = fraction ?? drag.fraction;
+    if (onScrubEnd) {
+      onScrubEnd(finalFraction);
+    } else {
+      onJump(Math.round(finalFraction * max));
+    }
+  }, [onScrubEnd, onJump, max, pan]);
+
+  useEffect(() => {
+    const cancel = () => {
+      if (document.hidden) finish();
+    };
+    const onVisibility = () => { if (document.hidden) finish(); };
+    window.addEventListener('blur', cancel);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancel();
+      window.removeEventListener('blur', cancel);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [finish]);
+
+  // Pointer event handlers (desktop mouse + fallback)
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !e.isPrimary || dragRef.current) return;
+    if (e.pointerType === 'touch') return;
+    const rail = railRef.current;
+    if (!rail || !rail.clientWidth) return;
+    initAudio();
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if setPointerCapture fails on certain browsers
+    }
+    e.currentTarget.focus({ preventScroll: true });
+    const x = e.clientX - rail.getBoundingClientRect().left;
+    const knob = getKnobFraction() * rail.clientWidth;
+    const offset = Math.abs(x - knob) < (knobRef.current?.offsetWidth || 0) ? knob - x : 0;
+    const targetPx = Math.max(0, Math.min(rail.clientWidth, x + offset));
+    const fraction = targetPx / rail.clientWidth;
+    dragRef.current = { id: e.pointerId, offset, fraction, isTouch: false, samples: [{ t: performance.now(), p: x + offset }] };
+    e.currentTarget.setAttribute('data-active', '');
+    clickSound(true, pan());
+    if (onScrub) onScrub(fraction);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const rail = railRef.current;
+    if (!drag || drag.isTouch || drag.id !== e.pointerId || !rail || !rail.clientWidth) return;
+    const x = e.clientX - rail.getBoundingClientRect().left + drag.offset;
+    drag.samples.push({ t: performance.now(), p: x });
+    if (drag.samples.length > 12) drag.samples.shift();
+    drag.fraction = Math.max(0, Math.min(rail.clientWidth, x)) / rail.clientWidth;
+    if (onScrub) onScrub(drag.fraction);
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const rail = railRef.current;
+    if (!drag || drag.isTouch || drag.id !== e.pointerId || !rail || !rail.clientWidth) return;
+    const now = performance.now();
+    const recent = drag.samples.filter((sample) => now - sample.t < 100);
+    const first = recent[0];
+    const last = recent[recent.length - 1];
+    const velocity = recent.length >= 2 && last.t > first.t ? (last.p - first.p) / (last.t - first.t) * 1000 : 0;
+    const projected = e.clientX - rail.getBoundingClientRect().left + drag.offset + 0.12 * velocity;
+    finish(Math.max(0, Math.min(1, projected / rail.clientWidth)));
+  };
+
+  // Dedicated touch event handlers for rock-solid mobile performance
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1 || dragRef.current) return;
+    const rail = railRef.current;
+    if (!rail || !rail.clientWidth) return;
+    const touch = e.touches[0];
+    initAudio();
+    const x = touch.clientX - rail.getBoundingClientRect().left;
+    const knob = getKnobFraction() * rail.clientWidth;
+    const offset = Math.abs(x - knob) < (knobRef.current?.offsetWidth || 0) ? knob - x : 0;
+    const targetPx = Math.max(0, Math.min(rail.clientWidth, x + offset));
+    const fraction = targetPx / rail.clientWidth;
+    dragRef.current = { id: touch.identifier, offset, fraction, isTouch: true, samples: [{ t: performance.now(), p: x + offset }] };
+    sliderRef.current?.setAttribute('data-active', '');
+    clickSound(true, pan());
+    if (onScrub) onScrub(fraction);
+  };
+
+  const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const rail = railRef.current;
+    if (!drag || !drag.isTouch || !rail || !rail.clientWidth) return;
+    const touch = Array.from(e.touches).find((t) => t.identifier === drag.id);
+    if (!touch) return;
+    if (e.cancelable) e.preventDefault();
+    const x = touch.clientX - rail.getBoundingClientRect().left + drag.offset;
+    drag.samples.push({ t: performance.now(), p: x });
+    if (drag.samples.length > 12) drag.samples.shift();
+    drag.fraction = Math.max(0, Math.min(rail.clientWidth, x)) / rail.clientWidth;
+    if (onScrub) onScrub(drag.fraction);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const rail = railRef.current;
+    if (!drag || !drag.isTouch || !rail || !rail.clientWidth) return;
+    const touch = Array.from(e.changedTouches).find((t) => t.identifier === drag.id);
+    if (!touch) return;
+    const now = performance.now();
+    const recent = drag.samples.filter((sample) => now - sample.t < 100);
+    const first = recent[0];
+    const last = recent[recent.length - 1];
+    const velocity = recent.length >= 2 && last.t > first.t ? (last.p - first.p) / (last.t - first.t) * 1000 : 0;
+    const projected = touch.clientX - rail.getBoundingClientRect().left + drag.offset + 0.12 * velocity;
+    finish(Math.max(0, Math.min(1, projected / rail.clientWidth)));
+  };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -47,7 +193,21 @@ export default function Slider({ progress, current, count, labels, onJump }: Pro
 
   return (
     <div
+      ref={sliderRef}
       className="slider"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => finish()}
+      onLostPointerCapture={(e) => {
+        if (dragRef.current && !dragRef.current.isTouch && dragRef.current.id === e.pointerId) {
+          finish();
+        }
+      }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={() => finish()}
       role="slider"
       tabIndex={0}
       aria-label="Scroll through projects"
@@ -59,22 +219,29 @@ export default function Slider({ progress, current, count, labels, onJump }: Pro
     >
       <div className="slider-well">
         <span className="slider-groove" />
-        <div className="slider-rail">
-          <div className="slider-knob">
+        <div className="slider-rail" ref={railRef}>
+          <div className="slider-knob" ref={knobRef}>
             <span className="slider-cap" />
           </div>
         </div>
       </div>
-      <div className="slider-stops" aria-hidden="true">
+      <div className="slider-stops" role="group" aria-label="Project slide navigation">
         {Array.from({ length: count }, (_, i) => (
-          <span
+          <button
+            type="button"
             key={i}
             className="slider-stop"
             data-on={i === current ? '' : undefined}
             style={{ left: `${(i / max) * 100}%` }}
+            aria-label={`Jump to slide ${i}: ${labels[i] ?? `Slide ${i}`}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              initAudio();
+              onJump(i);
+            }}
           >
             {String(i).padStart(2, '0')}
-          </span>
+          </button>
         ))}
       </div>
     </div>
