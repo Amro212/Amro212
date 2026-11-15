@@ -100,12 +100,16 @@ export const PROJECTS: CloneProject[] = [
     media: { type: 'image', src: 'https://itsamro.me/project-previews/sahara/sahara1.png', alt: 'Sahara' },
   },
   {
-    title: 'LEGEND Community',
-    kind: 'Community',
+    title: 'LEGEND',
+    kind: 'Memecoin',
     href: 'https://legend.guru',
     external: true,
-    slug: 'legend-community',
-    media: { type: 'image', src: 'https://itsamro.me/project-previews/legend/legend1.png', alt: 'LEGEND Community' },
+    slug: 'legend',
+    media: {
+      type: 'video',
+      poster: 'https://www.legend.guru/gallery/Large_group_photo_of_children_families_and_supporters_at_the_new_school.jpeg',
+      mp4: 'https://www.legend.guru/gallery/Front_view_of_the_newly_opened_school_building_with_students_in_the_courtyard.mp4',
+    },
   },
 ];
 
