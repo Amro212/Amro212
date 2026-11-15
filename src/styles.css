@@ -813,7 +813,7 @@ html[data-intro="on"] .contact { visibility: hidden; }
 .rs-body { flex: 1; overflow: auto; background: #0b0d10; }
 .rs-page { position: relative; margin: 0 auto; max-width: 820px; }
 .rs-page img { width: 100%; height: auto; }
-.rs-page-link { position: absolute; left: 5.1%; top: 9.73%; width: 17.25%; height: 2.24%; }
+.rs-page-link { position: absolute; left: 67.8%; top: 4.4%; width: 5.2%; height: 1.1%; }
 @media (max-width: 640px) {
   .rs-window {
     left: 0; right: 0; top: auto; bottom: 0; transform: none;
