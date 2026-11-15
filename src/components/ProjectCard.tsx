@@ -13,7 +13,7 @@ function ExternalArrow() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      stroke-linejoin="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
       <path d="M7 17 17 7" />
@@ -172,7 +172,6 @@ export default function ProjectCard({ project, index, offsetPx, pitch, active, o
       draggable={false}
       tabIndex={0}
       role="button"
-      aria-label={`${project.title} case study`}
       style={{ '--i': index } as CSSProperties}
       onClick={onCardClick}
       onKeyDown={(e) => {

@@ -727,14 +727,18 @@ export function mountPond(canvas: HTMLCanvasElement): () => void {
     f.travel += moved;
     f.spine[0] = nx; f.spine[1] = ny;
     const seg = f.L / 23;
+    let previousAngle = f.a;
     for (let i = 1; i < 24; i++) {
       const px = f.spine[(i - 1) * 2]; const py = f.spine[(i - 1) * 2 + 1];
       const cx = f.spine[i * 2]; const cy = f.spine[i * 2 + 1];
-      let ang = Math.atan2(cy - py, cx - px);
-      const prevAng = i > 1 ? Math.atan2(py - f.spine[(i - 2) * 2], px - f.spine[(i - 2) * 2]) : f.a;
-      ang = prevAng + clamp(wrapAngle(ang - prevAng), -sp.bend, sp.bend);
-      f.spine[i * 2] = px + Math.cos(ang) * seg;
-      f.spine[i * 2 + 1] = py + Math.sin(ang) * seg;
+      // Clamp headward angles, then place each segment behind its predecessor.
+      let angle = Math.atan2(py - cy, px - cx);
+      const delta = wrapAngle(angle - previousAngle);
+      if (delta > sp.bend) angle = previousAngle + sp.bend;
+      else if (delta < -sp.bend) angle = previousAngle - sp.bend;
+      f.spine[i * 2] = px - Math.cos(angle) * seg;
+      f.spine[i * 2 + 1] = py - Math.sin(angle) * seg;
+      previousAngle = angle;
     }
     if (f.kind === 'koi' && f.depth > 0.45 && f.travel > 22) {
       f.travel = 0;

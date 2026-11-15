@@ -177,8 +177,9 @@ html[data-project-motion] .page {
   top: -96px;
   left: -28px;
   /* Raster signature: wipe in left-to-right (no fake stroke draw). */
-  animation: sig-reveal 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+  animation: sig-reveal 2.2s cubic-bezier(0.45, 0, 0.55, 1) 0.15s both;
 }
+html[data-intro="on"] .signature { animation-play-state: paused; }
 @keyframes sig-reveal {
   from { opacity: 0; clip-path: inset(0 100% 0 0); }
   to { opacity: 1; clip-path: inset(0 0 0 0); }
@@ -336,10 +337,6 @@ html[data-project-motion] .page {
   will-change: transform;
   display: block;
   transform: perspective(1500px);
-}
-html[data-intro="done"] .card {
-  animation: 0.9s cubic-bezier(0.22, 1, 0.36, 1) both card-in;
-  animation-delay: calc(var(--sig-end, 0s) + var(--i, 0) * 90ms);
 }
 .card-media {
   aspect-ratio: 1.02;
@@ -557,10 +554,6 @@ html[data-intro="done"] .card {
   position: fixed;
 }
 html[data-intro="on"] .contact { visibility: hidden; }
-html[data-intro="done"] .contact {
-  animation: 0.8s cubic-bezier(0.22, 1, 0.36, 1) both contact-in;
-  animation-delay: var(--sig-end, 0s);
-}
 .contact-cap {
   --band: -95deg;
   --peak: #f2f4f7;
@@ -1123,14 +1116,6 @@ html[data-intro="done"] .contact {
 
 /* ── keyframes ───────────────────────────────────────────────── */
 @keyframes sig-write { to { stroke-dashoffset: 0; } }
-@keyframes card-in {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes contact-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes band-sweep {
   0% { --band: -95deg; }
@@ -1183,8 +1168,6 @@ html[data-intro="done"] .contact {
   .iso-line[data-flow], .iso-dots circle[data-pulse] { animation: none; }
   .intro-overlay [data-b] { opacity: 1; }
   .intro-overlay, .mac-mini, .mac-glass { transition-duration: 0.2s; }
-  html[data-intro="done"] .contact { animation: none; }
   .contact-face { transition: opacity 0.15s; transform: none !important; }
   .contact-cap:hover { animation: none !important; }
-  html[data-intro="done"] .card { animation: none; }
 }

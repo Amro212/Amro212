@@ -189,7 +189,7 @@ export default function Hero() {
         )}
       </p>
 
-      <pre className="tree" role="img" aria-label={EXPERIENCE_ARIA_LABEL} style={{ '--cols': 52 } as CSSProperties}>
+      <pre className="tree" role="group" aria-label={EXPERIENCE_ARIA_LABEL} style={{ '--cols': 52 } as CSSProperties}>
         {lines.map((line, i) =>
           line.row !== undefined ? (
             <span
