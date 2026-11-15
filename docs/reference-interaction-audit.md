@@ -1,7 +1,7 @@
 # Reference interaction audit
 
 Date: 2026-11-15. Branch: `redesign/designengineer-fyi`.
-Reference: https://www.designengineer.fyi/ . Scope: fish appearance, unwanted ripple bursts, scroll sound, project dragging, landing entrance. The reference's computer/3D introduction is excluded.
+Reference: the original reference portfolio. Scope: fish appearance, unwanted ripple bursts, scroll sound, project dragging, landing entrance. The reference's computer/3D introduction is excluded.
 
 ## Current navigation policy (user revision)
 
@@ -15,7 +15,7 @@ The fresh-load browser trace confirmed a second entrance: card/contact effective
 
 The missing half-head was caused by spine self-overlap, not missing triangles: the port combined tailward vectors with a headward heading limit, placing the neck ahead of the head. Restored the reference's headward-angle constraint and backward segment placement. Earlier fish checks covered mesh attributes and pose upload; the new `/tmp/verify-portfolio-fish-head.cjs` also covers complete index buffers and spine reconstruction across 2,160 curved-spine frames and straight headings. A real software-WebGL render of five deterministic koi shows intact heads (`/tmp/portfolio-fish-heads-after.png`).
 
-Removed the project-card accessible-name override so names include the visible title and company, including “AI Agent Builder Sense” and “Quote Builder Freshworks”. Changed the expandable experience list from an image role to a group, retaining its keyboard-focusable row controls. axe-core 4.14.0 checks the reported `label-content-name-mismatch` rule in the project states and WCAG 2 A/AA + 2.1 AA automated rules on the landing (`/tmp/portfolio-a11y-check.cjs --verify`). Automated checks do not establish complete accessibility conformance. Reports are `/tmp/portfolio-a11y-before.json` and `/tmp/portfolio-a11y-after.json`.
+Removed the project-card accessible-name override so names include the visible title and company, including “Kareer Open Source” and “Syllabus Sync iOS App”. Changed the expandable experience list from an image role to a group, retaining its keyboard-focusable row controls. axe-core 4.14.0 checks the reported `label-content-name-mismatch` rule in the project states and WCAG 2 A/AA + 2.1 AA automated rules on the landing (`/tmp/portfolio-a11y-check.cjs --verify`). Automated checks do not establish complete accessibility conformance. Reports are `/tmp/portfolio-a11y-before.json` and `/tmp/portfolio-a11y-after.json`.
 
 ## Evidence index
 
@@ -34,7 +34,7 @@ Complete session checkpoint: `/tmp/portfolio-rea-evidence-2026-11-15.json` (REA 
 
 ## Source identity
 
-Reference chunk paths are relative to `https://www.designengineer.fyi/_next/static/immutable/chunks/`.
+Reference chunk paths are relative to the reference site's static chunk directory.
 
 | Chunk | SHA-256 | Relevant module |
 | --- | --- | --- |
