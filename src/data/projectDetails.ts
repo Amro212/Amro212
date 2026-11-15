@@ -137,9 +137,9 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
         stats: [
           { value: '1', caption: 'school built in Nigeria, funded by creator fees' },
           { value: 'Dec 2025', caption: 'launched on pump.fun, now trading on PumpSwap' },
-          { value: '~$25k', caption: 'market cap as of Nov 15, 2026 (DexScreener)' },
+          { value: '~$278k', caption: 'peak market cap, Nov 15, 2026' },
         ],
-        note: 'Trading stats as of Nov 15, 2026: about $886 in 24h volume and about $15.6k liquidity. Memecoin numbers move fast; the school is the part that stays.',
+        note: 'Market cap is about $25.9k now; 24h volume about $886, liquidity about $15.6k (DexScreener, Nov 15, 2026). Memecoin numbers move fast; the school is the part that stays.',
       },
       { type: 'p', text: 'LEGEND is a memecoin with no intrinsic value or expectation of financial return, as the site itself states. The point of the project was never the price: it was a community that turned trading fees into a building full of kids.' },
       { type: 'link', href: 'https://legend.guru', text: 'legend.guru' },
