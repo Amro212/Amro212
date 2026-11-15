@@ -39,6 +39,8 @@ export default function App() {
   const lastKnobStepRef = useRef(0);
   const lastTickMsRef = useRef(0);
   const knobPxRef = useRef(0);
+  const heldRef = useRef(false);
+  const heldFractionRef = useRef(0);
   const knobVelocityRef = useRef(0);
 
   const current = Math.max(0, Math.min(MAX_INDEX, Math.round(progress)));
@@ -57,6 +59,10 @@ export default function App() {
     // 80 px right of centre by design.
     const maxPx = Math.max(0, track.scrollWidth - vw);
     geomRef.current = { firstStep, pitch, maxPx };
+    sliderWrapRef.current?.querySelectorAll<HTMLElement>('.slider-stop').forEach((stop, index) => {
+      const px = index === 0 ? 0 : Math.min(maxPx, firstStep + (index - 1) * pitch);
+      stop.style.left = `${maxPx ? px / maxPx * 100 : 0}%`;
+    });
     const rail = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-rail');
     if (rail) railWidthRef.current = rail.getBoundingClientRect().width;
   }, []);
@@ -189,12 +195,12 @@ export default function App() {
       // Knob position in rail px (0..railWidth), step = railWidth/40.
       const railW = railWidthRef.current || 1;
       const maxPx = geomRef.current.maxPx || 1;
-      const knobTarget = (target / maxPx) * railW;
+      const knobTarget = (heldRef.current ? heldFractionRef.current : target / maxPx) * railW;
       let knobPx = knobPxRef.current;
       let knobVel = knobVelocityRef.current;
-      const knobK = 420;
-      const knobC = 41;
-      if (motion.matches) {
+      const knobK = heldRef.current ? 1400 : 420;
+      const knobC = heldRef.current ? 75 : 41;
+      if (motion.matches && !heldRef.current) {
         knobPx = knobTarget;
         knobVel = 0;
       } else {
@@ -215,16 +221,23 @@ export default function App() {
       }
       knobPxRef.current = knobPx;
       knobVelocityRef.current = knobVel;
+      sliderWrapRef.current?.querySelector<HTMLElement>('.slider')?.setAttribute('aria-valuenow', String(Math.round(target / maxPx * 100)));
       const knob = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-knob');
       if (knob) knob.style.left = `${(Math.max(0, Math.min(1, knobPx / railW)) * 100).toFixed(2)}%`;
+      const stops = stopPxList();
+      const knobTrackPx = knobPx / railW * maxPx;
+      const nearestIndex = stops.reduce((best, stop, index) => Math.abs(stop - knobTrackPx) < Math.abs(stops[best] - knobTrackPx) ? index : best, 0);
+      sliderWrapRef.current?.querySelectorAll<HTMLElement>('.slider-stop').forEach((stop, index) => {
+        stop.toggleAttribute('data-on', index === nearestIndex);
+      });
       const stepPx = railW / 40;
       const pan = Math.max(-1, Math.min(1, (knobPx / railW) * 2 - 1));
-      scrollAmbience(Math.abs(knobVel) * 0.6, pan);
+      scrollAmbience(Math.abs(knobVel) * (heldRef.current ? 1 : 0.6), pan);
       // Snap / soft tick on rounded-step change, during motion.
       const nStep = Math.round(knobPx / stepPx);
       if (nStep !== lastKnobStepRef.current) {
         lastKnobStepRef.current = nStep;
-        const stopSteps = new Set(stopPxList().map((s) => Math.round((s / maxPx) * 40)));
+        const stopSteps = new Set(stops.map((s) => Math.round((s / maxPx) * 40)));
         if (nStep >= 0 && nStep <= 40 && stopSteps.has(nStep)) {
           lastTickMsRef.current = now;
           snapTick(Math.abs(knobVel), pan);
@@ -233,6 +246,8 @@ export default function App() {
           softTick(Math.abs(knobVel), pan);
         }
       }
+      if (overshootRef.current > 80) hardStopThud(Math.min(1, overshootRef.current / 900), pan);
+      overshootRef.current = 0;
       const idx = Math.round(p);
       if (idx !== lastIndexRef.current) {
         lastIndexRef.current = idx;
@@ -261,6 +276,19 @@ export default function App() {
     targetPxRef.current = pxFromProgress(clamped);
   }, [pxFromProgress]);
 
+  const getKnobPosition = useCallback(() => knobPxRef.current, []);
+  const getSliderStops = useCallback(() => stopPxList().map((px) => px / (geomRef.current.maxPx || 1)), [stopPxList]);
+  const onScrub = useCallback((fraction: number) => {
+    window.clearTimeout(snapTimer.current);
+    heldRef.current = true;
+    heldFractionRef.current = fraction;
+    targetPxRef.current = fraction * geomRef.current.maxPx;
+  }, []);
+  const onScrubEnd = useCallback((fraction: number) => {
+    heldRef.current = false;
+    targetPxRef.current = nearestStopPx(fraction * geomRef.current.maxPx);
+  }, [nearestStopPx]);
+
   const scheduleSnap = useCallback(() => {
     window.clearTimeout(snapTimer.current);
     snapTimer.current = window.setTimeout(() => {
@@ -268,13 +296,6 @@ export default function App() {
       // spring position: snapping the position 180 ms in would drag a
       // 700px flick back to the slide it started from.
       targetPxRef.current = nearestStopPx(targetPxRef.current);
-      // Hard-stop thud if the wheel pushed past a track end.
-      if (overshootRef.current > 80) {
-        const maxPx = geomRef.current.maxPx || 1;
-        const pan = Math.max(-1, Math.min(1, (pxRef.current / maxPx) * 2 - 1));
-        hardStopThud(Math.min(1, overshootRef.current / 900), pan);
-      }
-      overshootRef.current = 0;
     }, 180);
   }, [nearestStopPx]);
 
@@ -300,10 +321,10 @@ export default function App() {
       if (resumeReq || openProject !== null) return;
       const active = document.activeElement as HTMLElement | null;
       if (active?.closest('.slider, .contact, input, textarea')) return;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
         e.preventDefault();
         goTo(current + 1);
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
         e.preventDefault();
         goTo(current - 1);
       }
@@ -329,13 +350,6 @@ export default function App() {
     const deltaPx = dominant * modeFactor;
     const { maxPx } = geomRef.current;
     const next = targetPxRef.current + deltaPx;
-    if ((next < 0 && deltaPx < 0) || (next > maxPx && deltaPx > 0)) {
-      // Pushing past a track end: record overshoot velocity (knob px/s
-      // estimate) for the hard-stop thud.
-      const railW = railWidthRef.current || 1;
-      const knobVelEst = Math.abs(deltaPx) * 60 * (railW / (maxPx || 1));
-      overshootRef.current = Math.max(overshootRef.current, knobVelEst);
-    }
     targetPxRef.current = Math.max(0, Math.min(maxPx, next));
     scheduleSnap();
   };
@@ -381,11 +395,14 @@ export default function App() {
         <ContactMenu onOpenResume={(from, home) => setResumeReq({ from, home })} />
         <div ref={sliderWrapRef}>
           <Slider
-            progress={progress}
             current={current}
             count={SLIDE_COUNT}
             labels={['Intro', ...PROJECTS.map((p) => p.title)]}
             onJump={goTo}
+            getKnobPosition={getKnobPosition}
+            getStops={getSliderStops}
+            onScrub={onScrub}
+            onScrubEnd={onScrubEnd}
           />
         </div>
       </main>

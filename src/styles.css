@@ -447,8 +447,8 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   bottom: calc(22px + env(safe-area-inset-bottom));
   z-index: 2;
   width: var(--slider-w);
-  cursor: default;
-  touch-action: auto;
+  cursor: grab;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -456,6 +456,7 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   position: fixed;
   transform: translate(-50%);
 }
+.slider[data-active] { cursor: grabbing; }
 .slider:focus-visible { outline: none; }
 .slider:focus-visible .slider-well {
   outline: 1px solid var(--text-muted);
