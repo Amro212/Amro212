@@ -174,7 +174,7 @@ html[data-project-motion] .page {
   pointer-events: none;
   z-index: 0;
   position: absolute;
-  top: -96px;
+  top: -124px;
   left: -28px;
   /* Raster signature: wipe in left-to-right (no fake stroke draw). */
   animation: sig-reveal 2.2s cubic-bezier(0.45, 0, 0.55, 1) 0.15s both;
@@ -1128,7 +1128,7 @@ html[data-intro="on"] .contact { visibility: hidden; }
 }
 /* ── responsive ──────────────────────────────────────────────── */
 @media (max-width: 560px) {
-  .signature { width: 380px; top: -72px; left: -18px; }
+  .signature { width: 380px; top: -92px; left: -18px; }
   .name { font-size: 21px; }
   .tagline { margin-top: 4px; font-size: 12px; }
   .bio { margin-top: 26px; font-size: 16px; line-height: 29px; }
