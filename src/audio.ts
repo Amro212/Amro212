@@ -59,19 +59,21 @@ function pinkNoise(t: AudioContext, seconds: number): AudioBuffer {
   return buffer;
 }
 
+/** Short effects have no playback position to preserve after an interruption. */
+function resetAudio() {
+  const previous = ctx;
+  ctx = null;
+  master = null;
+  convolver = null;
+  noiseBuf = null;
+  bed = null;
+  if (previous && previous.state !== 'closed') void previous.close().catch(() => undefined);
+}
+
 /** p() — init / resume, idempotent. Call on first user gesture. */
 export function initAudio() {
-  // If the context was closed, the whole graph is dead: live() returns
-  // null forever and sounds never come back. iOS closes the context on
-  // interruption (call, Siri, alarm) or after the tab sits backgrounded
-  // for a long time, so drop the dead graph and build a fresh one.
-  if (ctx && ctx.state === 'closed') {
-    ctx = null;
-    master = null;
-    convolver = null;
-    noiseBuf = null;
-    bed = null;
-  }
+  // Safari can leave an interrupted graph permanently silent despite resume().
+  if (ctx && (ctx.state === 'closed' || (ctx.state as string) === 'interrupted')) resetAudio();
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
@@ -136,10 +138,15 @@ export function initAudio() {
     bed = { level, band, pan };
   }
   unlocked = true;
-  // Resume from any non-running state, not just 'suspended': iOS reports
-  // 'interrupted' after a call, Siri, or an alarm, and resume() is a
-  // no-op when already running, so this is safe to call on every gesture.
-  if (ctx.state !== 'running') void ctx.resume();
+  if (ctx.state !== 'running') {
+    // Start a silent frame synchronously inside the gesture for Safari's unlock.
+    const silent = ctx.createBufferSource();
+    silent.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    silent.connect(ctx.destination);
+    silent.start();
+    // Autoplay rejection is recoverable: the next activation retries this.
+    void ctx.resume().catch(() => undefined);
+  }
   // Preload the real quack in the background so the first duck click
   // has the sample decoded and ready instead of decoding on the click.
   void loadQuack(ctx);
@@ -372,21 +379,37 @@ export function audioState(): string {
   return ctx.state;
 }
 export function installAudioUnlock() {
-  // Persistent, not once: the context can be suspended or interrupted
-  // again at any point (backgrounded tab, lock screen, call, Siri), so
-  // every gesture re-runs initAudio, which resumes it. initAudio is
-  // idempotent and cheap when the context is already running.
+  let backgrounded = false;
   const unlock = () => initAudio();
-  // Wheel grants no user activation and touch activation lands on the
-  // *up* event, not the down event, so the up-events are the unlock
-  // that makes the first swipe audible: without them a touch swipe's
-  // touchend sets activation but nothing resumes the context until
-  // the next gesture that calls initAudio (e.g. the contact click).
-  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel', 'pointerup', 'touchend'] as const) {
-    window.addEventListener(ev, unlock, { passive: true });
-  }
-  // Coming back to the tab resumes the context before the next gesture.
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) initAudio(); });
-  window.addEventListener('pageshow', unlock);
-  window.addEventListener('focus', unlock);
+  // Capture reaches even interactions whose component handlers stop bubbling.
+  // Keep touchstart as well as touchend: a swipe is not a tap activation on iOS.
+  const events = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown', 'wheel'] as const;
+  for (const event of events) window.addEventListener(event, unlock, { capture: true, passive: true });
+
+  const background = () => {
+    backgrounded = backgrounded || !!ctx;
+    scrollAmbience(0);
+  };
+  const restore = () => {
+    if (document.hidden) return;
+    // iOS can report "running" while its audio clock/output is frozen.
+    // Replace the graph once per background visit instead of trusting that state.
+    if (backgrounded) {
+      backgrounded = false;
+      resetAudio();
+    }
+    if (unlocked) initAudio();
+  };
+  const visibility = () => document.hidden ? background() : restore();
+  document.addEventListener('visibilitychange', visibility);
+  window.addEventListener('pagehide', background);
+  window.addEventListener('pageshow', restore);
+  window.addEventListener('focus', restore);
+  return () => {
+    for (const event of events) window.removeEventListener(event, unlock, true);
+    document.removeEventListener('visibilitychange', visibility);
+    window.removeEventListener('pagehide', background);
+    window.removeEventListener('pageshow', restore);
+    window.removeEventListener('focus', restore);
+  };
 }
