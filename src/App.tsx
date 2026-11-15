@@ -10,7 +10,8 @@ import Slider from './components/Slider';
 import { PROJECTS } from './data/clone';
 import { hardStopThud, initAudio, installAudioUnlock, scrollAmbience, snapTick, softTick } from './audio';
 
-const SLIDE_COUNT = 10; // 00 intro + 09 projects
+const SLIDE_COUNT = PROJECTS.length + 1; // 00 intro + one slide per project
+const MAX_INDEX = SLIDE_COUNT - 1;
 
 // Original track spring (ee()): semi-implicit Euler, 1/240 s substeps,
 // dt clamped to 1/30, settle epsilon 0.05 px / 0.05 px/s.
@@ -43,7 +44,7 @@ export default function App() {
   const lastTickMsRef = useRef(0);
   const prevKnobPxRef = useRef(0);
 
-  const current = Math.max(0, Math.min(9, Math.round(progress)));
+  const current = Math.max(0, Math.min(MAX_INDEX, Math.round(progress)));
 
   const measure = useCallback(() => {
     const track = trackRef.current;
@@ -197,7 +198,7 @@ export default function App() {
   }, [applyTransformsPx, pxToProgress]);
 
   const goTo = useCallback((index: number) => {
-    const clamped = Math.max(0, Math.min(9, index));
+    const clamped = Math.max(0, Math.min(MAX_INDEX, index));
     targetPxRef.current = pxFromProgress(clamped);
   }, [pxFromProgress]);
 
@@ -394,6 +395,8 @@ export default function App() {
           <Slider
             progress={progress}
             current={current}
+            count={SLIDE_COUNT}
+            labels={['Intro', ...PROJECTS.map((p) => p.title)]}
             onJump={goTo}
             onScrub={(fraction) => { heldRef.current = true; setProgressDirect(fraction); }}
             onScrubEnd={() => { heldRef.current = false; scheduleSnap(); }}

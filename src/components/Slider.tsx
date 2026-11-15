@@ -3,20 +3,24 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { clickSound, initAudio } from '../audio';
 
 interface Props {
-  /** Continuous slide position, 0 (intro) through 9 (last project). */
+  /** Continuous slide position, 0 (intro) through count-1 (last project). */
   progress: number;
   current: number;
+  /** Total slides: 1 intro + one per project. */
+  count: number;
+  /** Slide names for aria labels, index 0 is the intro. */
+  labels: string[];
   onJump: (index: number) => void;
   onScrub: (fraction: number) => void;
   onScrubEnd: () => void;
 }
 
-const LABELS = ['Intro', 'AI Agent Builder', 'People of Bengaluru', 'Tapaway', 'Quote Builder', 'Designfolio', 'Onboarding', 'Soul Design System', 'Damnnnn', 'Gamified LMS'];
-
-export default function Slider({ progress, current, onJump, onScrub, onScrubEnd }: Props) {
+export default function Slider({ progress, current, count, labels, onJump, onScrub, onScrubEnd }: Props) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  /** Last slide index; guarded so a single-slide list never divides by zero. */
+  const max = Math.max(1, count - 1);
 
   const fractionFromClientX = (clientX: number) => {
     const rail = railRef.current;
@@ -28,7 +32,7 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
 
   // et(): knob position mapped to -1..1 for stereo pan.
   const pan = () => {
-    const f = Math.max(0, Math.min(1, progress / 9));
+    const f = Math.max(0, Math.min(1, progress / max));
     return f * 2 - 1;
   };
 
@@ -62,7 +66,7 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
       initAudio();
-      onJump(Math.min(9, current + 1));
+      onJump(Math.min(count - 1, current + 1));
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
       initAudio();
@@ -74,11 +78,11 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
     } else if (e.key === 'End') {
       e.preventDefault();
       initAudio();
-      onJump(9);
+      onJump(count - 1);
     } else if (e.key === 'PageDown') {
       e.preventDefault();
       initAudio();
-      onJump(Math.min(9, current + 1));
+      onJump(Math.min(count - 1, current + 1));
     } else if (e.key === 'PageUp') {
       e.preventDefault();
       initAudio();
@@ -86,7 +90,7 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
     }
   };
 
-  const fraction = Math.max(0, Math.min(1, progress / 9));
+  const fraction = Math.max(0, Math.min(1, progress / max));
 
   return (
     <div
@@ -98,7 +102,7 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(fraction * 100)}
-      aria-valuetext={LABELS[current] ?? 'Intro'}
+      aria-valuetext={labels[current] ?? 'Intro'}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endScrub}
@@ -114,19 +118,19 @@ export default function Slider({ progress, current, onJump, onScrub, onScrubEnd 
         </div>
       </div>
       <div className="slider-stops">
-        {Array.from({ length: 10 }, (_, i) => (
+        {Array.from({ length: count }, (_, i) => (
           <button
             key={i}
             type="button"
             className="slider-stop"
             data-on={i === current ? '' : undefined}
-            style={{ left: `${(i / 9) * 100}%` }}
+            style={{ left: `${(i / max) * 100}%` }}
             onClick={(e) => {
               e.stopPropagation();
               initAudio();
               onJump(i);
             }}
-            aria-label={`Go to ${LABELS[i]}`}
+            aria-label={`Go to ${labels[i]}`}
           >
             {String(i).padStart(2, '0')}
           </button>
