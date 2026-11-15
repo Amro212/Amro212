@@ -218,7 +218,7 @@ export default function ProjectDetail({ project, index, onClose, directLoad }: P
   const scrollRef = useRef<HTMLDivElement>(null);
   const pushedRef = useRef(false);
   const popClosedRef = useRef(false);
-  const slug = project.href.replace('/projects/', '').replace(/\/$/, '') || project.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = project.slug ?? (project.href.replace('/projects/', '').replace(/\/$/, '') || project.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
   const detail = PROJECT_DETAILS[slug];
   const headline = detail?.headline ?? project.title;
   const summary = detail?.summary ?? '';
@@ -230,7 +230,7 @@ export default function ProjectDetail({ project, index, onClose, directLoad }: P
     document.documentElement.dataset.project = 'open';
     document.documentElement.dataset.projectMotion = '';
     const prevTitle = document.title;
-    document.title = `${project.title} case study | Shai Krishna`;
+    document.title = `${project.title} case study | Amro Abed Moosa`;
     try {
       if (!history.state || history.state.pv !== index) {
         history.pushState({ pv: index }, '', `/projects/${slug}`);

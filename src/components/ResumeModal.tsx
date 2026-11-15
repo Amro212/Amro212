@@ -2,9 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clickSound, initAudio } from '../audio';
 
-const RESUME_PDF = 'https://www.designengineer.fyi/resume/shai-resume.pdf';
-const RESUME_IMG = 'https://www.designengineer.fyi/resume/shai-resume.png';
-const PORTFOLIO_URL = 'https://shai-portfolio-eta.vercel.app/';
+// No hosted resume PDF exists for Amro (verified Nov 15, 2026: no
+// resume/cv file in the old tree bf2295d, and every candidate URL on
+// https://itsamro.me/ returns 404). Until one is hosted, the modal's
+// primary action sends visitors to his LinkedIn instead. Do not invent
+// a resume URL here; add a real hosted PDF and restore the viewer then.
+const LINKEDIN_URL = 'https://www.linkedin.com/in/amro-abedmoosa';
 
 interface Props {
   from: DOMRect;
@@ -16,7 +19,6 @@ export default function ResumeModal({ from, home, onClose }: Props) {
   const windowRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const prevFocus = useRef<Element | null>(null);
-  const [zoom, setZoom] = useState(1);
   const [sheet, setSheet] = useState(false);
   const dragRef = useRef<{ y: number; t: number; dy: number } | null>(null);
 
@@ -104,16 +106,10 @@ export default function ResumeModal({ from, home, onClose }: Props) {
     else onClose();
   };
 
-  // Escape (capture, wins over the contact menu) + zoom keys + Tab trap.
+  // Escape (capture, wins over the contact menu) + Tab trap.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); return; }
-      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+' || e.key === '-')) {
-        e.preventDefault();
-        setZoom((z) => Math.min(3, Math.max(1, z + (e.key === '-' ? -0.25 : 0.25))));
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); setZoom(1); return; }
       if (e.key === 'Tab') {
         const win = windowRef.current;
         if (!win) return;
@@ -128,22 +124,6 @@ export default function ResumeModal({ from, home, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [home]);
-
-  // Ctrl/meta + wheel zoom, anchored at the pointer.
-  const onWheel = (e: React.WheelEvent) => {
-    if (!(e.ctrlKey || e.metaKey)) return;
-    e.preventDefault();
-    const body = bodyRef.current;
-    if (!body) return;
-    const rect = body.getBoundingClientRect();
-    const px = e.clientX - rect.left; const py = e.clientY - rect.top;
-    const old = zoom;
-    const next = Math.min(3, Math.max(1, old - Math.sign(e.deltaY) * 0.25));
-    if (next === old) return;
-    setZoom(next);
-    body.scrollLeft += (px + body.scrollLeft) * (next / old - 1);
-    body.scrollTop += (py + body.scrollTop) * (next / old - 1);
-  };
 
   // Sheet drag-to-dismiss.
   const onSheetPointerDown = (e: React.PointerEvent) => {
@@ -171,8 +151,6 @@ export default function ResumeModal({ from, home, onClose }: Props) {
     }
   };
 
-  const pct = Math.round(zoom * 100);
-
   return createPortal(
     <div className="rs" data-mode={sheet ? 'sheet' : 'window'}>
       <div className="rs-backdrop" onClick={close} />
@@ -190,18 +168,15 @@ export default function ResumeModal({ from, home, onClose }: Props) {
             </button>
             <span className="rs-title">Resume</span>
             <div className="rs-actions">
-              <button type="button" className="rs-action" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.25))} aria-label="Zoom out">−</button>
-              <button type="button" className="rs-action rs-zoom-pct" onClick={() => setZoom(1)} aria-label="Reset zoom">{pct}%</button>
-              <button type="button" className="rs-action" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in">+</button>
-              <a className="rs-action" href={RESUME_PDF} download="Shai-Krishna-Resume.pdf" aria-label="Download PDF">download</a>
-              <a className="rs-action" href={RESUME_PDF} target="_blank" rel="noopener noreferrer" aria-label="Open PDF">open pdf</a>
+              <a className="rs-action" href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" aria-label="View Amro Abed Moosa on LinkedIn">view on linkedin</a>
             </div>
           </div>
         )}
-        <div className="rs-body" ref={bodyRef} data-zoomed={zoom > 1 ? '' : undefined} onWheel={onWheel} onDoubleClick={() => setZoom((z) => (z === 1 ? 2 : 1))}>
-          <div className="rs-page" style={{ width: `${zoom * 100}%` }}>
-            <img src={RESUME_IMG} alt="Shai Krishna's resume" width={3600} height={4659} />
-            <a className="rs-page-link" href={PORTFOLIO_URL} target="_blank" rel="noopener noreferrer" aria-label="View my portfolio" />
+        <div className="rs-body" ref={bodyRef}>
+          <div className="rs-page rs-page-linkedin">
+            <p>Amro Abed Moosa&rsquo;s resume isn&rsquo;t hosted here yet.</p>
+            <p>See his full experience and background on LinkedIn.</p>
+            <a className="rs-action" href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer">view on linkedin</a>
           </div>
         </div>
       </div>

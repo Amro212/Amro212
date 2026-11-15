@@ -170,9 +170,7 @@ export default function Hero() {
         </button>
         <div>
           <h1 className="name">{HERO.name}</h1>
-          <p className="tagline">
-            Staff Product Designer &amp; <span className="nowrap">Design Engineer</span>
-          </p>
+          <p className="tagline">{HERO.tagline}</p>
         </div>
       </header>
 

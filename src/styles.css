@@ -1,21 +1,47 @@
-/* Clone stylesheet — visual rebuild of designengineer.fyi (phase 1).
-   Values (colors, sizes, spacing, shadows) were reverse-engineered from the
-   original site's computed styles. All content is placeholder (see
-   src/data/clone.ts) and gets replaced in phase 2. */
+/* Portfolio stylesheet. Fonts are Geist (sans + mono) via Fontsource on
+   jsDelivr. Sans uses static weights; mono uses the variable file. */
 
 @font-face {
   font-family: Geist;
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 100;
   font-display: swap;
-  src: url(https://www.designengineer.fyi/_next/static/immutable/media/caa3a2e1cccd8315-s.p.0zr6hhvz-h9nw.woff2) format("woff2");
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-100-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-400-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-500-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-600-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-700-normal.woff2) format("woff2");
 }
 @font-face {
   font-family: "Geist Mono";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url(https://www.designengineer.fyi/_next/static/immutable/media/797e433ab948586e-s.p.1v5bejj26fx9h.woff2) format("woff2");
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.2.5/files/geist-mono-latin-wght-normal.woff2) format("woff2-variations");
 }
 
 :root {
@@ -447,8 +473,8 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   bottom: calc(22px + env(safe-area-inset-bottom));
   z-index: 2;
   width: var(--slider-w);
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: auto;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -456,7 +482,6 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   position: fixed;
   transform: translate(-50%);
 }
-.slider[data-active] { cursor: grabbing; }
 .slider:focus-visible { outline: none; }
 .slider:focus-visible .slider-well {
   outline: 1px solid var(--text-muted);

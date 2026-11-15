@@ -1,9 +1,7 @@
-// PLACEHOLDER CONTENT — PHASE 1 CLONE
-// Everything in this file is copied from designengineer.fyi (Shai Krishna's
-// portfolio) purely as design-reference placeholder content for the clone.
-// It is NOT Amro's content. Phase 2 (separate step) replaces every entry
-// here with Amro's own name, roles, experience, and projects. Nothing in
-// this file should ever ship as the live portfolio's real content.
+// AMRO'S CONTENT — PHASE 2 PERSONALIZATION
+// Everything in this file is Amro Abed Moosa's own name, roles,
+// experience, and projects. The Phase 1 placeholder content from
+// the original clone source has been replaced.
 
 export interface ExperienceEntry {
   company: string;
@@ -14,58 +12,54 @@ export interface ExperienceEntry {
 
 export const HERO = {
   name: 'Amro Abed Moosa',
-  tagline: 'Staff Product Designer & Design Engineer',
+  tagline: 'Computer Engineer',
   bio: [
     { text: 'I ', pill: null },
-    { text: 'design products', pill: 'design' },
-    { text: ', ', pill: null },
-    { text: 'write code', pill: 'code' },
-    { text: ', and occasionally build things with ', pill: null },
-    { text: 'AI', pill: 'ai' },
-    { text: ' that nobody asked for.', pill: null },
+    { text: 'build tools', pill: 'code' },
+    { text: ' that take the boring work off your plate, and I like showing people how they work.', pill: null },
   ] as { text: string; pill: 'design' | 'code' | 'ai' | null }[],
-  experienceFooter: '5 companies · since 2018',
+  experienceFooter: '5 companies · since 2024',
 };
 
 export const EXPERIENCE: ExperienceEntry[] = [
   {
-    company: 'servicenow',
-    role: 'staff product designer, ai',
-    dates: 'mar 2026 - sep 2026',
-    duration: '7 mos',
+    company: 'Sandbox Software Solutions',
+    role: 'Software Developer Intern',
+    dates: 'sep 2025 - dec 2025',
+    duration: '4 mos',
   },
   {
-    company: 'sense',
-    role: 'staff product designer, ai & new initiatives',
-    dates: 'jul 2024 - mar 2026',
-    duration: '1 yr 9 mos',
+    company: 'County of Dufferin',
+    role: 'IT Technician',
+    dates: 'apr 2025 - sep 2025',
+    duration: '6 mos',
   },
   {
-    company: 'freshworks',
-    role: 'lead product designer, crm (freshsales)',
-    dates: 'dec 2023 - jul 2024',
-    duration: '8 mos',
+    company: 'University of Guelph',
+    role: 'Web Dev & IT Support Coordinator',
+    dates: 'jun 2024 - sep 2024',
+    duration: '4 mos',
   },
   {
-    company: 'mycaptain',
-    role: 'head of design',
-    dates: 'nov 2022 - sep 2023',
-    duration: '11 mos',
+    company: 'Outlier',
+    role: 'Coding Expert',
+    dates: 'jan 2024 - sep 2024',
+    duration: '9 mos',
   },
   {
-    company: 'alfheimr.tech',
-    role: 'lead product designer / founder (acquired)',
-    dates: 'oct 2018 - nov 2022',
-    duration: '4 yrs 2 mos',
+    company: 'Camis',
+    role: 'QA Analyst',
+    dates: 'jan 2024 - may 2024',
+    duration: '5 mos',
   },
 ];
 
 export const EXPERIENCE_ARIA_LABEL =
-  'Experience: staff product designer, ai at servicenow, mar 2026 to sep 2026; ' +
-  'staff product designer, ai & new initiatives at sense, jul 2024 to mar 2026; ' +
-  'lead product designer, crm (freshsales) at freshworks, dec 2023 to jul 2024; ' +
-  'head of design at mycaptain, nov 2022 to sep 2023; ' +
-  'lead product designer / founder (acquired) at alfheimr.tech, oct 2018 to nov 2022';
+  'Experience: Software Developer Intern at Sandbox Software Solutions, sep 2025 to dec 2025; ' +
+  'IT Technician at County of Dufferin, apr 2025 to sep 2025; ' +
+  'Web Dev & IT Support Coordinator at University of Guelph, jun 2024 to sep 2024; ' +
+  'Coding Expert at Outlier, jan 2024 to sep 2024; ' +
+  'QA Analyst at Camis, jan 2024 to may 2024';
 
 export interface CloneProject {
   title: string;
@@ -73,98 +67,50 @@ export interface CloneProject {
   href: string;
   external: boolean;
   eyebrow?: string;
+  /** Internal case-study route (/projects/<slug>). External projects with
+   * a slug open the viewer on click; external projects without one are
+   * plain outbound links. */
+  slug?: string;
   media: { type: 'video'; poster: string; mp4: string; av1?: string } | { type: 'image'; src: string; alt: string };
 }
 
 export const PROJECTS: CloneProject[] = [
   {
-    title: 'AI Agent Builder',
-    kind: 'Sense',
-    href: '/projects/ai-agent-builder',
-    external: false,
-    media: {
-      type: 'video',
-      poster: 'https://www.designengineer.fyi/projects/sense/thumb-loop-poster.jpg',
-      mp4: 'https://www.designengineer.fyi/projects/sense/thumb-loop.mp4',
-      av1: 'https://www.designengineer.fyi/projects/sense/thumb-loop.av1.mp4',
-    },
-  },
-  {
-    title: 'People of Bengaluru',
-    kind: 'built with Claude',
-    href: 'https://peopleofbengaluru.com/',
+    title: 'Kareer',
+    kind: 'Open Source',
+    href: 'https://kareer.itsamro.me/',
     external: true,
-    eyebrow: '~/live · things nobody asked for',
-    media: {
-      type: 'video',
-      poster: 'https://www.designengineer.fyi/projects/vibecoded/people-of-bengaluru-poster.jpg',
-      mp4: 'https://www.designengineer.fyi/projects/vibecoded/people-of-bengaluru.mp4',
-      av1: 'https://www.designengineer.fyi/projects/vibecoded/people-of-bengaluru.av1.mp4',
-    },
+    slug: 'kareer',
+    media: { type: 'image', src: 'https://kareer.itsamro.me/assets/kareer-social-preview.png', alt: 'Kareer' },
   },
   {
-    title: 'Tapaway',
-    kind: 'built with Claude',
-    href: 'https://tapaway.today/',
+    title: 'Syllabus Sync',
+    kind: 'iOS App',
+    href: 'https://github.com/Amro212/Syllabus-Sync',
     external: true,
-    eyebrow: '~/live · things nobody asked for',
-    media: {
-      type: 'video',
-      poster: 'https://www.designengineer.fyi/projects/vibecoded/tapaway-poster.jpg',
-      mp4: 'https://www.designengineer.fyi/projects/vibecoded/tapaway.mp4',
-    },
+    slug: 'syllabus-sync',
+    media: { type: 'image', src: 'https://itsamro.me/project-previews/syllabus/syllabus1.png', alt: 'Syllabus Sync' },
   },
   {
-    title: 'Quote Builder',
-    kind: 'Freshworks',
-    href: '/projects/quote-builder',
-    external: false,
-    media: {
-      type: 'video',
-      poster: 'https://www.designengineer.fyi/projects/quote-builder/thumb-loop-poster.jpg',
-      mp4: 'https://www.designengineer.fyi/projects/quote-builder/thumb-loop.mp4',
-      av1: 'https://www.designengineer.fyi/projects/quote-builder/thumb-loop.av1.mp4',
-    },
+    title: 'Sahara',
+    kind: 'Automation',
+    href: 'https://github.com/Amro212/JobAutomation',
+    external: true,
+    slug: 'sahara',
+    media: { type: 'image', src: 'https://itsamro.me/project-previews/sahara/sahara1.png', alt: 'Sahara' },
   },
   {
-    title: 'Designfolio',
-    kind: 'Founder',
-    href: '/projects/designfolio',
-    external: false,
-    media: { type: 'image', src: 'https://www.designengineer.fyi/projects/designfolio/thumb.webp', alt: 'Designfolio' },
-  },
-  {
-    title: 'Onboarding',
-    kind: 'MyCaptain',
-    href: '/projects/mycaptain-onboarding',
-    external: false,
-    media: { type: 'image', src: 'https://www.designengineer.fyi/projects/mycaptain/thumb.webp', alt: 'Onboarding' },
-  },
-  {
-    title: 'Soul Design System',
-    kind: 'MyCaptain',
-    href: '/projects/soul-design-system',
-    external: false,
-    media: { type: 'image', src: 'https://www.designengineer.fyi/projects/soul-design-system/thumb.webp', alt: 'Soul Design System' },
-  },
-  {
-    title: 'Damnnnn',
-    kind: 'Founder',
-    href: '/projects/damnnnn',
-    external: false,
-    media: { type: 'image', src: 'https://www.designengineer.fyi/projects/damnnnn/thumb.webp', alt: 'Damnnnn' },
-  },
-  {
-    title: 'Gamified LMS',
-    kind: 'MyCaptain',
-    href: '/projects/gamification',
-    external: false,
-    media: { type: 'image', src: 'https://www.designengineer.fyi/projects/gamification/thumb.webp', alt: 'Gamified LMS' },
+    title: 'LEGEND Community',
+    kind: 'Community',
+    href: 'https://legend.guru',
+    external: true,
+    slug: 'legend-community',
+    media: { type: 'image', src: 'https://itsamro.me/project-previews/legend/legend1.png', alt: 'LEGEND Community' },
   },
 ];
 
 export const CONTACT = {
-  email: 'heyfromshai@gmail.com',
-  linkedin: 'https://www.linkedin.com/in/shaiii/',
-  mentorship: 'https://topmate.io/shai',
+  email: 'amromousa8@gmail.com',
+  linkedin: 'https://www.linkedin.com/in/amro-abedmoosa/',
+  github: 'https://github.com/Amro212',
 };

@@ -141,13 +141,15 @@ export default function ProjectCard({ project, index, offsetPx, pitch, active, o
         </span>
         <span className="card-kind" data-mini="text">
           {project.kind}
-          {project.external ? <ExternalArrow /> : null}
+          {project.external && !project.slug ? <ExternalArrow /> : null}
         </span>
       </span>
     </span>
   );
 
-  if (project.external) {
+  // External projects with a case-study slug open the viewer in place;
+  // external projects without one stay plain outbound links.
+  if (project.external && !project.slug) {
     return (
       <a
         className="card"
