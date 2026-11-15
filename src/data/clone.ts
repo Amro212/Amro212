@@ -89,7 +89,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/Syllabus-Sync',
     external: true,
     slug: 'syllabus-sync',
-    media: { type: 'image', src: 'https://itsamro.me/project-previews/syllabus/syllabus1.png', alt: 'Syllabus Sync' },
+    media: { type: 'image', src: '/project-previews/syllabus/syllabus1.png', alt: 'Syllabus Sync' },
   },
   {
     title: 'Sahara',
@@ -97,7 +97,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/JobAutomation',
     external: true,
     slug: 'sahara',
-    media: { type: 'image', src: 'https://itsamro.me/project-previews/sahara/sahara1.png', alt: 'Sahara' },
+    media: { type: 'image', src: '/project-previews/sahara/sahara1.png', alt: 'Sahara' },
   },
   {
     title: 'LEGEND',

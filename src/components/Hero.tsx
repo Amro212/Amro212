@@ -124,7 +124,7 @@ export default function Hero() {
 
   // Build the tree lines. Each line renders as its own block span so rows
   // stay clickable while the whole block reads as one <pre>.
-  type Line = { text: string; row?: number; blank?: boolean };
+  type Line = { text: string; row?: number };
   const lines: Line[] = [{ text: '~/experience' }];
   EXPERIENCE.forEach((entry, i) => {
     const isLast = i === EXPERIENCE.length - 1;
@@ -138,9 +138,7 @@ export default function Hero() {
       lines.push({ text: `${branch}── ${entry.company}/ +`, row: i });
     }
   });
-  lines.push({ text: ' ', blank: true });
-  lines.push({ text: ' ', blank: true });
-  lines.push({ text: ' ', blank: true });
+  lines.push({ text: ' ' });
   lines.push({ text: HERO.experienceFooter });
 
   return (

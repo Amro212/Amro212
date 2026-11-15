@@ -43,24 +43,52 @@ export default function App() {
 
   const current = Math.max(0, Math.min(MAX_INDEX, Math.round(progress)));
 
+  // Track px for a slide position, clamped to the last card's centre.
+  const pxFromProgress = useCallback((s: number) => {
+    const { firstStep, pitch, maxPx } = geomRef.current;
+    const px = s <= 1 ? s * firstStep : firstStep + (s - 1) * pitch;
+    return Math.max(0, Math.min(maxPx, px));
+  }, []);
+
+  const pxToProgress = useCallback((px: number) => {
+    const { firstStep, pitch } = geomRef.current;
+    const progress = px <= firstStep ? px / firstStep : 1 + (px - firstStep) / pitch;
+    return Math.max(0, Math.min(MAX_INDEX, progress));
+  }, []);
+
   const measure = useCallback(() => {
     const track = trackRef.current;
     if (!track) return;
     const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-card]'));
     if (cards.length === 0) return;
     const vw = window.innerWidth;
-    const first = cards[0];
-    const firstStep = first.offsetLeft + first.offsetWidth / 2 - vw / 2;
-    const pitch = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : first.offsetWidth;
+    // DOMRects retain subpixel widths; offsetLeft/offsetWidth round each
+    // card independently and accumulate drift between numbered stops.
+    // The resume overlay scales the page; measure in its unscaled space.
+    const pageScale = track.parentElement!.getBoundingClientRect().width / vw;
+    const trackLeft = track.getBoundingClientRect().left;
+    const first = cards[0].getBoundingClientRect();
+    const firstStep = (first.left - trackLeft + first.width / 2) / pageScale - vw / 2;
+    const pitch = (cards.length > 1 ? cards[1].getBoundingClientRect().left - first.left : first.width) / pageScale;
     // Max scroll centers the last card exactly. The original clamps to
     // track width - viewport, which leaves its last card 80 px right of
     // centre; this site centers every slide symmetrically instead.
-    const last = cards[cards.length - 1];
-    const maxPx = Math.max(0, last.offsetLeft + last.offsetWidth / 2 - vw / 2);
+    const last = cards[cards.length - 1].getBoundingClientRect();
+    const maxPx = Math.max(0, (last.left - trackLeft + last.width / 2) / pageScale - vw / 2);
+    // Rebase both springs through logical slide positions before changing geometry.
+    const position = pxToProgress(pxRef.current);
+    const target = pxToProgress(targetPxRef.current);
+    const knobFraction = railWidthRef.current ? knobPxRef.current / railWidthRef.current : 0;
     geomRef.current = { firstStep, pitch, maxPx };
+    pxRef.current = pxFromProgress(position);
+    targetPxRef.current = pxFromProgress(target);
+    pxVelRef.current = 0;
+    knobVelocityRef.current = 0;
+    setProgress(position);
     const rail = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-rail');
     if (rail) railWidthRef.current = rail.getBoundingClientRect().width;
-  }, []);
+    knobPxRef.current = knobFraction * railWidthRef.current;
+  }, [pxFromProgress, pxToProgress]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -88,16 +116,6 @@ export default function App() {
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure).catch(() => undefined);
     installAudioUnlock();
-    // Deep link: a fresh load of /projects/<slug> opens the viewer,
-    // like the original's real detail routes.
-    const m = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
-    if (m) {
-      const idx = PROJECTS.findIndex((p) => p.slug === m[1] || (!p.external && p.href === `/projects/${m[1]}`));
-      if (idx >= 0) {
-        setDirectProjectLoad(true);
-        setOpenProject(idx);
-      }
-    }
     return () => {
       cancelled = true;
       window.clearTimeout(fontTimeout);
@@ -106,18 +124,6 @@ export default function App() {
       window.removeEventListener('resize', measure);
     };
   }, [measure]);
-
-  // Track px for a slide position, clamped to the last card's centre.
-  const pxFromProgress = useCallback((s: number) => {
-    const { firstStep, pitch, maxPx } = geomRef.current;
-    const px = s <= 1 ? s * firstStep : firstStep + (s - 1) * pitch;
-    return Math.max(0, Math.min(maxPx, px));
-  }, []);
-
-  const pxToProgress = useCallback((px: number) => {
-    const { firstStep, pitch } = geomRef.current;
-    return px <= firstStep ? px / firstStep : 1 + (px - firstStep) / pitch;
-  }, []);
 
   const stopPxList = useCallback(() => {
     const stops: number[] = [];
@@ -189,8 +195,7 @@ export default function App() {
       applyTransformsPx(px);
       // Knob position in rail px (0..railWidth), step = railWidth/40.
       const railW = railWidthRef.current || 1;
-      const maxPx = geomRef.current.maxPx || 1;
-      const knobTarget = (target / maxPx) * railW;
+      const knobTarget = (pxToProgress(target) / MAX_INDEX) * railW;
       let knobPx = knobPxRef.current;
       let knobVel = knobVelocityRef.current;
       const knobK = 420;
@@ -225,7 +230,7 @@ export default function App() {
       const nStep = Math.round(knobPx / stepPx);
       if (nStep !== lastKnobStepRef.current) {
         lastKnobStepRef.current = nStep;
-        const stopSteps = new Set(stopPxList().map((s) => Math.round((s / maxPx) * 40)));
+        const stopSteps = new Set(Array.from({ length: SLIDE_COUNT }, (_, i) => Math.round((i / MAX_INDEX) * 40)));
         if (nStep >= 0 && nStep <= 40 && stopSteps.has(nStep)) {
           lastTickMsRef.current = now;
           snapTick(Math.abs(knobVel), pan);
@@ -264,12 +269,12 @@ export default function App() {
 
   const onScrub = useCallback((fraction: number) => {
     window.clearTimeout(snapTimer.current);
-    targetPxRef.current = fraction * geomRef.current.maxPx;
-  }, []);
+    targetPxRef.current = pxFromProgress(fraction * MAX_INDEX);
+  }, [pxFromProgress]);
 
   const onScrubEnd = useCallback((fraction: number) => {
-    targetPxRef.current = nearestStopPx(fraction * geomRef.current.maxPx);
-  }, [nearestStopPx]);
+    targetPxRef.current = nearestStopPx(pxFromProgress(fraction * MAX_INDEX));
+  }, [nearestStopPx, pxFromProgress]);
 
   const scheduleSnap = useCallback(() => {
     window.clearTimeout(snapTimer.current);
@@ -288,7 +293,7 @@ export default function App() {
     }, 180);
   }, [nearestStopPx]);
 
-  const closeProject = useCallback(() => {
+  const clearProject = useCallback(() => {
     setOpenProject((cur) => {
       if (cur !== null) {
         window.setTimeout(() => {
@@ -299,8 +304,38 @@ export default function App() {
     });
   }, []);
 
+  // Keep route state synchronized even while the detail viewer is unmounted.
+  useEffect(() => {
+    const syncProject = (fromHistory: boolean) => {
+      const match = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
+      const index = match ? PROJECTS.findIndex((project) => project.slug === match[1]) : -1;
+      if (index >= 0) {
+        setDirectProjectLoad(!fromHistory);
+        setOpenProject(index);
+      } else {
+        clearProject();
+      }
+    };
+    syncProject(false);
+    const onPop = () => syncProject(true);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [clearProject]);
+
+  const closeProject = useCallback(() => {
+    if (history.state?.pv != null) {
+      history.back();
+    } else {
+      // Fresh deep links have no portfolio entry to return to.
+      history.replaceState(null, '', '/');
+      clearProject();
+    }
+  }, [clearProject]);
+
   const openProjectAt = useCallback((index: number) => {
     initAudio();
+    history.pushState({ pv: index }, '', `/projects/${PROJECTS[index].slug}`);
+    setDirectProjectLoad(false);
     setOpenProject(index);
   }, []);
 
@@ -329,7 +364,7 @@ export default function App() {
     if (resumeReq || openProject !== null) return;
     if ((e.target as HTMLElement).closest('.contact')) return;
     const layer = introLayerRef.current;
-    if (layer && Math.abs(e.deltaY) > Math.abs(e.deltaX) && layer.scrollHeight > layer.clientHeight + 4) {
+    if (layer && pxRef.current < 1 && Math.abs(e.deltaY) > Math.abs(e.deltaX) && layer.scrollHeight > layer.clientHeight + 4) {
       const atTop = layer.scrollTop <= 0 && e.deltaY < 0;
       const atBottom = layer.scrollTop + layer.clientHeight >= layer.scrollHeight - 1 && e.deltaY > 0;
       if (!atTop && !atBottom) return;
@@ -497,7 +532,7 @@ export default function App() {
         <ResumeModal from={resumeReq.from} home={resumeReq.home} onClose={() => setResumeReq(null)} />
       ) : null}
       {openProject !== null ? (
-        <ProjectDetail project={PROJECTS[openProject]} index={openProject} onClose={closeProject} directLoad={directProjectLoad} />
+        <ProjectDetail key={openProject} project={PROJECTS[openProject]} index={openProject} onClose={closeProject} directLoad={directProjectLoad} />
       ) : null}
     </>
   );

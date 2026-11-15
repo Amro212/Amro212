@@ -22,8 +22,13 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
   const dragRef = useRef<{ id: number; offset: number; fraction: number; isTouch?: boolean; samples: { t: number; p: number }[] } | null>(null);
 
   const getKnobFraction = useCallback(() => {
-    return Math.max(0, Math.min(1, progress / max));
-  }, [progress, max]);
+    const rail = railRef.current;
+    const knob = knobRef.current;
+    if (!rail || !knob || !rail.clientWidth) return 0;
+    const railRect = rail.getBoundingClientRect();
+    const knobRect = knob.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (knobRect.left + knobRect.width / 2 - railRect.left) / railRect.width));
+  }, []);
 
   const pan = useCallback(() => {
     return Math.max(-1, Math.min(1, getKnobFraction() * 2 - 1));
@@ -67,6 +72,7 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
 
   // Pointer event handlers (desktop mouse + fallback)
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('.slider-stop')) return;
     if (e.button !== 0 || !e.isPrimary || dragRef.current) return;
     if (e.pointerType === 'touch') return;
     const rail = railRef.current;
@@ -116,6 +122,7 @@ export default function Slider({ progress, current, count, labels, onJump, onScr
 
   // Dedicated touch event handlers for rock-solid mobile performance
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('.slider-stop')) return;
     if (e.touches.length !== 1 || dragRef.current) return;
     const rail = railRef.current;
     if (!rail || !rail.clientWidth) return;

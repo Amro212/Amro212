@@ -212,7 +212,7 @@ export default function ContactMenu({ onOpenResume }: { onOpenResume: (from: DOM
 
   // Escape + outside-click (stand down while the resume modal is open).
   useEffect(() => {
-    if (!open) return;
+    if (phase !== 'open') return;
     const onPointerDown = (e: PointerEvent) => {
       if (document.documentElement.dataset.resume === 'open') return;
       if (navRef.current && !navRef.current.contains(e.target as Node)) closeMenu(false);
@@ -230,7 +230,7 @@ export default function ContactMenu({ onOpenResume }: { onOpenResume: (from: DOM
       document.removeEventListener('keydown', onKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [phase]);
 
   // Global L/R/C/G shortcuts, from anywhere on the page.
   useEffect(() => {

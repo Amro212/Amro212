@@ -216,8 +216,6 @@ interface Props {
 
 export default function ProjectDetail({ project, index, onClose, directLoad }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pushedRef = useRef(false);
-  const popClosedRef = useRef(false);
   const slug = project.slug ?? (project.href.replace('/projects/', '').replace(/\/$/, '') || project.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
   const detail = PROJECT_DETAILS[slug];
   const headline = detail?.headline ?? project.title;
@@ -231,17 +229,9 @@ export default function ProjectDetail({ project, index, onClose, directLoad }: P
     document.documentElement.dataset.projectMotion = '';
     const prevTitle = document.title;
     document.title = `${project.title} case study | Amro Abed Moosa`;
-    try {
-      if (!history.state || history.state.pv !== index) {
-        history.pushState({ pv: index }, '', `/projects/${slug}`);
-        pushedRef.current = true;
-      }
-    } catch { /* ignore */ }
     const t = window.setTimeout(() => { delete document.documentElement.dataset.projectMotion; }, 900);
     const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    const onPop = () => { popClosedRef.current = true; onClose(); };
     document.addEventListener('keydown', onKey);
-    window.addEventListener('popstate', onPop);
     // Direct load (fresh /projects/<slug>): the original serves a static
     // page with everything revealed (data-revealed), so reveal all blocks
     // at once instead of waiting for a scroll.
@@ -264,16 +254,7 @@ export default function ProjectDetail({ project, index, onClose, directLoad }: P
       delete document.documentElement.dataset.projectMotion;
       document.title = prevTitle;
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('popstate', onPop);
       io.disconnect();
-      if (pushedRef.current && !popClosedRef.current) {
-        try {
-          // Direct load: there is no homepage entry to go back to, so
-          // replace the URL instead of navigating away from the site.
-          if (directLoad) history.replaceState(null, '', '/');
-          else history.back();
-        } catch { /* ignore */ }
-      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

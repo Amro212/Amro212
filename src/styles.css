@@ -67,6 +67,9 @@
   --slider-w: min(560px, 100vw - 32px);
   --card-w: min(var(--slider-w), (100vh - 270px) / 1.12);
   --card-gap: 64px;
+  --slider-bottom: 22px;
+  --slider-stops-h: 52px;
+  --slider-clearance: calc(var(--slider-bottom) + var(--well-h) + var(--slider-stops-h) + 24px + env(safe-area-inset-bottom));
   --well-h: 68px;
   --knob: 52px;
 }
@@ -188,10 +191,10 @@ html[data-project-motion] .page {
   transform-origin: 50%;
   will-change: transform, filter, opacity;
   place-items: safe center;
-  padding: 110px 16px 150px;
+  padding: calc(110px + env(safe-area-inset-top)) 16px 24px;
   display: grid;
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--slider-clearance);
   overflow-y: auto;
 }
 .intro-layer::-webkit-scrollbar { display: none; }
@@ -492,14 +495,14 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
 }
 .slider {
   left: 50%;
-  bottom: calc(22px + env(safe-area-inset-bottom));
+  bottom: calc(var(--slider-bottom) + env(safe-area-inset-bottom));
   z-index: 2;
   width: var(--slider-w);
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  padding-bottom: 34px;
+  padding-bottom: var(--slider-stops-h);
   position: fixed;
   transform: translate(-50%);
 }
@@ -541,7 +544,7 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   position: absolute;
 }
 .slider-rail { top: 0; bottom: 0; }
-.slider-stops { top: var(--well-h); height: 34px; }
+.slider-stops { top: var(--well-h); height: var(--slider-stops-h); }
 .slider-knob {
   z-index: 1;
   width: var(--knob);
@@ -1193,7 +1196,7 @@ html[data-intro="on"] .contact { visibility: hidden; }
   .pill-icon { width: 15px; height: 15px; }
   .tree { font-size: min(13.5px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 26px; }
   .intro-layer {
-    padding: calc(110px + env(safe-area-inset-top, 0px)) 24px calc(140px + env(safe-area-inset-bottom, 0px));
+    padding: calc(110px + env(safe-area-inset-top, 0px)) 24px 24px;
   }
   .intro {
     margin-top: calc(48px + env(safe-area-inset-top, 0px));
@@ -1202,10 +1205,10 @@ html[data-intro="on"] .contact { visibility: hidden; }
     --slider-w: min(560px, 100vw - 48px);
     --intro-gap: 48px;
     --card-gap: 16px;
+    --slider-bottom: 14px;
     --well-h: 60px;
     --knob: 46px;
   }
-  .slider { bottom: calc(14px + env(safe-area-inset-bottom)); }
 }
 @media (min-width: 1024px) {
   .name { font-size: 27px; }
