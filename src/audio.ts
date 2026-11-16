@@ -39,6 +39,11 @@ let musicStarting: Promise<boolean> | null = null;
  * explicitly instead of orphaning it when its cleanup timeout is
  * cancelled. */
 let musicStopping: { src: AudioBufferSourceNode; g: GainNode } | null = null;
+/** True once the loop has started at least once. The first start uses
+ * the slow 6s swell so the music eases in on first load; a resume
+ * after a pause uses a fast 0.8s fade instead, so it picks up quickly
+ * instead of replaying the whole intro swell. */
+let musicStartedOnce = false;
 /** Autoplay: armed by the player on mount so the loop starts on the
  * first user gesture. Browsers block sound before any gesture, so "on
  * by default" means the first tap, click, or keypress anywhere fades
@@ -292,12 +297,15 @@ export function startMusic(): Promise<boolean> {
     lp.Q.value = 0.7;
     const g = ctx.createGain();
     // Start faintly audible right away instead of from silence, then
-    // swell slowly to the target over 6s. A linear ramp from zero spends
-    // the first seconds inaudible, which is what made it feel like it
-    // took too long to start; the exponential swell stays audible the
-    // whole way up.
+    // swell to the target. The first start eases in slowly over 6s so
+    // the music fades in gently on first load; a resume after a pause
+    // picks up fast over 0.8s instead of replaying the whole intro
+    // swell. A linear ramp from zero spends the first seconds inaudible,
+    // which is what made it feel like it took too long to start; the
+    // exponential swell stays audible the whole way up.
+    const fadeSecs = musicStartedOnce ? 0.8 : 6;
     g.gain.setValueAtTime(0.01, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + 6);
+    g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + fadeSecs);
     src.connect(lp);
     lp.connect(g);
     // Reuse the synth's dry + wet send so the loop sits in the same room
@@ -307,6 +315,7 @@ export function startMusic(): Promise<boolean> {
     musicSrc = src;
     musicGainNode = g;
     musicPlaying = true;
+    musicStartedOnce = true;
     musicAutoplay = false;
     return true;
   })();
