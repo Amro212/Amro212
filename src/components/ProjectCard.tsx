@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { CloneProject } from '../data/clone';
 
@@ -22,11 +22,16 @@ function ExternalArrow() {
   );
 }
 
+// Match the reference's inexpensive card path on phones and coarse pointers.
+const lightweightCards = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(max-width: 640px), (pointer: coarse)')
+  : null;
+
 /** Original en() card styling from offset/pitch. Shared by the React
  * render (initial paint) and App's per-frame imperative pass, so the
  * blur/tilt track the spring instead of going stale between React
  * state updates. */
-export function cardBodyStyle(offsetPx: number, pitch: number): {
+export function cardBodyStyle(offsetPx: number, pitch: number, lightweight = lightweightCards?.matches ?? false): {
   transform: string;
   filter: string;
   shade: string;
@@ -39,30 +44,43 @@ export function cardBodyStyle(offsetPx: number, pitch: number): {
   const ae = Math.abs(e);
   const angle = Math.max(-34, Math.min(34, -22 * e));
   const translateZ = -(70 * Math.min(1.5, ae));
+  const transform = `perspective(1500px) translateZ(${translateZ.toFixed(1)}px) rotateY(${angle.toFixed(2)}deg)`;
+  if (lightweight) return { transform, filter: '', shade: '0', lift: '0', glint: '0.1', glintX: '50%', rim: '0.08' };
   const blur = 2.4 * Math.max(0, Math.min(1.4, ae) - 0.15);
   const s = (angle * Math.PI) / 180;
   const l = -0.5 * Math.sin(s) + 0.79 * Math.cos(s) - 0.79;
   return {
-    transform: `perspective(1500px) translateZ(${translateZ.toFixed(1)}px) rotateY(${angle.toFixed(2)}deg)`,
+    transform,
     filter: blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : '',
-    shade: Math.max(0, -(1.6 * l) + 0.12 * Math.min(1, ae)).toFixed(2),
-    lift: Math.max(0, 1.4 * l).toFixed(2),
-    glint: (0.1 + 0.16 * Math.max(0, 1 - Math.abs(angle + 8) / 30)).toFixed(2),
-    glintX: `${Math.max(0, Math.min(100, 50 - 2.4 * angle)).toFixed(1)}%`,
-    rim: (0.08 + 0.32 * Math.max(0, -angle / 34)).toFixed(2),
+    shade: Math.max(0, -(1.6 * l) + 0.12 * Math.min(1, ae)).toFixed(3),
+    lift: Math.max(0, 1.4 * l).toFixed(3),
+    glint: (0.1 + 0.16 * Math.max(0, 1 - Math.abs(angle + 8) / 30)).toFixed(3),
+    glintX: `${(50 - 2.4 * angle).toFixed(1)}%`,
+    rim: (0.08 + 0.32 * Math.max(0, -angle / 34)).toFixed(3),
   };
 }
 
-/** Apply the computed style to a live .card-body element. */
+const cardStyleCache = new WeakMap<HTMLElement, Map<string, string>>();
+function setCardStyle(el: HTMLElement, property: string, value: string) {
+  let cache = cardStyleCache.get(el);
+  if (!cache) { cache = new Map(); cardStyleCache.set(el, cache); }
+  if (cache.get(property) === value) return;
+  cache.set(property, value);
+  el.style.setProperty(property, value);
+}
+
+/** Apply the reference card styles, writing only properties whose values changed. */
 export function applyCardBodyStyle(el: HTMLElement, offsetPx: number, pitch: number) {
-  const s = cardBodyStyle(offsetPx, pitch);
-  el.style.transform = s.transform;
-  el.style.filter = s.filter;
-  el.style.setProperty('--shade', s.shade);
-  el.style.setProperty('--lift', s.lift);
-  el.style.setProperty('--glint', s.glint);
-  el.style.setProperty('--glint-x', s.glintX);
-  el.style.setProperty('--rim', s.rim);
+  const lightweight = lightweightCards?.matches ?? false;
+  const s = cardBodyStyle(offsetPx, pitch, lightweight);
+  setCardStyle(el, 'transform', s.transform);
+  setCardStyle(el, 'filter', s.filter);
+  // Empty values restore CSS defaults when a viewport or pointer breakpoint changes.
+  setCardStyle(el, '--shade', lightweight ? '' : s.shade);
+  setCardStyle(el, '--lift', lightweight ? '' : s.lift);
+  setCardStyle(el, '--glint', lightweight ? '' : s.glint);
+  setCardStyle(el, '--glint-x', lightweight ? '' : s.glintX);
+  setCardStyle(el, '--rim', lightweight ? '' : s.rim);
 }
 
 interface Props {
@@ -78,6 +96,11 @@ interface Props {
 
 export default function ProjectCard({ project, index, offsetPx, pitch, active, onCardClick }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bodyRef = useRef<HTMLSpanElement>(null);
+  // React can replace inline styles during a slide update; refresh the frame cache.
+  useLayoutEffect(() => {
+    if (bodyRef.current) cardStyleCache.delete(bodyRef.current);
+  });
 
   useEffect(() => {
     const video = videoRef.current;
@@ -97,7 +120,7 @@ export default function ProjectCard({ project, index, offsetPx, pitch, active, o
   const media = project.media;
   const reflectionSrc = media.type === 'video' ? media.poster : media.src;
 
-  const bodyStyle: CSSProperties = {
+  const bodyStyle: CSSProperties = lightweightCards?.matches ? { transform: cs.transform } : {
     transform: cs.transform,
     filter: cs.filter,
     // @ts-expect-error CSS custom properties for the card shading/glint
@@ -109,7 +132,7 @@ export default function ProjectCard({ project, index, offsetPx, pitch, active, o
   };
 
   const inner = (
-    <span className="card-body" style={bodyStyle}>
+    <span className="card-body" ref={bodyRef} style={bodyStyle}>
       {project.eyebrow ? <span className="card-eyebrow">{project.eyebrow}</span> : null}
       <span className="card-media">
         {media.type === 'video' ? (

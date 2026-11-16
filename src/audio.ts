@@ -18,14 +18,6 @@ let bed: {
   pan: StereoPannerNode;
 } | null = null;
 let unlocked = false;
-let outputPrimed = false;
-const audioListeners = new Set<() => void>();
-const notifyAudioState = () => { for (const listener of audioListeners) listener(); };
-export const isAudioReady = () => outputPrimed && ctx?.state === 'running';
-export function subscribeAudioState(listener: () => void) {
-  audioListeners.add(listener);
-  return () => { audioListeners.delete(listener); };
-}
 let quackBuf: AudioBuffer | null = null;
 let quackLoading: Promise<AudioBuffer | null> | null = null;
 
@@ -67,29 +59,21 @@ function pinkNoise(t: AudioContext, seconds: number): AudioBuffer {
   return buffer;
 }
 
-/** Short effects have no playback position to preserve after an interruption. */
-function resetAudio() {
-  const previous = ctx;
-  outputPrimed = false;
-  ctx = null;
-  master = null;
-  convolver = null;
-  noiseBuf = null;
-  bed = null;
-  notifyAudioState();
-  if (previous && previous.state !== 'closed') void previous.close().catch(() => undefined);
-}
-
 /** p() — init / resume, idempotent. Call on first user gesture. */
 export function initAudio() {
-  // Safari can leave an interrupted graph permanently silent despite resume().
-  if (ctx && (ctx.state === 'closed' || (ctx.state as string) === 'interrupted')) resetAudio();
+  // Rebuild only a genuinely closed context; interruptions retain activation.
+  if (ctx && ctx.state === 'closed') {
+    ctx = null;
+    master = null;
+    convolver = null;
+    noiseBuf = null;
+    bed = null;
+  }
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
     const t = new AC();
     ctx = t;
-    t.onstatechange = notifyAudioState;
     master = t.createGain();
     master.gain.value = 1.3;
     const comp = t.createDynamicsCompressor();
@@ -149,30 +133,13 @@ export function initAudio() {
     bed = { level, band, pan };
   }
   unlocked = true;
+  // Resume from any non-running state, not just 'suspended': iOS reports
+  // 'interrupted' after a call, Siri, or an alarm, and resume() is a
+  // no-op when already running, so this is safe to call on every gesture.
   if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
   // Preload the real quack in the background so the first duck click
   // has the sample decoded and ready instead of decoding on the click.
   void loadQuack(ctx);
-}
-
-/** Context state alone does not confirm Safari has unlocked the output. */
-export function primeAudioOutput() {
-  initAudio();
-  const t = ctx;
-  if (!t || (outputPrimed && t.state === 'running')) return;
-  const source = t.createBufferSource();
-  source.buffer = t.createBuffer(1, 1, t.sampleRate);
-  source.connect(t.destination);
-  source.onended = () => {
-    source.disconnect();
-    if (ctx === t) {
-      outputPrimed = true;
-      notifyAudioState();
-    }
-  };
-  // Always start from the gesture, including when state already says running.
-  source.start();
-  void t.resume().catch(() => undefined);
 }
 
 function live(): AudioContext | null {
@@ -402,36 +369,18 @@ export function audioState(): string {
   return ctx.state;
 }
 export function installAudioUnlock() {
-  let backgrounded = false;
-  const unlock = () => primeAudioOutput();
-  // Capture reaches even interactions whose component handlers stop bubbling.
-  // Keep touchstart as well as touchend: a swipe is not a tap activation on iOS.
-  const events = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown', 'wheel'] as const;
+  const unlock = () => initAudio();
+  const events = ['pointerdown', 'keydown', 'touchstart', 'pointerup', 'touchend', 'click'] as const;
   for (const event of events) window.addEventListener(event, unlock, { capture: true, passive: true });
-
-  const background = () => {
-    backgrounded = backgrounded || !!ctx;
-    scrollAmbience(0);
-  };
-  const restore = () => {
-    if (document.hidden) return;
-    // iOS can report "running" while its audio clock/output is frozen.
-    // Replace the graph once per background visit instead of trusting that state.
-    if (backgrounded) {
-      backgrounded = false;
-      resetAudio();
-    }
-    if (unlocked) initAudio();
-  };
-  const visibility = () => document.hidden ? background() : restore();
+  const restore = () => { if (ctx && !document.hidden) initAudio(); };
+  const visibility = () => document.hidden ? scrollAmbience(0) : restore();
+  // Preserve the activated graph across app switches, as the reference does.
   document.addEventListener('visibilitychange', visibility);
-  window.addEventListener('pagehide', background);
   window.addEventListener('pageshow', restore);
   window.addEventListener('focus', restore);
   return () => {
     for (const event of events) window.removeEventListener(event, unlock, true);
     document.removeEventListener('visibilitychange', visibility);
-    window.removeEventListener('pagehide', background);
     window.removeEventListener('pageshow', restore);
     window.removeEventListener('focus', restore);
   };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ContactMenu from './components/ContactMenu';
 import { FilmLight } from './components/Effects';
 import Hero from './components/Hero';
@@ -8,10 +8,11 @@ import ProjectDetail from './components/ProjectDetail';
 import ResumeModal from './components/ResumeModal';
 import Slider from './components/Slider';
 import { PROJECTS } from './data/clone';
-import { clickSound, hardStopThud, initAudio, installAudioUnlock, isAudioReady, primeAudioOutput, scrollAmbience, subscribeAudioState, snapTick, softTick } from './audio';
+import { hardStopThud, initAudio, installAudioUnlock, scrollAmbience, snapTick, softTick } from './audio';
 
 const SLIDE_COUNT = PROJECTS.length + 1; // 00 intro + one slide per project
 const MAX_INDEX = SLIDE_COUNT - 1;
+const STOP_STEPS = new Set(Array.from({ length: SLIDE_COUNT }, (_, i) => Math.round(i / MAX_INDEX * 40)));
 
 // Original track spring (ee()): semi-implicit Euler, 1/240 s substeps,
 // dt clamped to 1/30, settle epsilon 0.05 px / 0.05 px/s.
@@ -20,7 +21,6 @@ const TRACK_C = 26;
 const SUBSTEP = 1 / 240;
 
 export default function App() {
-  const audioReady = useSyncExternalStore(subscribeAudioState, isAudioReady);
   const [progress, setProgress] = useState(0);
   const [resumeReq, setResumeReq] = useState<{ from: DOMRect; home: () => HTMLElement | null } | null>(null);
   const [openProject, setOpenProject] = useState<number | null>(null);
@@ -42,6 +42,15 @@ export default function App() {
   const knobPxRef = useRef(0);
   const knobVelocityRef = useRef(0);
 
+  const pageDragRef = useRef<{
+    id: number; startX: number; startTarget: number;
+    active: boolean; samples: { t: number; p: number }[];
+  } | null>(null);
+  const swipedRef = useRef(false);
+  const wakeRef = useRef<() => void>(() => {});
+  const cardBodiesRef = useRef<HTMLElement[]>([]);
+  const knobRef = useRef<HTMLElement | null>(null);
+
   const current = Math.max(0, Math.min(MAX_INDEX, Math.round(progress)));
 
   // Track px for a slide position, clamped to the last card's centre.
@@ -62,6 +71,8 @@ export default function App() {
     if (!track) return;
     const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-card]'));
     if (cards.length === 0) return;
+    cardBodiesRef.current = cards.map((card) => card.querySelector<HTMLElement>('.card-body')!).filter(Boolean);
+    knobRef.current = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-knob') ?? null;
     const vw = window.innerWidth;
     // DOMRects retain subpixel widths; offsetLeft/offsetWidth round each
     // card independently and accumulate drift between numbered stops.
@@ -83,11 +94,12 @@ export default function App() {
     geomRef.current = { firstStep, pitch, maxPx };
     pxRef.current = pxFromProgress(position);
     targetPxRef.current = pxFromProgress(target);
+    wakeRef.current();
     pxVelRef.current = 0;
     knobVelocityRef.current = 0;
     setProgress(position);
     const rail = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-rail');
-    if (rail) railWidthRef.current = rail.getBoundingClientRect().width;
+    if (rail) railWidthRef.current = rail.getBoundingClientRect().width / pageScale;
     knobPxRef.current = knobFraction * railWidthRef.current;
   }, [pxFromProgress, pxToProgress]);
 
@@ -152,17 +164,14 @@ export default function App() {
     const introOpacity = 1 - Math.max(0, Math.min(1, p / 0.6));
     const intro = introLayerRef.current;
     if (intro) {
-      intro.style.transform = `translateX(${translate.toFixed(1)}px)`;
+      intro.style.transform = `translate3d(${translate.toFixed(1)}px, 0, 0)`;
       intro.style.opacity = `${introOpacity}`;
     }
     const track = trackRef.current;
     if (track) {
-      track.style.transform = `translateX(${translate.toFixed(1)}px)`;
+      track.style.transform = `translate3d(${translate.toFixed(1)}px, 0, 0)`;
       const { firstStep, pitch } = geomRef.current;
-      track.querySelectorAll<HTMLElement>('[data-card]').forEach((card, i) => {
-        const body = card.querySelector<HTMLElement>('.card-body');
-        if (body) applyCardBodyStyle(body, firstStep + i * pitch - px, pitch);
-      });
+      cardBodiesRef.current.forEach((body, i) => applyCardBodyStyle(body, firstStep + i * pitch - px, pitch));
     }
   }, [pxToProgress]);
 
@@ -173,7 +182,7 @@ export default function App() {
     let last = performance.now();
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
+      raf = 0;
       const dt = Math.min(1 / 30, (now - last) / 1000);
       last = now;
       if (document.hidden) { scrollAmbience(0); return; }
@@ -186,7 +195,8 @@ export default function App() {
         vel += (TRACK_K * (target - px) - TRACK_C * vel) * h;
         px += vel * h;
       }
-      if (motion.matches) { px = target; vel = 0; }
+      const held = pageDragRef.current?.active === true;
+      if (motion.matches || held) { px = target; vel = 0; }
       if (Math.abs(target - px) < 0.05 && Math.abs(vel) < 0.05) {
         px = target;
         vel = 0;
@@ -223,8 +233,8 @@ export default function App() {
       }
       knobPxRef.current = knobPx;
       knobVelocityRef.current = knobVel;
-      const knob = sliderWrapRef.current?.querySelector<HTMLElement>('.slider-knob');
-      if (knob) knob.style.left = `${(Math.max(0, Math.min(1, knobPx / railW)) * 100).toFixed(2)}%`;
+      const knob = knobRef.current;
+      if (knob) knob.style.transform = `translate3d(${knobPx.toFixed(2)}px, 0, 0)`;
       const stepPx = railW / 40;
       const pan = Math.max(-1, Math.min(1, (knobPx / railW) * 2 - 1));
       scrollAmbience(Math.abs(knobVel) * 0.6, pan);
@@ -232,8 +242,7 @@ export default function App() {
       const nStep = Math.round(knobPx / stepPx);
       if (nStep !== lastKnobStepRef.current) {
         lastKnobStepRef.current = nStep;
-        const stopSteps = new Set(Array.from({ length: SLIDE_COUNT }, (_, i) => Math.round((i / MAX_INDEX) * 40)));
-        if (nStep >= 0 && nStep <= 40 && stopSteps.has(nStep)) {
+        if (nStep >= 0 && nStep <= 40 && STOP_STEPS.has(nStep)) {
           lastTickMsRef.current = now;
           snapTick(Math.abs(knobVel), pan);
         } else if (now - lastTickMsRef.current > 18 && Math.abs(knobVel) > 40) {
@@ -246,14 +255,30 @@ export default function App() {
         lastIndexRef.current = idx;
         setProgress(p);
       }
+      if (px !== target || vel !== 0 || knobPx !== knobTarget || knobVel !== 0) raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const wake = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
+    wakeRef.current = wake;
+    const visibility = () => { if (!document.hidden) wake(); };
+    document.addEventListener('visibilitychange', visibility);
+    wake();
+    return () => {
+      cancelAnimationFrame(raf);
+      wakeRef.current = () => {};
+      document.removeEventListener('visibilitychange', visibility);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyTransformsPx, pxToProgress]);
 
   useEffect(() => {
-    const mute = () => scrollAmbience(0);
+    const mute = () => {
+      scrollAmbience(0);
+      if (pageDragRef.current) {
+        pageDragRef.current = null;
+        targetPxRef.current = nearestStopPx(targetPxRef.current);
+        wakeRef.current();
+      }
+    };
     window.addEventListener('blur', mute);
     document.addEventListener('visibilitychange', mute);
     return () => {
@@ -262,20 +287,23 @@ export default function App() {
       window.removeEventListener('blur', mute);
       document.removeEventListener('visibilitychange', mute);
     };
-  }, []);
+  }, [nearestStopPx]);
 
   const goTo = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(MAX_INDEX, index));
     targetPxRef.current = pxFromProgress(clamped);
+    wakeRef.current();
   }, [pxFromProgress]);
 
   const onScrub = useCallback((fraction: number) => {
     window.clearTimeout(snapTimer.current);
     targetPxRef.current = pxFromProgress(fraction * MAX_INDEX);
+    wakeRef.current();
   }, [pxFromProgress]);
 
   const onScrubEnd = useCallback((fraction: number) => {
     targetPxRef.current = nearestStopPx(pxFromProgress(fraction * MAX_INDEX));
+    wakeRef.current();
   }, [nearestStopPx, pxFromProgress]);
 
   const scheduleSnap = useCallback(() => {
@@ -285,6 +313,7 @@ export default function App() {
       // spring position: snapping the position 180 ms in would drag a
       // 700px flick back to the slide it started from.
       targetPxRef.current = nearestStopPx(targetPxRef.current);
+      wakeRef.current();
       // Hard-stop thud if the wheel pushed past a track end.
       if (overshootRef.current > 80) {
         const maxPx = geomRef.current.maxPx || 1;
@@ -384,91 +413,64 @@ export default function App() {
       overshootRef.current = Math.max(overshootRef.current, knobVelEst);
     }
     targetPxRef.current = Math.max(0, Math.min(maxPx, next));
+    wakeRef.current();
     scheduleSnap();
   };
 
-  // Mobile touch gesture tracking (swipe between cards).
-  const touchSwipeRef = useRef<{
-    startX: number;
-    startY: number;
-    lastX: number;
-    isHorizontal: boolean | null;
-    samples: { t: number; x: number }[];
-  } | null>(null);
-  const swipedRef = useRef(false);
-
-  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+  const onPagePointerDown = (e: React.PointerEvent<HTMLElement>) => {
     if (resumeReq || openProject !== null) return;
-    if (e.touches.length !== 1) return;
+    if (e.pointerType !== 'touch' || !e.isPrimary) return;
     const target = e.target as HTMLElement;
     if (target.closest('.contact, .slider, input, textarea, button, a')) return;
     initAudio();
-    const touch = e.touches[0];
-    touchSwipeRef.current = {
-      startX: touch.clientX,
-      startY: touch.clientY,
-      lastX: touch.clientX,
-      isHorizontal: null,
-      samples: [{ t: performance.now(), x: touch.clientX }],
+    window.clearTimeout(snapTimer.current);
+    pageDragRef.current = {
+      id: e.pointerId, startX: e.clientX, startTarget: pxRef.current,
+      active: false, samples: [],
     };
     swipedRef.current = false;
   };
 
-  const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    const swipe = touchSwipeRef.current;
-    if (!swipe) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - swipe.startX;
-    const dy = touch.clientY - swipe.startY;
-
-    if (swipe.isHorizontal === null) {
-      if (Math.abs(dx) > 7 || Math.abs(dy) > 7) {
-        swipe.isHorizontal = Math.abs(dx) > Math.abs(dy);
-        if (swipe.isHorizontal) swipedRef.current = true;
-      }
+  const onPagePointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    const swipe = pageDragRef.current;
+    if (!swipe || swipe.id !== e.pointerId) return;
+    const dx = e.clientX - swipe.startX;
+    if (!swipe.active && Math.abs(dx) > 8) {
+      swipe.active = true;
+      pxVelRef.current = 0;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      swipedRef.current = true;
     }
 
-    if (swipe.isHorizontal) {
+    if (swipe.active) {
       if (e.cancelable) e.preventDefault();
       swipedRef.current = true;
-      const stepDelta = touch.clientX - swipe.lastX;
-      swipe.lastX = touch.clientX;
-      swipe.samples.push({ t: performance.now(), x: touch.clientX });
-      if (swipe.samples.length > 8) swipe.samples.shift();
-
-      // Moving finger left (stepDelta < 0) advances carousel forward (increases targetPx)
       const { maxPx } = geomRef.current;
-      const next = targetPxRef.current - stepDelta;
-      targetPxRef.current = Math.max(0, Math.min(maxPx, next));
-      scheduleSnap();
+      const raw = swipe.startTarget - dx;
+      const rubber = (excess: number) => excess * 160 * 0.55 / (160 + 0.55 * excess);
+      const position = raw < 0 ? -rubber(-raw) : raw > maxPx ? maxPx + rubber(raw - maxPx) : raw;
+      targetPxRef.current = position;
+      wakeRef.current();
+      pxVelRef.current = 0;
+      swipe.samples.push({ t: performance.now(), p: position });
+      if (swipe.samples.length > 12) swipe.samples.shift();
     }
   };
 
-  const onTouchEnd = () => {
-    const swipe = touchSwipeRef.current;
-    if (!swipe) return;
-    if (swipe.isHorizontal) {
-      const now = performance.now();
-      const recent = swipe.samples.filter((s) => now - s.t < 150);
-      let velocity = 0;
-      if (recent.length >= 2) {
-        const first = recent[0];
-        const last = recent[recent.length - 1];
-        if (last.t > first.t) velocity = ((last.x - first.x) / (last.t - first.t)) * 1000;
-      }
-      const totalDx = swipe.lastX - swipe.startX;
-      if (velocity < -200 || totalDx < -40) {
-        goTo(current + 1);
-      } else if (velocity > 200 || totalDx > 40) {
-        goTo(current - 1);
-      } else {
-        targetPxRef.current = nearestStopPx(targetPxRef.current);
-      }
-      window.setTimeout(() => {
-        swipedRef.current = false;
-      }, 120);
+  const onPagePointerEnd = (e: React.PointerEvent<HTMLElement>, cancelled = false) => {
+    const swipe = pageDragRef.current;
+    if (!swipe || swipe.id !== e.pointerId) return;
+    pageDragRef.current = null;
+    if (swipe.active) {
+      const recent = swipe.samples.filter((sample) => performance.now() - sample.t < 100);
+      const first = recent[0], last = recent[recent.length - 1];
+      const velocity = !cancelled && recent.length >= 2 && last.t > first.t
+        ? (last.p - first.p) / (last.t - first.t) * 1000 : 0;
+      pxVelRef.current = velocity;
+      targetPxRef.current = nearestStopPx(Math.max(0, Math.min(geomRef.current.maxPx, targetPxRef.current + 0.18 * velocity)));
+      wakeRef.current();
+      window.setTimeout(() => { swipedRef.current = false; }, 120);
     }
-    touchSwipeRef.current = null;
   };
 
   const translate = -pxFromProgress(progress);
@@ -480,21 +482,21 @@ export default function App() {
       <main
         className="page"
         onWheel={onWheel}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={onTouchEnd}
+        onPointerDown={onPagePointerDown}
+        onPointerMove={onPagePointerMove}
+        onPointerUp={(e) => onPagePointerEnd(e)}
+        onPointerCancel={(e) => onPagePointerEnd(e, true)}
       >
         <Pond ready />
         <div
           className="intro-layer"
           ref={introLayerRef}
-          style={{ transform: `translateX(${translate.toFixed(1)}px)`, opacity: introOpacity }}
+          style={{ transform: `translate3d(${translate.toFixed(1)}px, 0, 0)`, opacity: introOpacity }}
         >
           <Hero />
         </div>
         <div className="stage-light" aria-hidden="true" />
-        <div className="projects" ref={trackRef} style={{ transform: `translateX(${translate.toFixed(1)}px)` }}>
+        <div className="projects" ref={trackRef} style={{ transform: `translate3d(${translate.toFixed(1)}px, 0, 0)` }}>
           {PROJECTS.map((project, i) => {
             const { firstStep, pitch } = geomRef.current;
             const offsetPx = firstStep + i * pitch - pxFromProgress(progress);
@@ -518,11 +520,6 @@ export default function App() {
           })}
         </div>
         <ContactMenu onOpenResume={(from, home) => setResumeReq({ from, home })} />
-        {!audioReady && ('AudioContext' in window || 'webkitAudioContext' in window) ? (
-          <button className="enable-sound" type="button" onClick={() => { primeAudioOutput(); clickSound(true); }}>
-            Enable sound
-          </button>
-        ) : null}
         <div ref={sliderWrapRef}>
           <Slider
             progress={progress}
