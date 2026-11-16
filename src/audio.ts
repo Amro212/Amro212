@@ -32,6 +32,13 @@ let musicGainNode: GainNode | null = null;
 let musicPlaying = false;
 let musicVolume = 0.06; // target gain 0..0.6, quiet by default (10% on the slider)
 let musicStopTimer: number | undefined = undefined;
+/** A start already decoding; concurrent calls share it instead of each
+ * creating their own looping source. */
+let musicStarting: Promise<boolean> | null = null;
+/** A source fading out after pause; held so a quick resume can stop it
+ * explicitly instead of orphaning it when its cleanup timeout is
+ * cancelled. */
+let musicStopping: { src: AudioBufferSourceNode; g: GainNode } | null = null;
 /** Autoplay: armed by the player on mount so the loop starts on the
  * first user gesture. Browsers block sound before any gesture, so "on
  * by default" means the first tap, click, or keypress anywhere fades
@@ -240,8 +247,10 @@ export function preloadMusic() {
   if (t) void loadMusicLoop(t);
 }
 
-/** Start the loop. Idempotent. */
-export async function startMusic(): Promise<boolean> {
+/** Start the loop. Idempotent. Concurrent calls share one in-flight
+ * start, so two gestures landing before the decode finishes cannot
+ * each create their own looping source. */
+export function startMusic(): Promise<boolean> {
   initAudio();
   const t = live();
   // If the context was closed and rebuilt, the old source is wired into
@@ -251,44 +260,65 @@ export async function startMusic(): Promise<boolean> {
     musicGainNode = null;
     musicPlaying = false;
   }
-  if (!t || musicPlaying) return musicPlaying;
-  const gen = musicGen;
-  const buf = await loadMusicLoop(t);
-  // The user may have turned it off while the loop was still decoding.
-  if (gen !== musicGen) return false;
-  const ctx = live();
-  if (!buf || !ctx) return false;
-  // A fade-out may still be pending from a quick pause; cancel it.
-  window.clearTimeout(musicStopTimer);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.loop = true;
-  const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass';
-  lp.frequency.value = 1000;
-  lp.Q.value = 0.7;
-  const g = ctx.createGain();
-  // Start faintly audible right away instead of from silence, then
-  // swell slowly to the target over 6s. A linear ramp from zero spends
-  // the first seconds inaudible, which is what made it feel like it
-  // took too long to start; the exponential swell stays audible the
-  // whole way up.
-  g.gain.setValueAtTime(0.01, ctx.currentTime);
-  g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + 6);
-  src.connect(lp);
-  lp.connect(g);
-  // Reuse the synth's dry + wet send so the loop sits in the same room
-  // as the clicks instead of on top of them.
-  g.connect(send(ctx, 0));
-  src.start();
-  musicSrc = src;
-  musicGainNode = g;
-  musicPlaying = true;
-  musicAutoplay = false;
-  return true;
+  if (!t || musicPlaying) return Promise.resolve(musicPlaying);
+  if (musicStarting) return musicStarting;
+  musicStarting = (async () => {
+    const gen = musicGen;
+    const buf = await loadMusicLoop(t);
+    // The user may have turned it off while the loop was still decoding.
+    if (gen !== musicGen) return false;
+    const ctx = live();
+    if (!buf || !ctx) return false;
+    // Another start may have finished while we were decoding; do not
+    // create a second looping source.
+    if (musicPlaying) return true;
+    // A fade-out may still be pending from a quick pause. Stop that
+    // source explicitly before cancelling its cleanup, otherwise it is
+    // orphaned and keeps playing with no reference to stop it.
+    if (musicStopping) {
+      const { src: oldSrc, g: oldG } = musicStopping;
+      musicStopping = null;
+      try { oldSrc.stop(); } catch { /* already stopped */ }
+      oldSrc.disconnect();
+      oldG.disconnect();
+    }
+    window.clearTimeout(musicStopTimer);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1000;
+    lp.Q.value = 0.7;
+    const g = ctx.createGain();
+    // Start faintly audible right away instead of from silence, then
+    // swell slowly to the target over 6s. A linear ramp from zero spends
+    // the first seconds inaudible, which is what made it feel like it
+    // took too long to start; the exponential swell stays audible the
+    // whole way up.
+    g.gain.setValueAtTime(0.01, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + 6);
+    src.connect(lp);
+    lp.connect(g);
+    // Reuse the synth's dry + wet send so the loop sits in the same room
+    // as the clicks instead of on top of them.
+    g.connect(send(ctx, 0));
+    src.start();
+    musicSrc = src;
+    musicGainNode = g;
+    musicPlaying = true;
+    musicAutoplay = false;
+    return true;
+  })();
+  const p = musicStarting;
+  void p.finally(() => { if (musicStarting === p) musicStarting = null; });
+  return p;
 }
 
-/** Pause the loop. Fades out over ~1.2s, then stops the source. Idempotent. */
+/** Pause the loop. Fades out over ~1.2s, then stops the source. Idempotent.
+ * The fading source is held in musicStopping until it is actually
+ * stopped, so a quick resume can stop it explicitly instead of losing
+ * the reference when the cleanup timeout is cancelled. */
 export function stopMusic(): boolean {
   if (!musicPlaying || !musicSrc || !musicGainNode) return false;
   const t = live();
@@ -297,14 +327,17 @@ export function stopMusic(): boolean {
   musicSrc = null;
   musicGainNode = null;
   musicPlaying = false;
+  musicStopping = { src, g };
   if (t) {
     g.gain.setTargetAtTime(0.0001, t.currentTime, 1.2 / 3);
     musicStopTimer = window.setTimeout(() => {
+      musicStopping = null;
       try { src.stop(); } catch { /* already stopped */ }
       src.disconnect();
       g.disconnect();
     }, 1.2 * 1000 + 200);
   } else {
+    musicStopping = null;
     try { src.stop(); } catch { /* already stopped */ }
   }
   return true;
