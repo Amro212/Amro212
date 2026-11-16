@@ -7,6 +7,7 @@
 // (src/data/quack.ts), not synthesized, at the user's request.
 
 import { QUACK_MP3 } from './data/quack';
+import { MUSIC_LOOP_MP3 } from './data/musicLoop';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -20,6 +21,17 @@ let bed: {
 let unlocked = false;
 let quackBuf: AudioBuffer | null = null;
 let quackLoading: Promise<AudioBuffer | null> | null = null;
+
+/** Music player state (Aruarian Dance loop). Declared up here so
+ * initAudio() can drop the dead music nodes when the context is closed
+ * and rebuilt, same as the rest of the graph. */
+let musicBuf: AudioBuffer | null = null;
+let musicLoading: Promise<AudioBuffer | null> | null = null;
+let musicSrc: AudioBufferSourceNode | null = null;
+let musicGainNode: GainNode | null = null;
+let musicPlaying = false;
+let musicVolume = 0.3; // target gain 0..0.6, quiet by default
+let musicStopTimer: number | undefined = undefined;
 
 /** Decode the real rubber duck squeak once, cache it, reuse it. */
 function loadQuack(t: AudioContext): Promise<AudioBuffer | null> {
@@ -71,6 +83,11 @@ export function initAudio() {
     convolver = null;
     noiseBuf = null;
     bed = null;
+    // The music source was wired into the dead graph; drop it so the
+    // player shows stopped and a fresh press rebuilds it.
+    musicSrc = null;
+    musicGainNode = null;
+    musicPlaying = false;
   }
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -365,6 +382,109 @@ export function quackSound(pan = 0) {
     g.connect(send(ctx, 0.6 * pan));
     src.start();
   });
+}
+
+/** ── Music player: Aruarian Dance loop ─────────────────────────────
+ * The "through a wall" sound is a low-pass filter: cutting the highs is
+ * what makes audio sound muffled and distant, like it's playing from
+ * another room. 1000 Hz keeps the warm lows and the groove while taking
+ * the edge off. The loop itself is a 28.98s bar-aligned slice with a 2s
+ * crossfade at the seam, decoded once into an AudioBuffer and looped
+ * gapless, so there is no click and no drift at the wrap. */
+
+/** Decode the loop once, cache it, reuse it. */
+function loadMusicLoop(t: AudioContext): Promise<AudioBuffer | null> {
+  if (musicBuf) return Promise.resolve(musicBuf);
+  if (!musicLoading) {
+    musicLoading = fetch(MUSIC_LOOP_MP3)
+      .then((r) => r.arrayBuffer())
+      .then((ab) => t.decodeAudioData(ab))
+      .then((buf) => {
+        musicBuf = buf;
+        return buf;
+      })
+      .catch(() => null);
+  }
+  return musicLoading;
+}
+
+/** Start the loop. Smooth 2.5s fade-in so it never pops in. Idempotent. */
+export async function startMusic(): Promise<boolean> {
+  initAudio();
+  const t = live();
+  if (!t || musicPlaying) return musicPlaying;
+  const buf = await loadMusicLoop(t);
+  const ctx = live();
+  if (!buf || !ctx) return false;
+  // A fade-out may still be pending from a quick pause; cancel it.
+  window.clearTimeout(musicStopTimer);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 1000;
+  lp.Q.value = 0.7;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(musicVolume, ctx.currentTime + 2.5);
+  src.connect(lp);
+  lp.connect(g);
+  // Reuse the synth's dry + wet send so the loop sits in the same room
+  // as the clicks instead of on top of them.
+  g.connect(send(ctx, 0));
+  src.start();
+  musicSrc = src;
+  musicGainNode = g;
+  musicPlaying = true;
+  return true;
+}
+
+/** Pause the loop. Fades out over ~1.2s, then stops the source. Idempotent. */
+export function stopMusic(): boolean {
+  if (!musicPlaying || !musicSrc || !musicGainNode) return false;
+  const t = live();
+  const src = musicSrc;
+  const g = musicGainNode;
+  musicSrc = null;
+  musicGainNode = null;
+  musicPlaying = false;
+  if (t) {
+    g.gain.setTargetAtTime(0.0001, t.currentTime, 1.2 / 3);
+    musicStopTimer = window.setTimeout(() => {
+      try { src.stop(); } catch { /* already stopped */ }
+      src.disconnect();
+      g.disconnect();
+    }, 1.2 * 1000 + 200);
+  } else {
+    try { src.stop(); } catch { /* already stopped */ }
+  }
+  return true;
+}
+
+export async function toggleMusic(): Promise<boolean> {
+  if (musicPlaying) {
+    stopMusic();
+    return false;
+  }
+  return startMusic();
+}
+
+export function isMusicPlaying(): boolean {
+  return musicPlaying;
+}
+
+/** Volume 0..1, mapped to 0..0.6 gain. Applies live while playing. */
+export function setMusicVolume(v: number) {
+  musicVolume = clamp(v, 0, 1) * 0.6;
+  const t = live();
+  if (t && musicGainNode && musicPlaying) {
+    musicGainNode.gain.setTargetAtTime(musicVolume, t.currentTime, 0.1);
+  }
+}
+
+export function getMusicVolume(): number {
+  return musicVolume / 0.6;
 }
 
 /** k() — haptics. */
