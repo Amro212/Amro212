@@ -1,114 +1,134 @@
-<h1 align="left">Amro Abedmoosa</h1>
+<div align="center">
 
-<h3 align="left">Computer Engineering Graduate | Software Development | AI/ML | Automation</h3>
+<img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/amro-gif.gif" width="140" alt="Amro, pixelated" />
 
-<img align="right" height="165" src="https://image2url.com/r2/default/gifs/1775861583966-0b3cc2fc-2b3f-4401-8876-576c64ae7d97.gif" alt="Animated character" />
+# Amro Abed Moosa
 
-I am a Computer Engineering graduate from the University of Guelph focused on building practical software, AI-assisted systems, and automation tools.
+**Computer Engineer**
 
-My work includes transformer training optimization in PyTorch, AI-assisted document processing, browser automation, serverless APIs, full-stack development, and native iOS applications.
+> I build tools that take the boring work off your plate, and I like showing people how they work.
 
-* Based in Ontario, Canada
-* Open to entry-level software and AI development opportunities
-* Interested in AI/ML systems, automation, backend development, and developer tools
-* Portfolio: [itsamro.me](https://www.itsamro.me)
+🦆 yes, the duck is the mascot. it quacks.
 
-<br clear="both">
+[![Portfolio](https://img.shields.io/badge/Portfolio-itsamro.me-c97b4a?style=flat-square)](https://itsamro.me)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-amro--abedmoosa-c97b4a?style=flat-square&logo=linkedin&logoColor=white)](https://linkedin.com/in/amro-abedmoosa)
+[![Email](https://img.shields.io/badge/Email-amromousa8%40gmail.com-c97b4a?style=flat-square&logo=gmail&logoColor=white)](mailto:amromousa8@gmail.com)
 
-## Featured Projects
+📍 Milton, Ontario, Canada
 
-### [Transformer Training Optimization](https://github.com/Amro212/ACA-Project)
+**Right now:** building [Kareer](https://github.com/Amro212/kareer) in the open, and hunting for an Applications Engineering role in Canada. Demos, integrations, and talking to customers, not sitting in a corner coding all day.
 
-A Python and PyTorch benchmarking pipeline for evaluating GPT-style transformer training under limited GPU memory.
+</div>
 
-* Implemented a GPT-style transformer model with causal self-attention.
-* Benchmarked baseline training, automatic mixed precision, activation checkpointing, and combined optimization.
-* Measured peak GPU memory, iteration time, throughput, and out-of-memory limits.
-* Evaluated techniques for training larger models on a single 12 GB RTX 3060 GPU.
+---
 
-**Technologies:** Python, PyTorch, CUDA, AMP
+## What I built
+
+### [Kareer](https://kareer.itsamro.me/) — the one I'm proudest of
+
+<a href="https://kareer.itsamro.me/"><img src="https://kareer.itsamro.me/assets/kareer-social-preview.png" alt="Kareer" /></a>
+
+A browser extension that fills in job applications from a resume. Local-first, zero telemetry, no backend. Adapters for Ashby, Greenhouse, Lever, and Workday, plus a generic fallback.
+
+**640+ tests · 4 ATS adapters · 0 telemetry · MIT open source**
+
+[Site](https://kareer.itsamro.me/) · [Repo](https://github.com/Amro212/kareer)
 
 ---
 
 ### [Syllabus Sync](https://github.com/Amro212/Syllabus-Sync)
 
-An iOS application that transforms course syllabi into structured, editable calendar events.
+<a href="https://github.com/Amro212/Syllabus-Sync"><img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/project-previews/syllabus/syllabus1.png" alt="Syllabus Sync" /></a>
 
-* Built a two-stage parsing workflow combining deterministic extraction with AI-assisted event identification.
-* Developed a Cloudflare Workers backend with validation, rate limiting, confidence scoring, and cost controls.
-* Integrated EventKit, Core Data, and CloudKit for calendar publishing and cross-device synchronization.
+An iOS app that turns course syllabi into calendar events. SwiftUI + Supabase, with an in-app calendar and import tracking.
 
-**Technologies:** Swift, SwiftUI, TypeScript, Cloudflare Workers, OpenAI API
+[Repo](https://github.com/Amro212/Syllabus-Sync)
 
 ---
 
-### [JobAutomation](https://github.com/Amro212/JobAutomation)
+### [Transformer Training Optimization](https://github.com/Amro212/transformer-training-benchmark)
 
-A local-first platform for job discovery, application tracking, and AI-assisted document generation.
+<a href="https://github.com/Amro212/transformer-training-benchmark"><img src="https://raw.githubusercontent.com/Amro212/transformer-training-benchmark/master/test2_3/plots/mode_comparison_overview.png" alt="Transformer Training Optimization" /></a>
 
-* Supports structured job discovery and browser-backed automation.
-* Generates job-specific resume and cover-letter variants.
-* Uses SQLite for local persistence and includes a management dashboard.
-* Designed with explicit domain restrictions and local data control.
+Benchmarking four ways to train a GPT-style model on one GPU. AMP + checkpointing hit batch 64 vs 24 baseline, and 8,710 vs 2,434 tokens/s.
 
-**Technologies:** TypeScript, Node.js, Next.js, Fastify, SQLite, Browser Automation
+[Repo](https://github.com/Amro212/transformer-training-benchmark)
 
 ---
 
 ### [CurlAI](https://github.com/Amro212/CurlAI)
 
-A Python computer-vision application that classifies arm positions and counts bicep-curl repetitions from a live camera feed.
+<a href="https://github.com/Amro212/CurlAI"><img src="https://opengraph.githubassets.com/1/Amro212/CurlAI" alt="CurlAI" /></a>
 
-**Technologies:** Python, OpenCV, scikit-learn, NumPy, Tkinter
+A webcam app that counts your bicep curls with a custom-trained model. OpenCV frames, a LinearSVC classifier, and a rep counter. Small, local, no cloud.
 
-## Technical Skills
+[Repo](https://github.com/Amro212/CurlAI)
+
+---
+
+### [LEGEND](https://legend.guru)
+
+<a href="https://legend.guru"><img src="https://www.legend.guru/gallery/Large_group_photo_of_children_families_and_supporters_at_the_new_school.jpeg" alt="LEGEND school in Nigeria" /></a>
+
+A memecoin on Solana. The creator fees helped fund the construction of a school in Nigeria. Peak market cap around $278k.
+
+[Site](https://legend.guru)
+
+---
+
+## The stack
 
 <div align="left">
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" height="35" alt="Python" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" height="35" alt="JavaScript" />
-  <img width="10" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" height="35" alt="TypeScript" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="35" alt="React" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" height="35" alt="JavaScript" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg" height="35" alt="Next.js" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="35" alt="React" />
   <img width="10" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" height="35" alt="Node.js" />
   <img width="10" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg" height="35" alt="Swift" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" height="35" alt="Java" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" height="35" alt="SQL" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" height="35" alt="HTML" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" height="35" alt="C++" />
   <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" height="35" alt="CSS" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="35" alt="Docker" />
+  <img width="10" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" height="35" alt="Linux" />
+  <img width="10" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" height="35" alt="Git" />
 </div>
 
 <br>
 
-**Languages:** Python, TypeScript, JavaScript, Swift, Java, SQL, C, C++
+**Languages:** Python, TypeScript, JavaScript, Swift, SQL, C, C++
 
-**AI and Data:** PyTorch, NumPy, scikit-learn, OpenAI API, model evaluation, prompt engineering, LLM integration
+**What I reach for:** React, Node.js, SwiftUI, PyTorch, REST APIs, Cloudflare Workers, Docker, CI/CD, pytest
 
-**Software Development:** React, Next.js, Node.js, SwiftUI, REST APIs, Cloudflare Workers, browser automation
+---
 
-**Tools:** Git, GitHub, Docker, SQLite, Playwright, Linux
+## Where I've worked
 
-## Current Focus
+- **Sandbox Software Solutions** — Software Developer Intern, Sep–Dec 2025
+- **County of Dufferin** — IT Technician, Apr–Sep 2025
+- **University of Guelph** — Web Dev & IT Support Coordinator, Jun–Sep 2024
+- **Outlier** — Coding Expert, Jan–Sep 2024
+- **Camis** — QA Analyst, Jan–May 2024
 
-* Building production-quality Python and AI projects
-* Model evaluation and performance optimization
-* Creating reusable AI and automation components
-* Developing reliable full-stack and backend systems
+Computer Engineering (Co-op), University of Guelph, 2021–2026.
 
-## Contact
+---
 
-* **Email:** [amromousa8@gmail.com](mailto:amromousa8@gmail.com)
-* **LinkedIn:** [linkedin.com/in/amro-abedmoosa](https://linkedin.com/in/amro-abedmoosa/)
-* **Portfolio:** [www.itsamro.me](https://www.itsamro.me)
+## Say hi
 
-## Contribution Activity
+- **Email:** [amromousa8@gmail.com](mailto:amromousa8@gmail.com)
+- **LinkedIn:** [linkedin.com/in/amro-abedmoosa](https://linkedin.com/in/amro-abedmoosa)
+- **Portfolio:** [itsamro.me](https://itsamro.me)
+
+---
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Amro212/Amro212/output/pacman-contribution-graph-dark.svg">
@@ -117,5 +137,5 @@ A Python computer-vision application that classifies arm positions and counts bi
 </picture>
 
 <div>
-  <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&height=100&section=footer&reversal=false&theme=cobalt" alt="Footer wave" />
+  <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&height=100&section=footer&reversal=false&color=c97b4a" alt="Footer wave" />
 </div>
