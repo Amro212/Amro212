@@ -394,12 +394,6 @@ export default function App() {
   const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (resumeReq || openProject !== null) return;
     if ((e.target as HTMLElement).closest('.contact')) return;
-    const layer = introLayerRef.current;
-    if (layer && pxRef.current < 1 && Math.abs(e.deltaY) > Math.abs(e.deltaX) && layer.scrollHeight > layer.clientHeight + 4) {
-      const atTop = layer.scrollTop <= 0 && e.deltaY < 0;
-      const atBottom = layer.scrollTop + layer.clientHeight >= layer.scrollHeight - 1 && e.deltaY > 0;
-      if (!atTop && !atBottom) return;
-    }
     const dominant = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     const modeFactor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerWidth : 1;
     const deltaPx = dominant * modeFactor;
@@ -421,7 +415,7 @@ export default function App() {
     if (resumeReq || openProject !== null) return;
     if (e.pointerType !== 'touch' || !e.isPrimary) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.contact, .slider, input, textarea, button, a')) return;
+    if (target.closest('.contact, .slider, input, textarea, button')) return;
     initAudio();
     window.clearTimeout(snapTimer.current);
     pageDragRef.current = {

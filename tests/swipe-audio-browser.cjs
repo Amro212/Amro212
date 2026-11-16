@@ -3,10 +3,14 @@
 const assert = require('node:assert/strict');
 const {chromium, webkit} = require('playwright-core');
 async function instrumentation() {
-  window.audioProbe = { contexts: [], peak: 0, bursts: 0 };
+  window.audioProbe = { contexts: [], peak: 0, bursts: 0, frozen: false, restarts: 0 };
   const AC = window.AudioContext;
   window.AudioContext = new Proxy(AC, { construct(T, args) {
     const t = new T(...args); audioProbe.contexts.push(t);
+    const clock = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'currentTime').get;
+    Object.defineProperty(t, 'currentTime', { get: () => audioProbe.frozen ? 0 : clock.call(t) });
+    const suspend = t.suspend.bind(t);
+    t.suspend = () => { audioProbe.frozen = false; audioProbe.restarts++; return suspend(); };
     const create = t.createDynamicsCompressor.bind(t);
     t.createDynamicsCompressor = () => {
       const node = create(), connect = node.connect.bind(node), analyser = t.createAnalyser();
@@ -31,5 +35,11 @@ async function instrumentation() {
  async function swipe(){if(engine==='chromium'){const session=await c.newCDPSession(p);await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:330,y:350}]});for(const x of [280,230,180,130,80]){await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:350}]});await p.waitForTimeout(40)}await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await session.detach();}else{const r=await p.locator('.slider-rail').boundingBox();await p.mouse.move(r.x+2,r.y+r.height/2);await p.mouse.down();await p.mouse.move(r.x+r.width*.65,r.y+r.height/2,{steps:10});await p.mouse.up();}await p.waitForTimeout(1000)}
  await swipe();let result=await read();assert(result.peak>0.0001 && result.bursts>0,JSON.stringify(result));assert.equal(result.contact,'false');console.log(engine,'first navigation output',result);
  await p.evaluate(async()=>{await audioProbe.contexts[0].suspend();window.dispatchEvent(new Event('pageshow'));audioProbe.peak=0;audioProbe.bursts=0});await p.waitForTimeout(100);await swipe();result=await read();assert(result.peak>0.0001&&result.bursts>0,JSON.stringify(result));assert.equal(result.contact,'false');assert.equal(await p.evaluate(()=>audioProbe.contexts.length),1,'the activated audio graph survives restoration');console.log(engine,'restored navigation output',result);
+ // Simulate WebKit's running-but-frozen clock; no gesture or page reload repairs it.
+ const restarts=await p.evaluate(()=>{audioProbe.frozen=true;window.dispatchEvent(new Event('pageshow'));window.dispatchEvent(new Event('focus'));return audioProbe.restarts});
+ await p.waitForFunction(n=>!audioProbe.frozen&&audioProbe.restarts===n+1&&audioProbe.contexts[0].state==='running',restarts);
+ await p.evaluate(()=>{audioProbe.peak=0;audioProbe.bursts=0});await swipe();result=await read();assert(result.peak>0.0001&&result.bursts>0,JSON.stringify(result));assert.equal(await p.evaluate(()=>audioProbe.contexts.length),1);console.log(engine,'frozen-clock recovery output',result);
+ // A suspension arriving after all foreground events must recover by statechange.
+ await p.evaluate(()=>audioProbe.contexts[0].suspend());await p.waitForFunction(()=>audioProbe.contexts[0].state==='running');
  }finally{await b.close()}
 }})().catch(e=>{console.error(e);process.exitCode=1});
