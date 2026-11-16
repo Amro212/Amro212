@@ -1,28 +1,42 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/amro-gif.gif" width="140" alt="Amro, pixelated" />
+<img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/amro-gif.gif" width="120" alt="Amro, pixelated" />
 
-# Amro Abed Moosa
+</div>
 
-**Computer Engineer**
+```bash
+amro@github:~$ whoami
+Amro Abed Moosa
 
-> I build tools that take the boring work off your plate, and I like showing people how they work.
+amro@github:~$ cat about.txt
+Computer Engineering grad rebuilding software with AI.
+I build tools that take the boring work off your plate,
+and I like showing people how they work.
 
-🦆 yes, the duck is the mascot. it quacks.
+amro@github:~$ cat stack.txt
+full-stack, AI, automation, iOS, ML, and whatever the problem needs.
+a bit of everything, not one lane.
+
+amro@github:~$ cat right-now.txt
+Building Kareer in the open.
+Hunting for Applications Engineering roles in Canada.
+Ontario, Canada.
+```
+
+<div align="center">
 
 [![Portfolio](https://img.shields.io/badge/Portfolio-itsamro.me-c97b4a?style=flat-square)](https://itsamro.me)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-amro--abedmoosa-c97b4a?style=flat-square&logo=linkedin&logoColor=white)](https://linkedin.com/in/amro-abedmoosa)
 [![Email](https://img.shields.io/badge/Email-amromousa8%40gmail.com-c97b4a?style=flat-square&logo=gmail&logoColor=white)](mailto:amromousa8@gmail.com)
 
-📍 Milton, Ontario, Canada
-
-**Right now:** building [Kareer](https://github.com/Amro212/kareer) in the open, and hunting for an Applications Engineering role in Canada. Demos, integrations, and talking to customers, not sitting in a corner coding all day.
-
 </div>
 
 ---
 
-## What I built
+```bash
+amro@github:~$ ls projects/
+kareer/  syllabus-sync/  transformer-training/  curlai/  legend/
+```
 
 ### [Kareer](https://kareer.itsamro.me/) — the one I'm proudest of
 
@@ -76,57 +90,30 @@ A memecoin on Solana. The creator fees helped fund the construction of a school 
 
 ---
 
-## The stack
+```bash
+amro@github:~$ cat skills.txt
+python  typescript  javascript  react  node  swift  sql  c++  docker  linux  git
+```
 
-<div align="left">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" height="35" alt="Python" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" height="35" alt="TypeScript" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" height="35" alt="JavaScript" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="35" alt="React" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" height="35" alt="Node.js" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg" height="35" alt="Swift" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" height="35" alt="SQL" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" height="35" alt="C++" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="35" alt="Docker" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" height="35" alt="Linux" />
-  <img width="10" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" height="35" alt="Git" />
-</div>
-
-<br>
-
-**Languages:** Python, TypeScript, JavaScript, Swift, SQL, C, C++
-
-**What I reach for:** React, Node.js, SwiftUI, PyTorch, REST APIs, Cloudflare Workers, Docker, CI/CD, pytest
-
----
-
-## Where I've worked
-
-- **Sandbox Software Solutions** — Software Developer Intern, Sep–Dec 2025
-- **County of Dufferin** — IT Technician, Apr–Sep 2025
-- **University of Guelph** — Web Dev & IT Support Coordinator, Jun–Sep 2024
-- **Outlier** — Coding Expert, Jan–Sep 2024
-- **Camis** — QA Analyst, Jan–May 2024
+```bash
+amro@github:~$ cat experience.txt
+Sandbox Software Solutions  — Software Developer Intern, Sep–Dec 2025
+County of Dufferin          — IT Technician, Apr–Sep 2025
+University of Guelph        — Web Dev & IT Support Coordinator, Jun–Sep 2024
+Outlier                     — Coding Expert, Jan–Sep 2024
+Camis                       — QA Analyst, Jan–May 2024
 
 Computer Engineering (Co-op), University of Guelph, 2021–2026.
+```
 
 ---
 
-## Say hi
-
-- **Email:** [amromousa8@gmail.com](mailto:amromousa8@gmail.com)
-- **LinkedIn:** [linkedin.com/in/amro-abedmoosa](https://linkedin.com/in/amro-abedmoosa)
-- **Portfolio:** [itsamro.me](https://itsamro.me)
+```bash
+amro@github:~$ ./contact.sh
+email     → amromousa8@gmail.com
+linkedin  → linkedin.com/in/amro-abedmoosa
+portfolio → itsamro.me
+```
 
 ---
 
