@@ -4,7 +4,7 @@ import { FilmLight } from './components/Effects';
 import Hero from './components/Hero';
 import Pond from './components/Pond';
 import ProjectCard, { applyCardBodyStyle } from './components/ProjectCard';
-import ProjectDetail from './components/ProjectDetail';
+import ProjectDetail, { type ProjectDetailHandle } from './components/ProjectDetail';
 import ResumeModal from './components/ResumeModal';
 import Slider from './components/Slider';
 import { PROJECTS } from './data/clone';
@@ -23,8 +23,12 @@ const SUBSTEP = 1 / 240;
 export default function App() {
   const [progress, setProgress] = useState(0);
   const [resumeReq, setResumeReq] = useState<{ from: DOMRect; home: () => HTMLElement | null } | null>(null);
-  const [openProject, setOpenProject] = useState<number | null>(null);
-  const [directProjectLoad, setDirectProjectLoad] = useState(false);
+  const [openProject, setOpenProject] = useState<{
+    index: number;
+    cardImage: HTMLElement | null;
+    directLoad: boolean;
+  } | null>(null);
+  const projectDetailRef = useRef<ProjectDetailHandle>(null);
 
   const pxRef = useRef(0);
   const pxVelRef = useRef(0);
@@ -324,51 +328,59 @@ export default function App() {
     }, 180);
   }, [nearestStopPx]);
 
-  const clearProject = useCallback(() => {
-    setOpenProject((cur) => {
-      if (cur !== null) {
-        window.setTimeout(() => {
-          document.querySelectorAll<HTMLElement>('[data-card]')[cur]?.focus();
-        }, 50);
-      }
-      return null;
-    });
+  const handleCloseComplete = useCallback(() => {
+    setOpenProject(null);
   }, []);
 
-  // Keep route state synchronized even while the detail viewer is unmounted.
-  useEffect(() => {
-    const syncProject = (fromHistory: boolean) => {
-      const match = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
-      const index = match ? PROJECTS.findIndex((project) => project.slug === match[1]) : -1;
-      if (index >= 0) {
-        setDirectProjectLoad(!fromHistory);
-        setOpenProject(index);
-      } else {
-        clearProject();
-      }
-    };
-    syncProject(false);
-    const onPop = () => syncProject(true);
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [clearProject]);
-
-  const closeProject = useCallback(() => {
+  const handleRequestClose = useCallback((focusVisible = false) => {
     if (history.state?.pv != null) {
       history.back();
     } else {
-      // Fresh deep links have no portfolio entry to return to.
       history.replaceState(null, '', '/');
-      clearProject();
+      projectDetailRef.current?.startCloseAnimation(focusVisible);
     }
-  }, [clearProject]);
-
-  const openProjectAt = useCallback((index: number) => {
-    initAudio();
-    history.pushState({ pv: index }, '', `/projects/${PROJECTS[index].slug}`);
-    setDirectProjectLoad(false);
-    setOpenProject(index);
   }, []);
+
+  const openProjectAt = useCallback((index: number, cardImage: HTMLElement | null = null) => {
+    initAudio();
+    if (history.state?.pv !== index) {
+      history.pushState({ pv: index }, '', `/projects/${PROJECTS[index].slug}`);
+    }
+    setOpenProject({ index, cardImage, directLoad: false });
+  }, []);
+
+  // Check initial deep link on mount
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
+    const index = match ? PROJECTS.findIndex((project) => project.slug === match[1]) : -1;
+    if (index >= 0) {
+      setOpenProject({ index, cardImage: null, directLoad: true });
+    }
+  }, []);
+
+  // Synchronize browser history (Back / Forward)
+  useEffect(() => {
+    const onPop = () => {
+      const pv = history.state?.pv;
+      if (openProject !== null && pv == null) {
+        projectDetailRef.current?.startCloseAnimation();
+      } else if (typeof pv === 'number') {
+        const cardMedia = document.querySelectorAll<HTMLElement>('[data-card]')[pv]?.querySelector<HTMLElement>('.card-media') ?? null;
+        openProjectAt(pv, cardMedia);
+      } else {
+        const match = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
+        const index = match ? PROJECTS.findIndex((project) => project.slug === match[1]) : -1;
+        if (index >= 0) {
+          const cardMedia = document.querySelectorAll<HTMLElement>('[data-card]')[index]?.querySelector<HTMLElement>('.card-media') ?? null;
+          openProjectAt(index, cardMedia);
+        } else if (openProject !== null) {
+          projectDetailRef.current?.startCloseAnimation();
+        }
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [openProject, openProjectAt]);
 
   // Arrow-key navigation when focus is not inside the slider or contact menu.
   useEffect(() => {
@@ -507,7 +519,9 @@ export default function App() {
                   if (project.external && !project.slug) return;
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                   e.preventDefault();
-                  openProjectAt(i);
+                  const target = e.currentTarget as HTMLElement;
+                  const cardMedia = target.querySelector<HTMLElement>('.card-media');
+                  openProjectAt(i, cardMedia);
                 }}
               />
             );
@@ -530,7 +544,16 @@ export default function App() {
         <ResumeModal from={resumeReq.from} home={resumeReq.home} onClose={() => setResumeReq(null)} />
       ) : null}
       {openProject !== null ? (
-        <ProjectDetail key={openProject} project={PROJECTS[openProject]} index={openProject} onClose={closeProject} directLoad={directProjectLoad} />
+        <ProjectDetail
+          ref={projectDetailRef}
+          key={openProject.index}
+          project={PROJECTS[openProject.index]}
+          index={openProject.index}
+          cardImage={openProject.cardImage}
+          onCloseComplete={handleCloseComplete}
+          onRequestClose={handleRequestClose}
+          directLoad={openProject.directLoad}
+        />
       ) : null}
     </>
   );
