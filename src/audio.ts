@@ -426,7 +426,15 @@ function loadMusicLoop(t: AudioContext): Promise<AudioBuffer | null> {
   return musicLoading;
 }
 
-/** Start the loop. Smooth 2.5s fade-in so it never pops in. Idempotent. */
+/** Decode the loop in the background on page load, so the first
+ * gesture starts it instantly instead of waiting on the decode. */
+export function preloadMusic() {
+  initAudio();
+  const t = live();
+  if (t) void loadMusicLoop(t);
+}
+
+/** Start the loop. Idempotent. */
 export async function startMusic(): Promise<boolean> {
   initAudio();
   const t = live();
@@ -447,8 +455,13 @@ export async function startMusic(): Promise<boolean> {
   lp.frequency.value = 1000;
   lp.Q.value = 0.7;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, ctx.currentTime);
-  g.gain.linearRampToValueAtTime(musicVolume, ctx.currentTime + 2.5);
+  // Start faintly audible right away instead of from silence, then
+  // swell slowly to the target over 6s. A linear ramp from zero spends
+  // the first seconds inaudible, which is what made it feel like it
+  // took too long to start; the exponential swell stays audible the
+  // whole way up.
+  g.gain.setValueAtTime(0.01, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + 6);
   src.connect(lp);
   lp.connect(g);
   // Reuse the synth's dry + wet send so the loop sits in the same room

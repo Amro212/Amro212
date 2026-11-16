@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMusicVolume, initAudio, isMusicPlaying, pressSound, setMusicAutoplay, setMusicVolume, stopMusic, toggleMusic } from '../audio';
+import { getMusicVolume, initAudio, isMusicPlaying, preloadMusic, pressSound, setMusicAutoplay, setMusicVolume, stopMusic, toggleMusic } from '../audio';
 
 function PlayIcon() {
   return (
@@ -34,10 +34,13 @@ export default function MusicPlayer() {
   // On by default: the pill shows playing and the loop is armed, so
   // the first tap, click, or keypress anywhere fades it in. Browsers
   // block sound before any gesture, so it cannot play before that.
+  // The loop is decoded in the background now, so that first gesture
+  // starts it instantly instead of waiting on the decode.
   useEffect(() => {
     setPlaying(true);
     setVolume(getMusicVolume());
     setMusicAutoplay(true);
+    preloadMusic();
   }, []);
 
   const onToggle = async () => {
