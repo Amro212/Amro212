@@ -369,16 +369,53 @@ export function audioState(): string {
   return ctx.state;
 }
 export function installAudioUnlock() {
-  const unlock = () => initAudio();
+  let timer = 0;
+  let recovering = false;
+  let observed: AudioContext | null = null;
+  const checkClock = () => {
+    if (!ctx || document.hidden || timer || recovering) return;
+    const t = ctx, time = t.currentTime;
+    timer = window.setTimeout(() => {
+      timer = 0;
+      if (document.hidden || ctx !== t || t.state === 'closed' || t.currentTime > time) return;
+      // WebKit can report running with a frozen clock after an app switch.
+      recovering = true;
+      void t.suspend().then(() => {
+        if (!document.hidden && ctx === t) void t.resume().catch(() => undefined);
+      }).catch(() => undefined).finally(() => { recovering = false; });
+    }, 250);
+  };
+  const stateChange = () => {
+    if (document.hidden || recovering) return;
+    if (ctx?.state === 'suspended') initAudio();
+    checkClock();
+  };
+  const unlock = () => {
+    initAudio();
+    if (observed !== ctx) {
+      observed?.removeEventListener('statechange', stateChange);
+      observed = ctx;
+      observed?.addEventListener('statechange', stateChange);
+    }
+    checkClock();
+  };
   const events = ['pointerdown', 'keydown', 'touchstart', 'pointerup', 'touchend', 'click'] as const;
   for (const event of events) window.addEventListener(event, unlock, { capture: true, passive: true });
-  const restore = () => { if (ctx && !document.hidden) initAudio(); };
-  const visibility = () => document.hidden ? scrollAmbience(0) : restore();
+  const restore = () => { if (ctx && !document.hidden) unlock(); };
+  const visibility = () => {
+    if (document.hidden) {
+      scrollAmbience(0);
+      window.clearTimeout(timer);
+      timer = 0;
+    } else restore();
+  };
   // Preserve the activated graph across app switches, as the reference does.
   document.addEventListener('visibilitychange', visibility);
   window.addEventListener('pageshow', restore);
   window.addEventListener('focus', restore);
   return () => {
+    window.clearTimeout(timer);
+    observed?.removeEventListener('statechange', stateChange);
     for (const event of events) window.removeEventListener(event, unlock, true);
     document.removeEventListener('visibilitychange', visibility);
     window.removeEventListener('pageshow', restore);

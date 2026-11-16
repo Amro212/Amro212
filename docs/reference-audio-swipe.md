@@ -30,3 +30,36 @@ Session checkpoint: `/tmp/portfolio-audio-swipe-rea.json` (outside the repositor
 - `tests/touch-motion-browser.cjs` checks native touch tracking within 0.2px after frame presentation, release centering, absence of mobile card blur, and zero carousel style mutations during a settled 500ms window.
 
 Static source establishes the reference algorithms; controlled browser probes establish the tested runtime results. Desktop WebKit is not physical iOS Safari. Simulated restoration does not reproduce every OS audio interruption. No physical-phone FPS number or exact full-site rendering parity is claimed; frame pacing on actual phones still requires device verification.
+
+## November 16 follow-up: diagonal gestures and iPhone audio return
+
+The user reproduced audio loss in iPhone Safari and Brave. These fixes target the
+shared WebKit engine. The reference's current carousel/audio chunk was fetched
+again and has the same SHA-256 listed above. A fresh REA load completed all 39
+network transactions with no failures:
+`ev_8136e27587fe90484ab9dadf31bb6c71c79df409b6d156a7d6358d51eef0b2a3`.
+The capture was checkpointed at
+`/tmp/portfolio-scroll-audio-2026-11-16-rea.json`.
+
+| Question | Evidence and result |
+| --- | --- |
+| Why did diagonal swipes fail? | Before the fix, native Chromium touch at 390×650 produced `pointercancel`, 67px of intro vertical scroll, and zero carousel movement. The page and intro allowed native `pan-y`, so the browser took over before horizontal capture. Both now allow pinch zoom without single-finger native panning. |
+| Why could the first wheel gesture fail? | The intro's overflow branch returned before carousel navigation. Removed that branch and the intro scroll container. The complete intro fits above the slider using a ResizeObserver; short landscape screens use two columns. |
+| Does the reference categorically prohibit vertical scrolling? | No. Its shipped CSS also has `.intro-layer { touch-action: pan-y pinch-zoom; overflow-y: auto }`, and `eu()` yields to intro scrolling when it overflows. Its content fits normal viewports. The stricter no-scroll requirement is an intentional correction for our content, rather than a claim that those reference CSS rules solve this bug. Project detail/resume scrolling remains separate, matching the reference. |
+| Can a swipe start on a project? | Reference `ep()` accepts touch starts on cards. Our handler excluded all anchors, including every card. Removed that exclusion; pointer capture and existing swipe suppression protect against accidental project opens. |
+| Why was audio state alone insufficient? | Existing tests resumed an explicitly suspended context; they did not model a `running` context whose `currentTime` is frozen. WebKit reports this failure in [263627](https://bugs.webkit.org/show_bug.cgi?id=263627) and [276016](https://bugs.webkit.org/show_bug.cgi?id=276016). |
+| What changed in audio recovery? | Preserve the reference's single activated graph. After gestures or foreground return, check clock progress once after 250ms. If frozen, suspend then resume the same graph; do not rebuild it. Observe state changes to catch OS suspension that arrives after foreground events. Cancel checks while hidden and on cleanup. An unresolved resume promise does not keep the recovery guard locked. |
+
+Verification adds steep diagonal gestures after an initially vertical move at
+three phone heights, swipes beginning on card links, zero vertical movement,
+no accidental project opens, immediate wheel navigation from the intro, and
+fitting every expanded experience row across seven viewport sizes. Audio unit
+checks cover a frozen running clock, late suspension, rejected/pending resume,
+context identity, closed-context replacement and listener/timer cleanup.
+Chromium and desktop WebKit output probes verify nonzero synthesized samples
+after normal restoration and the injected frozen-clock failure, retaining one
+context. Build and existing navigation/history/menu tests pass.
+
+These are source observations and controlled reproductions, not a physical
+Safari/Brave app-switch recording. A real iPhone must still confirm OS-level
+speaker output after switching apps or locking/unlocking the phone.

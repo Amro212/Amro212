@@ -145,7 +145,7 @@ img, video { display: block; }
 
 /* ── page shell ──────────────────────────────────────────────── */
 .page {
-  touch-action: pan-y pinch-zoom;
+  touch-action: pinch-zoom;
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -186,20 +186,25 @@ html[data-project-motion] .page {
 
 /* ── intro (hero) layer ──────────────────────────────────────── */
 .intro-layer {
-  touch-action: pan-y pinch-zoom;
-  scrollbar-width: none;
+  touch-action: pinch-zoom;
   transform-origin: 50%;
   will-change: transform, filter, opacity;
-  place-items: safe center;
-  padding: calc(110px + env(safe-area-inset-top)) 16px 24px;
+  place-items: center;
+  padding: calc(24px + env(safe-area-inset-top)) 24px 24px;
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   position: absolute;
   inset: 0 0 var(--slider-clearance);
-  overflow-y: auto;
+  overflow: clip;
 }
-.intro-layer::-webkit-scrollbar { display: none; }
 
-.intro { width: var(--slider-w); position: relative; }
+.intro {
+  --signature-headroom: 124px;
+  width: var(--slider-w);
+  padding-top: var(--signature-headroom);
+  position: relative;
+  transform: scale(var(--intro-scale, 1));
+}
 
 .signature {
   width: 520px;
@@ -207,7 +212,7 @@ html[data-project-motion] .page {
   pointer-events: none;
   z-index: 0;
   position: absolute;
-  top: -124px;
+  top: 0;
   left: -28px;
   /* Raster signature: wipe in left-to-right (no fake stroke draw). */
   animation: sig-reveal 2.2s cubic-bezier(0.45, 0, 0.55, 1) 0.15s both;
@@ -1188,19 +1193,14 @@ html[data-intro="on"] .contact { visibility: hidden; }
 }
 /* ── responsive ──────────────────────────────────────────────── */
 @media (max-width: 560px) {
-  .signature { width: 380px; top: -92px; left: -18px; }
+  .signature { width: 380px; left: -18px; }
+  .intro { --signature-headroom: 92px; }
   .name { font-size: 21px; }
   .tagline { margin-top: 4px; font-size: 12px; }
   .bio { margin-top: 26px; font-size: 16px; line-height: 29px; }
   .pill { border-radius: 7px; gap: 5px; height: 26px; margin-right: 3px; padding: 0 7px; }
   .pill-icon { width: 15px; height: 15px; }
   .tree { font-size: min(13.5px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 26px; }
-  .intro-layer {
-    padding: calc(110px + env(safe-area-inset-top, 0px)) 24px 24px;
-  }
-  .intro {
-    margin-top: calc(48px + env(safe-area-inset-top, 0px));
-  }
   :root {
     --slider-w: min(560px, 100vw - 48px);
     --intro-gap: 48px;
@@ -1217,6 +1217,14 @@ html[data-intro="on"] .contact { visibility: hidden; }
   .pill { height: 33px; padding: 0 9px; }
   .pill-icon { width: 19px; height: 19px; }
   .tree { font-size: min(17px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 32px; }
+}
+@media (max-height: 500px) and (min-width: 640px) {
+  .intro { --signature-headroom: 60px; width: min(760px, 100vw - 48px); display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
+  .signature { width: 260px; left: 0; }
+  .name { font-size: 22px; }
+  .tagline { font-size: 12px; }
+  .bio { grid-column: 1; margin: 8px 0 0; font-size: 16px; line-height: 26px; }
+  .tree { grid-column: 2; grid-row: 1 / 3; align-self: center; margin: 0; font-size: min(12px, calc((100vw - 80px) / 2 / var(--cols) / 0.625)); }
 }
 @media (max-width: 640px) {
   .intro-overlay .intro-svg { width: 150vw; }

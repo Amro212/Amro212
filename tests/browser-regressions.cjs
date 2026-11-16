@@ -35,12 +35,13 @@ async function jump(page, index) {
 async function checkFooter(page) {
   const layer = page.locator('.intro-layer');
   const footer = page.locator('.tree-static').last();
-  // Short screens may scroll; the entire footer must be reachable above the control.
+  // Every screen fits the entire intro; native vertical panning stays disabled.
   await layer.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  assert.equal(await layer.evaluate((el) => el.scrollTop), 0, 'intro cannot scroll vertically');
   const f = await footer.boundingBox();
   const l = await layer.boundingBox();
   const s = await page.locator('.slider').boundingBox();
-  assert(f.y >= l.y && f.y + f.height <= l.y + l.height, 'footer fully visible in scroll area');
+  assert(f.y >= l.y && f.y + f.height <= l.y + l.height, 'footer fully visible in fixed intro');
   assert(f.y + f.height <= s.y - 24, 'footer clears the slider');
 }
 
@@ -87,10 +88,15 @@ async function checkFooter(page) {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     await jump(page, 0);
-    // An overflowing intro must not swallow wheel events on a project.
+    // Vertical wheel input navigates immediately, including from a short intro.
     await page.setViewportSize({ width: 1024, height: 600 });
-    await page.locator('.intro-layer').evaluate((el) => { el.scrollTop = 50; });
-    await jump(page, 1);
+    const firstStep = await page.locator('[data-card]').first().evaluate((card) => {
+      const r = card.getBoundingClientRect();
+      return r.left + r.width / 2 - innerWidth / 2;
+    });
+    await page.mouse.move(512, 250);
+    await page.mouse.wheel(0, firstStep);
+    await settled(page, 1);
     const pitch = await page.locator('[data-card]').evaluateAll((cards) => cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left);
     await page.mouse.move(512, 250);
     await page.mouse.wheel(0, pitch);
