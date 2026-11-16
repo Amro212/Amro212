@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMusicVolume, initAudio, isMusicPlaying, preloadMusic, pressSound, setMusicAutoplay, setMusicVolume, stopMusic, toggleMusic } from '../audio';
+import { getMusicVolume, initAudio, installMusicUnlock, isMusicPlaying, preloadMusic, pressSound, setMusicAutoplay, setMusicVolume, stopMusic, toggleMusic } from '../audio';
 
 function PlayIcon() {
   return (
@@ -28,7 +28,7 @@ function PauseIcon() {
  */
 export default function MusicPlayer() {
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.15);
+  const [volume, setVolume] = useState(0.10);
   const [pressed, setPressed] = useState(false);
 
   // On by default: the pill shows playing and the loop is armed, so
@@ -41,6 +41,8 @@ export default function MusicPlayer() {
     setVolume(getMusicVolume());
     setMusicAutoplay(true);
     preloadMusic();
+    const removeMusicUnlock = installMusicUnlock();
+    return () => removeMusicUnlock();
   }, []);
 
   const onToggle = async () => {
