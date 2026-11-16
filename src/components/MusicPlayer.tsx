@@ -28,7 +28,7 @@ function PauseIcon() {
  */
 export default function MusicPlayer() {
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.25);
   const [pressed, setPressed] = useState(false);
 
   useEffect(() => {

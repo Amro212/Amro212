@@ -30,7 +30,7 @@ let musicLoading: Promise<AudioBuffer | null> | null = null;
 let musicSrc: AudioBufferSourceNode | null = null;
 let musicGainNode: GainNode | null = null;
 let musicPlaying = false;
-let musicVolume = 0.3; // target gain 0..0.6, quiet by default
+let musicVolume = 0.15; // target gain 0..0.6, quiet by default (25% on the slider)
 let musicStopTimer: number | undefined = undefined;
 
 /** Decode the real rubber duck squeak once, cache it, reuse it. */

@@ -728,7 +728,7 @@ html[data-intro="on"] .music-player { visibility: hidden; }
     conic-gradient(from var(--band), #4a3a2c 0deg, #9c8468 22deg, var(--peak) 42deg, #ffd9ae 50deg, #ffc2a6 53deg, #ffc98a 55.5deg, #e8a06a 57.5deg, #ecd3b0 61deg, #8a7a68 88deg, #33291f 135deg, #5a4a38 188deg, #c9a67e 216deg, #f2d5a8 229deg, #ffc98a 232deg, #e8a06a 234deg, #a08a70 246deg, #36291d 302deg, #4a3a2c 360deg) border-box;
   width: max-content;
   max-width: calc(100vw - 40px);
-  height: 36px;
+  height: 39px;
   box-shadow: var(--seat), 0 3px 0 #0b0c0e, 0 4px 1px #00000080, 0 7px 12px #00000080;
   text-shadow: 0 1px 1px #000000b3;
   border: 3.5px solid #0000;
@@ -849,8 +849,16 @@ html[data-intro="on"] .music-player { visibility: hidden; }
   border-radius: 50%;
 }
 @media (max-width: 560px) {
+  /* Mobile: the title makes the pill far wider than the contact pill,
+     so it reads lopsided. Drop the title and the volume (already
+     hidden) and shrink to a compact toggle, same height as the
+     contact pill, so the two top corners stay symmetrical. */
+  .music-pill {
+    gap: 6px;
+    padding: 0 10px 0 6px;
+  }
+  .music-title { display: none; }
   .music-vol { display: none; }
-  .music-title { font-size: 11px; }
 }
 .contact-face:not(.contact-face-done)[aria-hidden="true"] {
   opacity: 0;
