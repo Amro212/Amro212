@@ -3,6 +3,17 @@
 // experience, and projects. The Phase 1 placeholder content from
 // the original clone source has been replaced.
 
+import {
+  KAREER_THUMB_MP4,
+  KAREER_THUMB_POSTER,
+  SYLLABUSSYNC_THUMB_MP4,
+  SYLLABUSSYNC_THUMB_POSTER,
+  TRANSFORMER_THUMB_MP4,
+  TRANSFORMER_THUMB_POSTER,
+  CURLAI_THUMB_MP4,
+  CURLAI_THUMB_POSTER,
+} from './thumbnails';
+
 export interface ExperienceEntry {
   company: string;
   role: string;
@@ -81,7 +92,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://kareer.itsamro.me/',
     external: true,
     slug: 'kareer',
-    media: { type: 'image', src: 'https://kareer.itsamro.me/assets/kareer-social-preview.png', alt: 'Kareer' },
+    media: { type: 'video', poster: KAREER_THUMB_POSTER, mp4: KAREER_THUMB_MP4 },
   },
   {
     title: 'Syllabus Sync',
@@ -89,7 +100,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/Syllabus-Sync',
     external: true,
     slug: 'syllabus-sync',
-    media: { type: 'image', src: '/project-previews/syllabus/syllabus1.png', alt: 'Syllabus Sync' },
+    media: { type: 'video', poster: SYLLABUSSYNC_THUMB_POSTER, mp4: SYLLABUSSYNC_THUMB_MP4 },
   },
   {
     title: 'Transformer Training Optimization',
@@ -97,7 +108,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/transformer-training-benchmark',
     external: true,
     slug: 'transformer-training-optimization',
-    media: { type: 'image', src: 'https://raw.githubusercontent.com/Amro212/transformer-training-benchmark/master/test2_3/plots/mode_comparison_overview.png', alt: 'Transformer Training Optimization' },
+    media: { type: 'video', poster: TRANSFORMER_THUMB_POSTER, mp4: TRANSFORMER_THUMB_MP4 },
   },
   {
     title: 'CurlAI',
@@ -105,7 +116,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/CurlAI',
     external: true,
     slug: 'curlai',
-    media: { type: 'image', src: 'https://opengraph.githubassets.com/1/Amro212/CurlAI', alt: 'CurlAI' },
+    media: { type: 'video', poster: CURLAI_THUMB_POSTER, mp4: CURLAI_THUMB_MP4 },
   },
   {
     title: 'LEGEND',
