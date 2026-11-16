@@ -356,7 +356,13 @@ export function quackSound(pan = 0) {
     if (!ctx) return;
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(send(ctx, 0.6 * pan));
+    // The recorded sample is near full-scale and the master runs hot (1.3),
+    // so the quack gets its own level. 0.35 keeps it audible without
+    // shouting over the synth ticks.
+    const g = ctx.createGain();
+    g.gain.value = 0.35;
+    src.connect(g);
+    g.connect(send(ctx, 0.6 * pan));
     src.start();
   });
 }
