@@ -30,7 +30,7 @@ let musicLoading: Promise<AudioBuffer | null> | null = null;
 let musicSrc: AudioBufferSourceNode | null = null;
 let musicGainNode: GainNode | null = null;
 let musicPlaying = false;
-let musicVolume = 0.15; // target gain 0..0.6, quiet by default (25% on the slider)
+let musicVolume = 0.09; // target gain 0..0.6, quiet by default (15% on the slider)
 let musicStopTimer: number | undefined = undefined;
 /** Autoplay: armed by the player on mount so the loop starts on the
  * first user gesture. Browsers block sound before any gesture, so "on

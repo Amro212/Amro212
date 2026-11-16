@@ -28,7 +28,7 @@ function PauseIcon() {
  */
 export default function MusicPlayer() {
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.25);
+  const [volume, setVolume] = useState(0.15);
   const [pressed, setPressed] = useState(false);
 
   // On by default: the pill shows playing and the loop is armed, so
