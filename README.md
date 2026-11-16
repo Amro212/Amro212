@@ -6,7 +6,7 @@
 
 # Amro Abed Moosa
 
-<a href="https://github.com/Amro212"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&pause=1000&color=C97B4A&center=true&vCenter=true&width=600&lines=Computer+Engineering+grad+rebuilding+software+with+AI;Currently+building+Kareer;Ontario%2C+Canada" alt="Typing animation" /></a>
+<a href="https://github.com/Amro212"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=18&pause=1000&color=C97B4A&center=true&vCenter=true&width=500&lines=Computer+Engineering+grad;rebuilding+software+with+AI;Currently+building+Kareer;Ontario%2C+Canada" alt="Typing animation" /></a>
 
 I build tools that take the boring work off your plate, and I like showing people how they work. Full-stack, AI, automation, iOS, ML, a bit of everything, not one lane.
 
