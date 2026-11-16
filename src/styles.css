@@ -716,6 +716,164 @@ html[data-intro="on"] .contact { visibility: hidden; }
   display: flex;
 }
 .contact-face svg { flex: none; }
+
+/* ── music player pill ─────────────────────────────────────────── */
+/* Same pill recipe as the contact button, mirrored to the top-right:
+   dark gradient fill, conic copper border ring, 3D seat shadow. */
+.music-player {
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(20px + env(safe-area-inset-right));
+  z-index: 3;
+  pointer-events: none;
+  position: fixed;
+}
+html[data-intro="on"] .music-player { visibility: hidden; }
+.music-pill {
+  --band: -95deg;
+  --peak: #f0c08e;
+  --fill: linear-gradient(180deg, #2e2620 0%, #1c1611 52%, #14100c 100%);
+  --seat: inset 0 0 0 1px #0009, inset 0 3px 4px -1px #0000008c, 0 0 0 1px #050607, 0 0 0 1.5px rgba(201, 123, 74, 0.2);
+  pointer-events: auto;
+  background:
+    radial-gradient(130% 40px at 50% -8px, rgba(224, 154, 102, 0.4), rgba(201, 123, 74, 0.12) 52%, #fff0 70%) padding-box,
+    radial-gradient(90% 18px at 50% calc(100% + 4px), rgba(224, 154, 102, 0.22), #fff0 70%) padding-box,
+    var(--fill) padding-box,
+    linear-gradient(180deg, rgba(255, 205, 150, 0.45), #fff0 20px, #0000 calc(100% - 20px), #00000073) border-box,
+    conic-gradient(from var(--band), #4a3a2c 0deg, #9c8468 22deg, var(--peak) 42deg, #ffd9ae 50deg, #ffc2a6 53deg, #ffc98a 55.5deg, #e8a06a 57.5deg, #ecd3b0 61deg, #8a7a68 88deg, #33291f 135deg, #5a4a38 188deg, #c9a67e 216deg, #f2d5a8 229deg, #ffc98a 232deg, #e8a06a 234deg, #a08a70 246deg, #36291d 302deg, #4a3a2c 360deg) border-box;
+  width: max-content;
+  max-width: calc(100vw - 40px);
+  height: 39px;
+  box-shadow: var(--seat), 0 3px 0 #0b0c0e, 0 4px 1px #00000080, 0 7px 12px #00000080;
+  text-shadow: 0 1px 1px #000000b3;
+  border: 3.5px solid #0000;
+  border-radius: 20px;
+  outline: 1px solid rgba(201, 123, 74, 0.35);
+  transition: transform 90ms, box-shadow 90ms;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 6px;
+  position: relative;
+  overflow: hidden;
+}
+.music-pill:hover {
+  --peak: #ffd9ae;
+  --fill: linear-gradient(180deg, #33291f 0%, #201a15 52%, #161210 100%);
+  box-shadow: var(--seat), 0 4px 0 #0b0c0e, 0 5px 1px #00000080, 0 10px 16px #00000080, 0 0 18px rgba(201, 123, 74, 0.3);
+  outline-color: rgba(201, 123, 74, 0.55);
+  transition-duration: 0.25s;
+  transform: translateY(-1px);
+}
+.music-pill[data-down] {
+  box-shadow: var(--seat), 0 0 0 #0b0c0e, 0 1px 1px #0000008c, 0 2px 5px #00000073;
+  transition-duration: 90ms;
+  transform: translateY(3px);
+}
+.music-toggle {
+  width: 26px;
+  height: 26px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  padding: 0;
+}
+.music-toggle:focus { outline: none; }
+.music-toggle:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+.music-toggle:hover { color: var(--text-strong); background: rgba(255, 255, 255, 0.1); }
+.music-eq {
+  width: 14px;
+  height: 12px;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+  display: flex;
+}
+.music-eq i {
+  width: 3px;
+  height: 10px;
+  background: var(--text);
+  opacity: 0.55;
+  border-radius: 1px;
+  transform: scaleY(0.25);
+  transform-origin: bottom;
+}
+.music-player[data-playing] .music-eq i { animation: music-eq 0.9s ease-in-out infinite; }
+.music-player[data-playing] .music-eq i:nth-child(2) { animation-delay: 0.25s; }
+.music-player[data-playing] .music-eq i:nth-child(3) { animation-delay: 0.5s; }
+@keyframes music-eq {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+.music-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1;
+}
+.music-vol {
+  width: 64px;
+  height: 14px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  flex: none;
+  margin: 0;
+  padding: 0;
+}
+.music-vol::-webkit-slider-runnable-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  background: #e8d5b8;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+}
+.music-vol::-moz-range-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+.music-vol::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  background: #e8d5b8;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+}
+@media (max-width: 560px) {
+  /* Mobile: the title makes the pill far wider than the contact pill,
+     so it reads lopsided. Drop the title and the volume (already
+     hidden) and shrink to a compact toggle, same height as the
+     contact pill, so the two top corners stay symmetrical. */
+  .music-pill {
+    gap: 6px;
+    padding: 0 10px 0 6px;
+  }
+  .music-title { display: none; }
+  .music-vol { display: none; }
+}
 .contact-face:not(.contact-face-done)[aria-hidden="true"] {
   opacity: 0;
   transform: translateY(-5px);

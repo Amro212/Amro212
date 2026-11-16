@@ -7,6 +7,7 @@
 // (src/data/quack.ts), not synthesized, at the user's request.
 
 import { QUACK_MP3 } from './data/quack';
+import { MUSIC_LOOP_MP3 } from './data/musicLoop';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -20,6 +21,42 @@ let bed: {
 let unlocked = false;
 let quackBuf: AudioBuffer | null = null;
 let quackLoading: Promise<AudioBuffer | null> | null = null;
+
+/** Music player state (Aruarian Dance loop). Declared up here so
+ * initAudio() can drop the dead music nodes when the context is closed
+ * and rebuilt, same as the rest of the graph. */
+let musicBuf: AudioBuffer | null = null;
+let musicLoading: Promise<AudioBuffer | null> | null = null;
+let musicSrc: AudioBufferSourceNode | null = null;
+let musicGainNode: GainNode | null = null;
+let musicPlaying = false;
+let musicVolume = 0.06; // target gain 0..0.6, quiet by default (10% on the slider)
+let musicStopTimer: number | undefined = undefined;
+/** A start already decoding; concurrent calls share it instead of each
+ * creating their own looping source. */
+let musicStarting: Promise<boolean> | null = null;
+/** A source fading out after pause; held so a quick resume can stop it
+ * explicitly instead of orphaning it when its cleanup timeout is
+ * cancelled. */
+let musicStopping: { src: AudioBufferSourceNode; g: GainNode } | null = null;
+/** Autoplay: armed by the player on mount so the loop starts on the
+ * first user gesture. Browsers block sound before any gesture, so "on
+ * by default" means the first tap, click, or keypress anywhere fades
+ * it in; there is no way to make sound before that. One-shot: it
+ * disarms once the music has started, so a later pause is not undone
+ * by the next scroll. musicGen invalidates a start that is still
+ * decoding when the user turns it off before it ever played. */
+let musicAutoplay = false;
+let musicGen = 0;
+
+export function setMusicAutoplay(on: boolean) {
+  musicAutoplay = on;
+  if (!on) musicGen++;
+}
+
+export function isMusicAutoplay(): boolean {
+  return musicAutoplay;
+}
 
 /** Decode the real rubber duck squeak once, cache it, reuse it. */
 function loadQuack(t: AudioContext): Promise<AudioBuffer | null> {
@@ -178,6 +215,195 @@ interface BurstOpts {
 }
 
 /** m() — noise burst with filter chain + exponential decay. */
+/** ── Music player: Aruarian Dance loop ─────────────────────────────
+ * The "through a wall" sound is a low-pass filter: cutting the highs is
+ * what makes audio sound muffled and distant, like it's playing from
+ * another room. 1000 Hz keeps the warm lows and the groove while taking
+ * the edge off. The loop itself is a 28.98s bar-aligned slice with a 2s
+ * crossfade at the seam, decoded once into an AudioBuffer and looped
+ * gapless, so there is no click and no drift at the wrap. */
+
+/** Decode the loop once, cache it, reuse it. */
+function loadMusicLoop(t: AudioContext): Promise<AudioBuffer | null> {
+  if (musicBuf) return Promise.resolve(musicBuf);
+  if (!musicLoading) {
+    musicLoading = fetch(MUSIC_LOOP_MP3)
+      .then((r) => r.arrayBuffer())
+      .then((ab) => t.decodeAudioData(ab))
+      .then((buf) => {
+        musicBuf = buf;
+        return buf;
+      })
+      .catch(() => null);
+  }
+  return musicLoading;
+}
+
+/** Decode the loop in the background on page load, so the first
+ * gesture starts it instantly instead of waiting on the decode. */
+export function preloadMusic() {
+  initAudio();
+  const t = live();
+  if (t) void loadMusicLoop(t);
+}
+
+/** Start the loop. Idempotent. Concurrent calls share one in-flight
+ * start, so two gestures landing before the decode finishes cannot
+ * each create their own looping source. */
+export function startMusic(): Promise<boolean> {
+  initAudio();
+  const t = live();
+  // If the context was closed and rebuilt, the old source is wired into
+  // the dead graph; drop it so a fresh press rebuilds on the new one.
+  if (musicPlaying && (!musicSrc || musicSrc.context !== t)) {
+    musicSrc = null;
+    musicGainNode = null;
+    musicPlaying = false;
+  }
+  if (!t || musicPlaying) return Promise.resolve(musicPlaying);
+  if (musicStarting) return musicStarting;
+  musicStarting = (async () => {
+    const gen = musicGen;
+    const buf = await loadMusicLoop(t);
+    // The user may have turned it off while the loop was still decoding.
+    if (gen !== musicGen) return false;
+    const ctx = live();
+    if (!buf || !ctx) return false;
+    // Another start may have finished while we were decoding; do not
+    // create a second looping source.
+    if (musicPlaying) return true;
+    // A fade-out may still be pending from a quick pause. Stop that
+    // source explicitly before cancelling its cleanup, otherwise it is
+    // orphaned and keeps playing with no reference to stop it.
+    if (musicStopping) {
+      const { src: oldSrc, g: oldG } = musicStopping;
+      musicStopping = null;
+      try { oldSrc.stop(); } catch { /* already stopped */ }
+      oldSrc.disconnect();
+      oldG.disconnect();
+    }
+    window.clearTimeout(musicStopTimer);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1000;
+    lp.Q.value = 0.7;
+    const g = ctx.createGain();
+    // Start faintly audible right away instead of from silence, then
+    // swell slowly to the target over 6s. A linear ramp from zero spends
+    // the first seconds inaudible, which is what made it feel like it
+    // took too long to start; the exponential swell stays audible the
+    // whole way up.
+    g.gain.setValueAtTime(0.01, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(musicVolume, ctx.currentTime + 6);
+    src.connect(lp);
+    lp.connect(g);
+    // Reuse the synth's dry + wet send so the loop sits in the same room
+    // as the clicks instead of on top of them.
+    g.connect(send(ctx, 0));
+    src.start();
+    musicSrc = src;
+    musicGainNode = g;
+    musicPlaying = true;
+    musicAutoplay = false;
+    return true;
+  })();
+  const p = musicStarting;
+  void p.finally(() => { if (musicStarting === p) musicStarting = null; });
+  return p;
+}
+
+/** Pause the loop. Fades out over ~1.2s, then stops the source. Idempotent.
+ * The fading source is held in musicStopping until it is actually
+ * stopped, so a quick resume can stop it explicitly instead of losing
+ * the reference when the cleanup timeout is cancelled. */
+export function stopMusic(): boolean {
+  if (!musicPlaying || !musicSrc || !musicGainNode) return false;
+  const t = live();
+  const src = musicSrc;
+  const g = musicGainNode;
+  musicSrc = null;
+  musicGainNode = null;
+  musicPlaying = false;
+  musicStopping = { src, g };
+  if (t) {
+    g.gain.setTargetAtTime(0.0001, t.currentTime, 1.2 / 3);
+    musicStopTimer = window.setTimeout(() => {
+      musicStopping = null;
+      try { src.stop(); } catch { /* already stopped */ }
+      src.disconnect();
+      g.disconnect();
+    }, 1.2 * 1000 + 200);
+  } else {
+    musicStopping = null;
+    try { src.stop(); } catch { /* already stopped */ }
+  }
+  return true;
+}
+
+export async function toggleMusic(): Promise<boolean> {
+  if (musicPlaying) {
+    stopMusic();
+    return false;
+  }
+  return startMusic();
+}
+
+export function isMusicPlaying(): boolean {
+  return musicPlaying;
+}
+
+/** Volume 0..1, mapped to 0..0.6 gain. Applies live while playing. */
+export function setMusicVolume(v: number) {
+  musicVolume = clamp(v, 0, 1) * 0.6;
+  const t = live();
+  if (t && musicGainNode && musicPlaying) {
+    musicGainNode.gain.setTargetAtTime(musicVolume, t.currentTime, 0.1);
+  }
+}
+
+export function getMusicVolume(): number {
+  return musicVolume / 0.6;
+}
+
+/** k() — haptics. */
+export function vibrate(ms: number) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
+}
+
+/** Audio state for headless verification (no sound is audible headless). */
+export function audioState(): string {
+  if (!ctx) return 'none';
+  return ctx.state;
+}
+/**
+ * The first gesture is the first moment sound is allowed, so if the
+ * music player armed autoplay, the first gesture starts the loop.
+ * Except a gesture on the player itself: that press is the user's own
+ * toggle, and its click handler decides (a first press on pause means
+ * off). Without this, the pointerdown would start the loop and the
+ * click a moment later would arrive too late to stop the decode, so
+ * the music would play after the user pressed pause. Kept separate
+ * from installAudioUnlock so the two never touch the same lines.
+ */
+export function installMusicUnlock() {
+  const musicUnlock = (e: Event) => {
+    const t = e.target as HTMLElement | null;
+    if (t?.closest?.('.music-player')) return;
+    if (musicAutoplay && !musicPlaying) void startMusic();
+  };
+  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'click'] as const) {
+    window.addEventListener(ev, musicUnlock, { passive: true });
+  }
+  return () => {
+    for (const ev of ['pointerdown', 'keydown', 'touchstart', 'click'] as const) {
+      window.removeEventListener(ev, musicUnlock);
+    }
+  };
+}
+
 function burst(t: AudioContext, when: number, out: AudioNode, o: BurstOpts) {
   const src = t.createBufferSource();
   src.buffer = noiseBuf;
@@ -364,16 +590,6 @@ export function quackSound(pan = 0) {
   });
 }
 
-/** k() — haptics. */
-export function vibrate(ms: number) {
-  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
-}
-
-/** Audio state for headless verification (no sound is audible headless). */
-export function audioState(): string {
-  if (!ctx) return 'none';
-  return ctx.state;
-}
 export function installAudioUnlock() {
   let timer = 0;
   let recovering = false;

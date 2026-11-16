@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ContactMenu from './components/ContactMenu';
+import MusicPlayer from './components/MusicPlayer';
 import { FilmLight } from './components/Effects';
 import Hero from './components/Hero';
 import Pond from './components/Pond';
@@ -536,6 +537,7 @@ export default function App() {
           })}
         </div>
         <ContactMenu onOpenResume={(from, home) => setResumeReq({ from, home })} />
+        <MusicPlayer />
         <div ref={sliderWrapRef}>
           <Slider
             progress={progress}
