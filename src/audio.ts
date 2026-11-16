@@ -32,6 +32,24 @@ let musicGainNode: GainNode | null = null;
 let musicPlaying = false;
 let musicVolume = 0.15; // target gain 0..0.6, quiet by default (25% on the slider)
 let musicStopTimer: number | undefined = undefined;
+/** Autoplay: armed by the player on mount so the loop starts on the
+ * first user gesture. Browsers block sound before any gesture, so "on
+ * by default" means the first tap, click, or keypress anywhere fades
+ * it in; there is no way to make sound before that. One-shot: it
+ * disarms once the music has started, so a later pause is not undone
+ * by the next scroll. musicGen invalidates a start that is still
+ * decoding when the user turns it off before it ever played. */
+let musicAutoplay = false;
+let musicGen = 0;
+
+export function setMusicAutoplay(on: boolean) {
+  musicAutoplay = on;
+  if (!on) musicGen++;
+}
+
+export function isMusicAutoplay(): boolean {
+  return musicAutoplay;
+}
 
 /** Decode the real rubber duck squeak once, cache it, reuse it. */
 function loadQuack(t: AudioContext): Promise<AudioBuffer | null> {
@@ -413,7 +431,10 @@ export async function startMusic(): Promise<boolean> {
   initAudio();
   const t = live();
   if (!t || musicPlaying) return musicPlaying;
+  const gen = musicGen;
   const buf = await loadMusicLoop(t);
+  // The user may have turned it off while the loop was still decoding.
+  if (gen !== musicGen) return false;
   const ctx = live();
   if (!buf || !ctx) return false;
   // A fade-out may still be pending from a quick pause; cancel it.
@@ -437,6 +458,7 @@ export async function startMusic(): Promise<boolean> {
   musicSrc = src;
   musicGainNode = g;
   musicPlaying = true;
+  musicAutoplay = false;
   return true;
 }
 
@@ -502,7 +524,19 @@ export function installAudioUnlock() {
   // again at any point (backgrounded tab, lock screen, call, Siri), so
   // every gesture re-runs initAudio, which resumes it. initAudio is
   // idempotent and cheap when the context is already running.
-  const unlock = () => initAudio();
+  // The unlock is also the first moment sound is allowed, so if the
+  // music player armed autoplay, the first gesture starts the loop.
+  // Except a gesture on the player itself: that press is the user's
+  // own toggle, and its click handler decides (a first press on pause
+  // means off). Without this, the pointerdown would start the loop
+  // and the click a moment later would arrive too late to stop the
+  // decode, so the music would play after the user pressed pause.
+  const unlock = (e?: Event) => {
+    initAudio();
+    const t = e?.target as HTMLElement | null;
+    if (t?.closest?.('.music-player')) return;
+    if (musicAutoplay && !musicPlaying) void startMusic();
+  };
   // Wheel grants no user activation and touch activation lands on the
   // *up* event, not the down event, so the up-events are the unlock
   // that makes the first swipe audible: without them a touch swipe's

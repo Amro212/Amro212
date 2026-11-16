@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMusicVolume, initAudio, isMusicPlaying, pressSound, setMusicVolume, toggleMusic } from '../audio';
+import { getMusicVolume, initAudio, isMusicPlaying, pressSound, setMusicAutoplay, setMusicVolume, stopMusic, toggleMusic } from '../audio';
 
 function PlayIcon() {
   return (
@@ -31,15 +31,32 @@ export default function MusicPlayer() {
   const [volume, setVolume] = useState(0.25);
   const [pressed, setPressed] = useState(false);
 
+  // On by default: the pill shows playing and the loop is armed, so
+  // the first tap, click, or keypress anywhere fades it in. Browsers
+  // block sound before any gesture, so it cannot play before that.
   useEffect(() => {
-    setPlaying(isMusicPlaying());
+    setPlaying(true);
     setVolume(getMusicVolume());
+    setMusicAutoplay(true);
   }, []);
 
   const onToggle = async () => {
     initAudio();
-    const next = await toggleMusic();
-    setPlaying(next);
+    if (isMusicPlaying()) {
+      // Actually playing: pause it and disarm so a later gesture does
+      // not start it again.
+      stopMusic();
+      setMusicAutoplay(false);
+      setPlaying(false);
+    } else if (playing) {
+      // Armed but never started (no gesture yet): the user is turning
+      // it off before it ever played. Disarm only, do not start it.
+      setMusicAutoplay(false);
+      setPlaying(false);
+    } else {
+      const next = await toggleMusic();
+      setPlaying(next);
+    }
   };
 
   const onVolume = (v: number) => {
