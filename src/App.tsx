@@ -24,10 +24,12 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [resumeReq, setResumeReq] = useState<{ from: DOMRect; home: () => HTMLElement | null } | null>(null);
   const [openProject, setOpenProject] = useState<{
+    id: number;
     index: number;
     cardImage: HTMLElement | null;
     directLoad: boolean;
   } | null>(null);
+  const openSeqRef = useRef(0);
   const projectDetailRef = useRef<ProjectDetailHandle>(null);
 
   const pxRef = useRef(0);
@@ -328,8 +330,12 @@ export default function App() {
     }, 180);
   }, [nearestStopPx]);
 
-  const handleCloseComplete = useCallback(() => {
-    setOpenProject(null);
+  const handleCloseComplete = useCallback((id?: number) => {
+    setOpenProject((cur) => {
+      if (!cur) return null;
+      if (id != null && cur.id !== id) return cur;
+      return null;
+    });
   }, []);
 
   const handleRequestClose = useCallback((focusVisible = false) => {
@@ -341,12 +347,13 @@ export default function App() {
     }
   }, []);
 
-  const openProjectAt = useCallback((index: number, cardImage: HTMLElement | null = null) => {
+  const openProjectAt = useCallback((index: number, cardImage: HTMLElement | null = null, directLoad = false) => {
     initAudio();
     if (history.state?.pv !== index) {
       history.pushState({ pv: index }, '', `/projects/${PROJECTS[index].slug}`);
     }
-    setOpenProject({ index, cardImage, directLoad: false });
+    openSeqRef.current += 1;
+    setOpenProject({ id: openSeqRef.current, index, cardImage, directLoad });
   }, []);
 
   // Check initial deep link on mount
@@ -354,7 +361,8 @@ export default function App() {
     const match = window.location.pathname.match(/^\/projects\/([^/]+)\/?$/);
     const index = match ? PROJECTS.findIndex((project) => project.slug === match[1]) : -1;
     if (index >= 0) {
-      setOpenProject({ index, cardImage: null, directLoad: true });
+      openSeqRef.current += 1;
+      setOpenProject({ id: openSeqRef.current, index, cardImage: null, directLoad: true });
     }
   }, []);
 
@@ -546,7 +554,8 @@ export default function App() {
       {openProject !== null ? (
         <ProjectDetail
           ref={projectDetailRef}
-          key={openProject.index}
+          key={openProject.id}
+          id={openProject.id}
           project={PROJECTS[openProject.index]}
           index={openProject.index}
           cardImage={openProject.cardImage}

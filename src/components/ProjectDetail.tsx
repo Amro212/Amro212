@@ -312,14 +312,15 @@ interface Props {
   project: CloneProject;
   index: number;
   cardImage: HTMLElement | null;
-  onCloseComplete: () => void;
+  onCloseComplete: (id?: number) => void;
   onRequestClose: (focusVisible?: boolean) => void;
   /** Opened from a fresh load of /projects/<slug> (no prior history entry). */
   directLoad?: boolean;
+  id?: number;
 }
 
 const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDetail(
-  { project, index, cardImage, onCloseComplete, onRequestClose, directLoad },
+  { project, index, cardImage, onCloseComplete, onRequestClose, directLoad, id },
   ref
 ) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -329,6 +330,12 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
   const cardMediaRef = useRef<HTMLElement | null>(cardImage);
   const animatingRef = useRef<boolean>(false);
   const titleRef = useRef<string>('');
+  const phaseRef = useRef<'opening' | 'open' | 'closing'>(directLoad ? 'open' : 'opening');
+  const pendingCloseRef = useRef<{ focusVisible: boolean } | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
+  const openAnimationsRef = useRef<Animation[]>([]);
+  const closeAnimationsRef = useRef<Animation[]>([]);
+  const startCloseAnimationRef = useRef<(focusVisible?: boolean) => void>(() => {});
 
   const [phase, setPhase] = useState<'opening' | 'open' | 'closing'>(
     directLoad ? 'open' : 'opening'
@@ -372,7 +379,17 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
     const onOpeningDone = () => {
       setLanded(true);
       animatingRef.current = false;
+      phaseRef.current = 'open';
       setPhase('open');
+
+      const shouldClose = pendingCloseRef.current !== null || (!directLoad && history.state?.pv == null);
+      if (shouldClose) {
+        const focusVis = pendingCloseRef.current?.focusVisible ?? false;
+        pendingCloseRef.current = null;
+        startCloseAnimationRef.current(focusVis);
+        return;
+      }
+
       closeButtonRef.current?.focus({ preventScroll: true });
     };
 
@@ -392,6 +409,7 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
     const fillBoth: FillMode = 'both';
 
     animatingRef.current = true;
+    phaseRef.current = 'opening';
     const animTransform = flyerEl.animate(
       [{ transform: f.cardTransform }, { transform: f.heroTransform }],
       { duration: OPEN_DURATION, easing: OPEN_EASING, fill: fillBoth }
@@ -411,15 +429,21 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
         )
       : null;
 
-    const revealTimer = window.setTimeout(() => setRevealed(true), REVEAL_DELAY_MS);
+    openAnimationsRef.current = [animTransform, animRadius, animFilter].filter(Boolean) as Animation[];
+
+    revealTimerRef.current = window.setTimeout(() => setRevealed(true), REVEAL_DELAY_MS);
 
     animTransform.onfinish = onOpeningDone;
 
     return () => {
-      window.clearTimeout(revealTimer);
-      animTransform.cancel();
-      animRadius.cancel();
-      animFilter?.cancel();
+      if (revealTimerRef.current) {
+        window.clearTimeout(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
+      openAnimationsRef.current.forEach((a) => {
+        try { a.cancel(); } catch {}
+      });
+      openAnimationsRef.current = [];
     };
   }, [phase, cardImage, directLoad, index, project.title]);
 
@@ -437,9 +461,27 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
   }, [directLoad, project.title]);
 
   const startCloseAnimation = useCallback((focusVisible = false) => {
-    if (animatingRef.current || phase !== 'open' || !heroRef.current || !flyerRef.current) return;
+    if (phaseRef.current === 'closing') return;
+    if (phaseRef.current === 'opening' || animatingRef.current) {
+      pendingCloseRef.current = { focusVisible };
+      if (revealTimerRef.current) {
+        window.clearTimeout(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
+      openAnimationsRef.current.forEach((a) => {
+        try { a.playbackRate = 2; } catch {}
+      });
+      return;
+    }
+    if (phaseRef.current !== 'open' || !heroRef.current || !flyerRef.current) return;
     animatingRef.current = true;
+    phaseRef.current = 'closing';
+    setPhase('closing');
+    setRevealed(false);
+    setLanded(false);
     const root = document.documentElement;
+    delete root.dataset.project;
+
     const flyerEl = flyerRef.current;
     const heroEl = heroRef.current;
     const heroRect = measureHero(heroEl);
@@ -450,11 +492,6 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
       el.removeAttribute('data-in');
     });
 
-    setRevealed(false);
-    setLanded(false);
-    setPhase('closing');
-    delete root.dataset.project;
-
     Object.assign(flyerEl.style, P(heroRect));
 
     const mediaEl = cardMediaRef.current ?? document.querySelectorAll<HTMLElement>('[data-card]')[index]?.querySelector<HTMLElement>('.card-media') ?? null;
@@ -464,7 +501,8 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
       delete root.dataset.projectMotion;
       if (titleRef.current) document.title = titleRef.current;
       animatingRef.current = false;
-      onCloseComplete();
+      closeAnimationsRef.current = [];
+      onCloseComplete(id);
       const cardEl = mediaEl?.closest<HTMLElement>('[data-card]');
       try {
         (cardEl as unknown as { focus: (opts?: FocusOptions & { focusVisible?: boolean }) => void })?.focus({
@@ -496,23 +534,35 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
       [{ transform: f.heroTransform }, { transform: f.cardTransform }],
       closeOpts
     );
-    flyerEl.animate(
+    const animRadius = flyerEl.animate(
       [{ borderRadius: f.heroRadius }, { borderRadius: f.cardRadius }],
       closeOpts
     );
-    if (cardMetrics.filter) {
-      flyerEl.animate(
-        [
-          { filter: 'none' },
-          { filter: 'blur(0px)', offset: 0.75 },
-          { filter: cardMetrics.filter },
-        ],
-        closeOpts
-      );
-    }
+    const animFilter = cardMetrics.filter
+      ? flyerEl.animate(
+          [
+            { filter: 'none' },
+            { filter: 'blur(0px)', offset: 0.75 },
+            { filter: cardMetrics.filter },
+          ],
+          closeOpts
+        )
+      : null;
+
+    closeAnimationsRef.current = [animTransform, animRadius, animFilter].filter(Boolean) as Animation[];
 
     animTransform.onfinish = onClosingDone;
-  }, [phase, index, onCloseComplete]);
+  }, [id, index, onCloseComplete]);
+
+  startCloseAnimationRef.current = startCloseAnimation;
+
+  useEffect(() => {
+    if (phase === 'open' && !directLoad && history.state?.pv == null) {
+      const focusVis = pendingCloseRef.current?.focusVisible ?? false;
+      pendingCloseRef.current = null;
+      startCloseAnimation(focusVis);
+    }
+  }, [phase, directLoad, startCloseAnimation]);
 
   useImperativeHandle(ref, () => ({
     startCloseAnimation,
@@ -532,6 +582,10 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      closeAnimationsRef.current.forEach((a) => {
+        try { a.cancel(); } catch {}
+      });
+      closeAnimationsRef.current = [];
       delete document.documentElement.dataset.project;
       delete document.documentElement.dataset.projectMotion;
       if (cardMediaRef.current) cardMediaRef.current.style.visibility = '';
