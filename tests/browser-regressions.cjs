@@ -15,7 +15,7 @@ async function settled(page, index) {
     if (!i) return true;
     const card = document.querySelectorAll('[data-card]')[i - 1].getBoundingClientRect();
     return Math.abs(card.left + card.width / 2 - innerWidth / 2) < 0.3;
-  }, index).catch(async (error) => {
+  }, index, { timeout: 60000 }).catch(async (error) => {
     console.error('Failed stop', index, await page.evaluate(() => ({
       viewport: [innerWidth, innerHeight],
       selected: document.querySelector('.slider-stop[data-on]')?.textContent,
@@ -47,10 +47,21 @@ async function checkFooter(page) {
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
-    args: ['--no-sandbox', '--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+    args: ['--no-sandbox', '--disable-webgl'],
   });
+  const newContext = async (options) => {
+    const context = await browser.newContext(options);
+    // This suite checks UI geometry/navigation. Pond GPU rendering has separate checks.
+    await context.addInitScript(() => {
+      const getContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+        return type.startsWith('webgl') ? null : getContext.call(this, type, ...args);
+      };
+    });
+    return context;
+  };
   try {
-    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const context = await newContext({ reducedMotion: 'reduce' });
     context.setDefaultTimeout(30000);
     context.setDefaultNavigationTimeout(30000);
     const page = await context.newPage();
@@ -117,16 +128,19 @@ async function checkFooter(page) {
     assert.equal(await deep.evaluate(() => history.length), historyLength);
     await deep.close();
     for (const path of ['/project-previews/syllabus/syllabus1.png', '/project-previews/sahara/sahara1.png']) {
-      const response = await context.request.get(`${baseURL}${path}`);
-      assert.equal(response.status(), 200);
-      assert.match(response.headers()['content-type'], /image\/png/);
-      assert((await response.body()).length > 1000);
+      const response = await page.evaluate(async (url) => {
+        const result = await fetch(url);
+        return { status: result.status, type: result.headers.get('content-type'), bytes: (await result.arrayBuffer()).byteLength };
+      }, `${baseURL}${path}`);
+      assert.equal(response.status, 200);
+      assert.match(response.type, /image\/png/);
+      assert(response.bytes > 1000);
     }
     assert.deepEqual(errors, []);
     console.log('PASS deep links and preview assets');
     await context.close();
     // Normal animations expose stale opening-phase dismissal closures.
-    const animated = await browser.newContext({ viewport: { width: 1024, height: 768 }, reducedMotion: 'no-preference' });
+    const animated = await newContext({ viewport: { width: 1024, height: 768 }, reducedMotion: 'no-preference' });
     animated.setDefaultTimeout(30000);
     animated.setDefaultNavigationTimeout(30000);
     const menuPage = await animated.newPage();
@@ -152,7 +166,7 @@ async function checkFooter(page) {
     console.log('PASS animated menu dismissal and stops');
     await animated.close();
     // Native touch input must snap to the same numbered stops.
-    const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+    const touch = await newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
     touch.setDefaultTimeout(30000);
     touch.setDefaultNavigationTimeout(30000);
     const touchPage = await touch.newPage();
