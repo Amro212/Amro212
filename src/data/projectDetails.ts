@@ -3,6 +3,13 @@
 // ProjectDetail format the clone's detail viewer already renders.
 // Everything here is written from verified facts only: no invented
 // metrics and no invented dates.
+//
+// Supportive UI, not product screenshots: the case studies use the
+// viewer's own blocks (journey step cards, sticky-note snapshots,
+// results stats, glass pull-quotes) to support the story, the way
+// Shai's case studies do. No AI mockups of the product UI, no fake
+// screenshots. Real media only (LEGEND photos and video, the
+// Transformer chart, the Syllabus Sync screenshot).
 
 export type StoryBlock =
   | { type: 'heading'; text: string }
@@ -49,7 +56,48 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
     story: [
       { type: 'heading', text: 'Why I built it' },
       { type: 'p', text: 'Applying to jobs means typing the same resume details into form after form. I built Kareer to take that repetition off the job seeker, so an application takes seconds instead of another round of copy-pasting.' },
-      { type: 'p', text: 'Kareer scans the application form, matches each question to the resume and profile, and fills inputs, comboboxes, dropdowns, radio buttons, and textareas. Auto Submit stays off by default, so the applicant always reviews and submits.' },
+      {
+        type: 'snapshots',
+        source: 'Every application asks for the same thing',
+        cards: [
+          {
+            label: 'The repetition',
+            title: 'What you type every time',
+            text: 'The same details, form after form, with no memory between them.',
+            groups: [
+              { label: 'Contact', items: ['Full name', 'Email', 'Phone', 'Location'] },
+              { label: 'Work', items: ['Job titles', 'Dates', 'Employers', 'Descriptions'] },
+              { label: 'Education', items: ['Degree', 'School', 'Graduation year'] },
+            ],
+          },
+          {
+            label: 'Where it breaks',
+            title: 'The friction',
+            text: '',
+            groups: [
+              {
+                label: 'Notes',
+                items: [
+                  'Full name, email, phone, and location. Every single form, from scratch.',
+                  'Work history: titles, dates, employers, descriptions. Typed out again.',
+                  'Education: degree, school, graduation year. Again, and again.',
+                  'Skills, one box at a time, in whatever order the form wants them.',
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { type: 'heading', text: 'How an application gets filled' },
+      {
+        type: 'journey',
+        steps: [
+          { text: 'Open the application. Kareer reads the form and finds every field that needs an answer.' },
+          { text: 'Match to your resume. Each question is matched to your profile and saved answers.' },
+          { text: 'Fill with a label. Every value carries a provenance label: verified, saved, inferred, guessed, or unresolved.' },
+          { text: 'Review before you submit. Auto Submit stays off by default, so you always check and send it yourself.' },
+        ],
+      },
       { type: 'glass', text: 'Every filled value carries a clear label: **verified, saved, inferred, guessed, or unresolved**, so you always know what came from your resume and what was guessed.' },
       { type: 'heading', text: 'How it works' },
       { type: 'list', items: ['Dedicated adapters for Ashby, Greenhouse, Lever, and Workday, plus a generic fallback for other forms.', 'Three-tier resolution: deterministic profile fields first, then exact saved answers for repeat questions, then a contextual AI fallback.', 'Bring your own key via OpenRouter, so you use the model of your choice. The API key is isolated in sandboxed extension storage and never exposed to page scripts.', 'Local-first with zero telemetry and no external backend. Everything runs in the browser.'] },
@@ -83,6 +131,18 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
     story: [
       { type: 'heading', text: 'The problem' },
       { type: 'p', text: 'Course dates and deadlines live buried inside syllabus PDFs, and students retype them by hand into calendars and to-do lists. Syllabus Sync reads the PDF and does that extraction for you.' },
+      { type: 'glass', text: 'Syllabus dates should not have to be retyped by hand.' },
+      { type: 'heading', text: 'How an import works' },
+      {
+        type: 'journey',
+        steps: [
+          { text: 'Pick the syllabus PDF. Choose the file for the course you want to plan.' },
+          { text: 'Extract dates and tasks. The app pulls out deadlines, exams, and assignments.' },
+          { text: 'Review the plan. Check the extracted dates and adjust them to your schedule.' },
+          { text: 'See it in the calendar. The plan lives in the in-app calendar, next to the dates.' },
+          { text: 'Track the import. Every import is recorded, so you can see what came from each syllabus.' },
+        ],
+      },
       { type: 'heading', text: 'What it does' },
       { type: 'list', items: ['Reads syllabus PDFs and pulls out dates and tasks.', 'Turns them into editable plans you can adjust to your own schedule.', 'Shows them in an in-app calendar, so the plan and the dates live in the same place.', 'Tracks imports, so you can see what came in from each syllabus.'] },
       { type: 'heading', text: 'How it is built' },
@@ -106,6 +166,16 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
       { type: 'heading', text: 'What I benchmarked' },
       { type: 'p', text: 'Four training setups on the same GPT-style model, about 135M parameters with a sequence length of 512, on a single RTX 3060 with 12GB of VRAM. Each mode gets a batch-size sweep until it runs out of memory, so the comparison is at each mode\'s real limit, not at one arbitrary batch size.' },
       { type: 'list', items: ['Baseline PyTorch.', 'AMP mixed precision.', 'Gradient checkpointing.', 'AMP plus checkpointing.'] },
+      { type: 'heading', text: 'How the benchmark runs' },
+      {
+        type: 'steps',
+        items: [
+          { title: 'Pick the four modes', text: 'Baseline PyTorch, AMP, gradient checkpointing, and AMP plus checkpointing, all on the same model and GPU.' },
+          { title: 'Sweep batch size until it breaks', text: 'Each mode gets a batch-size sweep until it runs out of memory, so the comparison is at each mode\'s real limit.' },
+          { title: 'Measure what matters', text: 'VRAM use, step time, throughput, and max batch, recorded at each mode\'s limit.' },
+          { title: 'Compare at the limit', text: 'The numbers are read at each mode\'s max batch before out of memory, not at one arbitrary batch size.' },
+        ],
+      },
       { type: 'heading', text: 'What the numbers say' },
       {
         type: 'results',
@@ -138,6 +208,17 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
     story: [
       { type: 'heading', text: 'What it does' },
       { type: 'p', text: 'CurlAI watches your bicep curls through a webcam and counts your reps automatically. A custom-trained model classifies whether your arm is extended or contracted, and tracking the transitions between those states is what counts a full repetition.' },
+      { type: 'glass', text: 'One model, one job, running in real time.' },
+      { type: 'heading', text: 'How a rep gets counted' },
+      {
+        type: 'journey',
+        steps: [
+          { text: 'Webcam captures frames. OpenCV reads the live feed from your laptop camera.' },
+          { text: 'Model classifies the arm. A custom-trained LinearSVC decides whether the arm is extended or contracted.' },
+          { text: 'Transition counts a rep. Moving from extended to contracted and back is one full repetition.' },
+          { text: 'Counter updates live. The Tkinter interface shows the feed and the current rep count.' },
+        ],
+      },
       { type: 'heading', text: 'How it works' },
       { type: 'list', items: ['OpenCV captures frames from the webcam.', 'A LinearSVC model from scikit-learn, trained on custom image data, classifies arm extension and contraction.', 'Transitions between extended and contracted states count a completed rep.', 'A Tkinter interface shows the live feed and the current rep count.'] },
       { type: 'heading', text: 'What it is' },
@@ -163,6 +244,16 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
       { type: 'image', src: 'https://www.legend.guru/hero-frog.png', alt: 'LEGEND, the gentleman lizard in a tuxedo' },
       { type: 'heading', text: 'The part that matters: a school in Nigeria' },
       { type: 'p', text: 'PumpFun creator fees helped support the construction of a school in Nigeria. The opening celebration is documented in the gallery on legend.guru: children, families, and community leaders at the new school building, under a banner reading "LEGEND COIN BUILD A SCHOOL PROJECT".' },
+      { type: 'heading', text: 'How fees became a school' },
+      {
+        type: 'journey',
+        steps: [
+          { text: 'Coin launches on pump.fun. LEGEND goes live in December 2025, a gentleman lizard with no screaming and no promises.' },
+          { text: 'Creator fees accumulate. Trading on PumpSwap generates creator fees from every trade.' },
+          { text: 'Fees fund the school. The creator fees help support construction of a school in Nigeria.' },
+          { text: 'School opens. The opening celebration brings children, families, and community leaders to the new building.' },
+        ],
+      },
       { type: 'video', src: 'https://www.legend.guru/gallery/Children_gathered_outside_the_school_during_the_opening_celebration.mp4', poster: 'https://www.legend.guru/gallery/Guests_and_organizers_posing_together_during_the_school_launch_event.jpeg', alt: 'Children gathered outside the school during the opening celebration', caption: 'Children gathered outside the school during the opening celebration.' },
       { type: 'image', src: 'https://www.legend.guru/gallery/Large_group_photo_of_children_families_and_supporters_at_the_new_school.jpeg', alt: 'Large group photo of children, families, and supporters at the new school' },
       { type: 'image', src: 'https://www.legend.guru/gallery/Community_leaders%20and%20supporters%20standing%20together%20at%20the%20school%20opening_ceremony..jpeg', alt: 'Community leaders and supporters standing together at the school opening ceremony' },
@@ -176,6 +267,7 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
         ],
         note: 'Market cap is about $25.9k now; 24h volume about $886, liquidity about $15.6k (DexScreener, Nov 15, 2026). Memecoin numbers move fast; the school is the part that stays.',
       },
+      { type: 'glass', text: 'The price moves fast. The school is the part that stays.' },
       { type: 'p', text: 'LEGEND is a memecoin with no intrinsic value or expectation of financial return, as the site itself states. The point of the project was never the price: it was a community that turned trading fees into a building full of kids.' },
       { type: 'link', href: 'https://legend.guru', text: 'legend.guru' },
       { type: 'link', href: 'https://dexscreener.com/solana/8Ria12cUpYXAR42Lx4eGPrPFw9VRJ62y2pUpbdMkkWvP', text: 'DexScreener: LEGEND / SOL' },
