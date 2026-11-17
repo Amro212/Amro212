@@ -111,7 +111,7 @@ function useMascot() {
 }
 
 export default function Hero() {
-  const [expanded, setExpanded] = useState(0);
+  const [expanded, setExpanded] = useState(-1);
   const introRef = useRef<HTMLElement>(null);
   const mascot = useMascot();
 
