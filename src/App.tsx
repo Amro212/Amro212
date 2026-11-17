@@ -522,7 +522,6 @@ export default function App() {
                 index={i}
                 offsetPx={offsetPx}
                 pitch={pitch}
-                active={i === current - 1}
                 onCardClick={(e) => {
                   if (swipedRef.current) return;
                   if (project.external && !project.slug) return;

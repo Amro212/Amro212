@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { CloneProject } from '../data/clone';
 
@@ -90,29 +90,15 @@ interface Props {
   offsetPx: number;
   /** Track pitch in px (624 at 1440x900). */
   pitch: number;
-  active: boolean;
   onCardClick: (e: React.MouseEvent) => void;
 }
 
-export default function ProjectCard({ project, index, offsetPx, pitch, active, onCardClick }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+export default function ProjectCard({ project, index, offsetPx, pitch, onCardClick }: Props) {
   const bodyRef = useRef<HTMLSpanElement>(null);
   // React can replace inline styles during a slide update; refresh the frame cache.
   useLayoutEffect(() => {
     if (bodyRef.current) cardStyleCache.delete(bodyRef.current);
   });
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (active) {
-      video.play().catch(() => {
-        /* autoplay blocked or no source yet; poster stays visible */
-      });
-    } else {
-      video.pause();
-    }
-  }, [active]);
 
   // Original en(): e = offset/pitch; rotateY = clamp(-22*e, ±34);
   // translateZ = -(70*min(1.5,|e|)); blur = 2.4*max(0, min(1.4,|e|)-0.15).
@@ -138,10 +124,10 @@ export default function ProjectCard({ project, index, offsetPx, pitch, active, o
         {media.type === 'video' ? (
           <span className="loop-video">
             <video
-              ref={videoRef}
               poster={media.poster}
               muted
               loop
+              autoPlay
               playsInline
               preload="none"
               disablePictureInPicture
