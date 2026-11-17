@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { EXPERIENCE, EXPERIENCE_ARIA_LABEL, HERO } from '../data/clone';
 import { AMRO_SIGNATURE_DATA_URI } from '../data/signature';
@@ -112,7 +112,27 @@ function useMascot() {
 
 export default function Hero() {
   const [expanded, setExpanded] = useState(0);
+  const introRef = useRef<HTMLElement>(null);
   const mascot = useMascot();
+
+  useLayoutEffect(() => {
+    const intro = introRef.current;
+    const layer = intro?.parentElement;
+    if (!intro || !layer) return;
+    const fit = () => {
+      const style = getComputedStyle(layer);
+      const height = layer.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      const width = layer.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      // Fit the full introduction, including its signature, above the slider.
+      const scale = Math.max(0, Math.min(1, height / intro.offsetHeight, width / intro.scrollWidth));
+      intro.style.setProperty('--intro-scale', String(scale));
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(intro);
+    observer.observe(layer);
+    fit();
+    return () => observer.disconnect();
+  }, []);
 
   const toggleRow = (i: number) => setExpanded((cur) => (cur === i ? -1 : i));
   const onRowKey = (e: KeyboardEvent, i: number) => {
@@ -142,7 +162,7 @@ export default function Hero() {
   lines.push({ text: HERO.experienceFooter });
 
   return (
-    <section className="intro">
+    <section className="intro" ref={introRef}>
       {/* Amro's own handwritten signature (raster, transparent
           background). Same placement/sizing as the original's SVG
           scribble; it wipes in left-to-right instead of a stroke draw. */}
@@ -173,15 +193,6 @@ export default function Hero() {
         <div>
           <h1 className="name">{HERO.name}</h1>
           <p className="tagline">{HERO.tagline}</p>
-          {HERO.roles ? (
-            <div className="role-chips" aria-label="Roles">
-              {HERO.roles.map((role) => (
-                <span className="pill role-chip" key={role}>
-                  {role}
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
       </header>
 
