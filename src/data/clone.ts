@@ -30,7 +30,7 @@ export const HERO = {
     { text: 'automate boring work', pill: 'code' },
     { text: '. It is a personality trait at this point. I let ', pill: null },
     { text: 'AI', pill: 'ai' },
-    { text: ' do the typing. I do the thinking.', pill: null },
+    { text: ' do the typing. I do the thinking (sometimes).', pill: null },
   ] as { text: string; pill: 'design' | 'code' | 'ai' | null }[],
   experienceFooter: '5 companies · since 2024',
 };
