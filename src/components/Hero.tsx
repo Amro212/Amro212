@@ -193,11 +193,6 @@ export default function Hero() {
         <div>
           <h1 className="name">{HERO.name}</h1>
           <p className="tagline">{HERO.tagline}</p>
-          <div className="role-chips" aria-label="Roles">
-            {HERO.roles.map((role) => (
-              <span className="pill role-chip" key={role}>{role}</span>
-            ))}
-          </div>
         </div>
       </header>
 

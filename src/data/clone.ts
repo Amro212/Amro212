@@ -23,8 +23,7 @@ export interface ExperienceEntry {
 
 export const HERO = {
   name: 'Amro Abed Moosa',
-  tagline: 'Bachelor of Engineering, Computer',
-  roles: ['Software Developer', 'Applications Engineer', 'AI Builder'],
+  tagline: 'B.Eng. | Software Builder',
   bio: [
     { text: 'I ', pill: null },
     { text: 'automate boring work', pill: 'code' },
