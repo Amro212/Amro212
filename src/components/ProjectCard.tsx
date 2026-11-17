@@ -124,7 +124,7 @@ export default function ProjectCard({ project, index, offsetPx, pitch, onCardCli
       {project.eyebrow ? <span className="card-eyebrow">{project.eyebrow}</span> : null}
       <span className="card-media">
         {media.type === 'video' ? (
-          <span className="loop-video">
+          <span className="loop-video" data-paused={paused ? '' : undefined}>
             <video
               ref={videoRef}
               poster={media.poster}
@@ -141,6 +141,7 @@ export default function ProjectCard({ project, index, offsetPx, pitch, onCardCli
               {media.av1 ? <source src={media.av1} type='video/mp4; codecs="av01.0.05M.08"' /> : null}
               <source src={media.mp4} type="video/mp4" />
             </video>
+            {paused && <img className="card-poster" src={media.poster} alt="" aria-hidden="true" draggable={false} />}
             {paused && (
               <button
                 className="card-play"

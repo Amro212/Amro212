@@ -442,9 +442,9 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   mix-blend-mode: soft-light;
 }
 .loop-video { width: 100%; height: 100%; display: block; position: relative; }
-/* Use the card's dimensions instead of Safari's native playback overlay. */
-.loop-video video::-webkit-media-controls { display: none !important; }
-.loop-video video::-webkit-media-controls-start-playback-button { display: none !important; }
+/* Low Power Mode can force native controls; hide the paused video itself. */
+.loop-video[data-paused] video { opacity: 0; pointer-events: none; }
+.card-poster { position: absolute; inset: 0; pointer-events: none; }
 .card-play {
   position: absolute;
   inset: 0;

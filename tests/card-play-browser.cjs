@@ -31,6 +31,8 @@ const { chromium, webkit } = require('playwright-core');
       });
       const mediaRect = await card.locator('.card-media').boundingBox();
       const playRect = await play.boundingBox();
+      assert.equal(await card.locator('video').evaluate((video) => getComputedStyle(video).opacity), '0', 'paused video and its native controls are invisible');
+      await card.locator('.card-poster').waitFor({ state: 'visible' });
       assert(Math.abs(playRect.x + playRect.width / 2 - mediaRect.x - mediaRect.width / 2) < 0.5, 'play button centered horizontally');
       assert(Math.abs(playRect.y + playRect.height / 2 - mediaRect.y - mediaRect.height / 2) < 0.5, 'play button centered vertically');
       console.log(`PASS ${engine.name()} ${width}x${height}: play button centered`);
@@ -48,15 +50,28 @@ const { chromium, webkit } = require('playwright-core');
     await page.keyboard.press('Enter');
     await play.waitFor({ state: 'detached' });
     assert.equal(await card.locator('video').evaluate((video) => video.paused), false, 'keyboard starts playback');
+    assert.equal(await card.locator('video').evaluate((video) => getComputedStyle(video).opacity), '1', 'playing video is visible');
+    assert.equal(await card.locator('.card-poster').count(), 0, 'poster removed during playback');
     assert.equal(await page.locator('.pv').count(), 0, 'keyboard play must not open the case study');
     await card.locator('video').evaluate((video) => video.pause());
     await play.waitFor();
+    assert.equal(await card.locator('video').evaluate((video) => getComputedStyle(video).opacity), '0', 'native controls stay hidden after pausing again');
     await play.click();
     await play.waitFor({ state: 'detached' });
     assert.equal(await card.locator('video').evaluate((video) => video.paused), false, 'tap starts playback');
     await card.locator('.card-title').click();
     await page.waitForSelector('.pv[data-phase="open"]');
     console.log('PASS: blocked playback remains retryable, pause restores button, keyboard/tap plays, card opens case study');
+    const autoplayPage = await browser.newPage({ viewport: { width: 390, height: 690 }, hasTouch: true, reducedMotion: 'reduce' });
+    await autoplayPage.goto(process.env.PORTFOLIO_URL || 'http://127.0.0.1:5173');
+    await autoplayPage.waitForSelector('html[data-intro="done"] .slider');
+    await autoplayPage.locator('.slider-stop').nth(1).click();
+    await autoplayPage.waitForFunction(() => {
+      const video = document.querySelector('.loop-video video');
+      return !video.paused && getComputedStyle(video).opacity === '1';
+    });
+    assert.equal(await autoplayPage.locator('[data-card]').first().locator('.card-play, .card-poster').count(), 0, 'normal autoplay displays only the video');
+    console.log('PASS: normal autoplay still works with the paused-video fallback');
   } finally {
     await browser.close();
   }
