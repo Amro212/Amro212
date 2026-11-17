@@ -370,6 +370,7 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
 .card {
   width: var(--card-w);
   pointer-events: auto;
+  cursor: pointer;
   -webkit-user-drag: none;
   user-select: none;
   -webkit-user-select: none;
