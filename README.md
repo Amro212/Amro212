@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/duck-mascot.png" width="120" alt="The duck, the mascot" />
   <img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/amro-gif.gif" width="110" alt="Amro, pixelated" />
 </div>
 
@@ -49,7 +50,9 @@ I build tools that take the boring work off your plate, and I like showing peopl
 
 <div align="center">
 
-🦆 yes, the duck is the mascot. it quacks.
+<img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/duck-mascot.png" width="44" alt="The duck, the mascot" />
+
+yes, the duck is the mascot. it quacks.
 
 </div>
 
