@@ -319,6 +319,20 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
 .pill:hover { background-color: rgba(201, 123, 74, 0.2); }
 .pill-icon { flex-shrink: 0; margin-right: 2px; display: block; }
 
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.role-chip {
+  height: 26px;
+  font-family: var(--mono);
+  font-size: 12px;
+  transform: none;
+  margin-right: 0;
+}
+
 .tree {
   z-index: 1;
   font-family: var(--mono);
@@ -1556,6 +1570,7 @@ html[data-intro="on"] .music-player { visibility: hidden; }
   .bio { margin-top: 26px; font-size: 16px; line-height: 29px; }
   .pill { border-radius: 7px; gap: 5px; height: 26px; margin-right: 3px; padding: 0 7px; }
   .pill-icon { width: 15px; height: 15px; }
+  .role-chip { height: 24px; font-size: 11px; }
   .tree { font-size: min(13.5px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 26px; }
   :root {
     --slider-w: min(560px, 100vw - 48px);
@@ -1572,6 +1587,7 @@ html[data-intro="on"] .music-player { visibility: hidden; }
   .bio { margin-top: 32px; font-size: 21px; line-height: 39px; }
   .pill { height: 33px; padding: 0 9px; }
   .pill-icon { width: 19px; height: 19px; }
+  .role-chip { height: 28px; font-size: 13px; }
   .tree { font-size: min(17px, calc(var(--slider-w) / var(--cols) / 0.625)); margin-top: 32px; }
 }
 @media (max-height: 500px) and (min-width: 640px) {

@@ -23,11 +23,14 @@ export interface ExperienceEntry {
 
 export const HERO = {
   name: 'Amro Abed Moosa',
-  tagline: 'Computer Engineer',
+  tagline: 'Bachelor of Engineering, Computer',
+  roles: ['Software Developer', 'Applications Engineer', 'AI Builder'],
   bio: [
     { text: 'I ', pill: null },
-    { text: 'build tools', pill: 'code' },
-    { text: ' that take the boring work off your plate, and I like showing people how they work.', pill: null },
+    { text: 'automate boring work', pill: 'code' },
+    { text: '. It is a personality trait at this point. I let ', pill: null },
+    { text: 'AI', pill: 'ai' },
+    { text: ' do the typing. I do the thinking.', pill: null },
   ] as { text: string; pill: 'design' | 'code' | 'ai' | null }[],
   experienceFooter: '5 companies · since 2024',
 };
