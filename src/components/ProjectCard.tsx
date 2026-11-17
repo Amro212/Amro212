@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CloneProject } from '../data/clone';
 
@@ -95,6 +95,8 @@ interface Props {
 
 export default function ProjectCard({ project, index, offsetPx, pitch, onCardClick }: Props) {
   const bodyRef = useRef<HTMLSpanElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [paused, setPaused] = useState(true);
   // React can replace inline styles during a slide update; refresh the frame cache.
   useLayoutEffect(() => {
     if (bodyRef.current) cardStyleCache.delete(bodyRef.current);
@@ -124,6 +126,7 @@ export default function ProjectCard({ project, index, offsetPx, pitch, onCardCli
         {media.type === 'video' ? (
           <span className="loop-video">
             <video
+              ref={videoRef}
               poster={media.poster}
               muted
               loop
@@ -132,10 +135,28 @@ export default function ProjectCard({ project, index, offsetPx, pitch, onCardCli
               preload="none"
               disablePictureInPicture
               aria-label={project.title}
+              onPlaying={() => setPaused(false)}
+              onPause={() => setPaused(true)}
             >
               {media.av1 ? <source src={media.av1} type='video/mp4; codecs="av01.0.05M.08"' /> : null}
               <source src={media.mp4} type="video/mp4" />
             </video>
+            {paused && (
+              <button
+                className="card-play"
+                type="button"
+                aria-label={`Play ${project.title} preview`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  videoRef.current?.play().catch(() => { /* Keep the play button if playback is blocked. */ });
+                }}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M7 4.5a1 1 0 0 1 1.5-.86l12 7.5a1 1 0 0 1 0 1.72l-12 7.5A1 1 0 0 1 7 19.5z" />
+                </svg>
+              </button>
+            )}
           </span>
         ) : (
           <img alt={media.alt} src={media.src} draggable={false} loading="eager" decoding="async" />

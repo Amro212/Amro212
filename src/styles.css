@@ -441,7 +441,27 @@ html[data-intro="on"] .signature { animation-play-state: paused; }
   background-position: var(--glint-x, 50%) 0;
   mix-blend-mode: soft-light;
 }
-.loop-video { width: 100%; height: 100%; display: block; }
+.loop-video { width: 100%; height: 100%; display: block; position: relative; }
+/* Use the card's dimensions instead of Safari's native playback overlay. */
+.loop-video video::-webkit-media-controls { display: none !important; }
+.loop-video video::-webkit-media-controls-start-playback-button { display: none !important; }
+.card-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 2;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff1f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.card-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .loop-video video,
 .card-media img {
   object-fit: cover;
