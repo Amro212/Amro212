@@ -4,14 +4,10 @@
 // the original clone source has been replaced.
 
 import {
-  KAREER_THUMB_MP4,
-  KAREER_THUMB_POSTER,
-  SYLLABUSSYNC_THUMB_MP4,
-  SYLLABUSSYNC_THUMB_POSTER,
-  TRANSFORMER_THUMB_MP4,
-  TRANSFORMER_THUMB_POSTER,
-  CURLAI_THUMB_MP4,
-  CURLAI_THUMB_POSTER,
+  KAREER_CARD_IMG,
+  SYLLABUS_CARD_IMG,
+  TRANSFORMER_CARD_IMG,
+  CURLAI_CARD_IMG,
 } from './thumbnails';
 
 export interface ExperienceEntry {
@@ -94,7 +90,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://kareer.itsamro.me/',
     external: true,
     slug: 'kareer',
-    media: { type: 'video', poster: KAREER_THUMB_POSTER, mp4: KAREER_THUMB_MP4 },
+    media: { type: 'image', src: KAREER_CARD_IMG, alt: 'Kareer logo' },
   },
   {
     title: 'Syllabus Sync',
@@ -102,7 +98,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/Syllabus-Sync',
     external: true,
     slug: 'syllabus-sync',
-    media: { type: 'video', poster: SYLLABUSSYNC_THUMB_POSTER, mp4: SYLLABUSSYNC_THUMB_MP4 },
+    media: { type: 'image', src: SYLLABUS_CARD_IMG, alt: 'Syllabus Sync app icon' },
   },
   {
     title: 'Transformer Training Optimization',
@@ -110,7 +106,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/transformer-training-benchmark',
     external: true,
     slug: 'transformer-training-optimization',
-    media: { type: 'video', poster: TRANSFORMER_THUMB_POSTER, mp4: TRANSFORMER_THUMB_MP4 },
+    media: { type: 'image', src: TRANSFORMER_CARD_IMG, alt: 'Transformer training benchmark chart' },
   },
   {
     title: 'CurlAI',
@@ -118,7 +114,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://github.com/Amro212/CurlAI',
     external: true,
     slug: 'curlai',
-    media: { type: 'video', poster: CURLAI_THUMB_POSTER, mp4: CURLAI_THUMB_MP4 },
+    media: { type: 'image', src: CURLAI_CARD_IMG, alt: 'Bicep curl in the gym' },
   },
   {
     title: 'LEGEND',
