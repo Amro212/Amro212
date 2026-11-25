@@ -1,6 +1,5 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/duck-mascot.png" width="120" alt="The duck, the mascot" />
-  <img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/amro-gif.gif" width="110" alt="Amro, pixelated" />
 </div>
 
 <div align="center">
