@@ -5,6 +5,7 @@
 
 import {
   KAREER_CARD_IMG,
+  VIEXTRA_CARD_IMG,
   SYLLABUS_CARD_IMG,
   TRANSFORMER_CARD_IMG,
   CURLAI_CARD_IMG,
@@ -91,6 +92,14 @@ export const PROJECTS: CloneProject[] = [
     external: true,
     slug: 'kareer',
     media: { type: 'image', src: KAREER_CARD_IMG, alt: 'Kareer logo' },
+  },
+  {
+    title: 'VI Extra',
+    kind: 'Interactive Map',
+    href: 'https://viextra.com',
+    external: true,
+    slug: 'viextra',
+    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'Jason and Lucia at sunset over Vice City' },
   },
   {
     title: 'Syllabus Sync',
