@@ -99,7 +99,7 @@ export const PROJECTS: CloneProject[] = [
     href: 'https://viextra.com',
     external: true,
     slug: 'viextra',
-    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'Jason and Lucia at sunset over Vice City' },
+    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'VI Extra logo, the GTA VI mark over a Vice City sunset' },
   },
   {
     title: 'Syllabus Sync',

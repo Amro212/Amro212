@@ -129,6 +129,8 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
     ],
     mediaBase: 'https://viextra.com',
     story: [
+      { type: 'link', href: 'https://viextra.com', text: 'viextra.com' },
+      { type: 'link', href: 'https://github.com/Amro212/gta6-site', text: 'github.com/Amro212/gta6-site' },
       { type: 'heading', text: 'Why I built it' },
       { type: 'p', text: 'GTA 6 is the most anticipated game of the decade, and players deserve one place they can trust for everything around it. I built VI Extra to be that place: a map you can trust, prices you can check, and guides that actually help, all kept up to date so players keep coming back.' },
       {
@@ -181,8 +183,6 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
       },
       { type: 'heading', text: 'What gets built next' },
       { type: 'p', text: 'Everything is logged, and the data decides what gets built next. The Strange Totem guide pulling 51 of 56 clicks is why more guides like it are coming, and progress tracking shows which finds players actually chase. The site grows toward whatever players pay attention to.' },
-      { type: 'link', href: 'https://viextra.com', text: 'viextra.com' },
-      { type: 'link', href: 'https://github.com/Amro212/gta6-site', text: 'github.com/Amro212/gta6-site' },
     ],
   },
   'syllabus-sync': {
