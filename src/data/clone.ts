@@ -94,20 +94,20 @@ export const PROJECTS: CloneProject[] = [
     media: { type: 'image', src: KAREER_CARD_IMG, alt: 'Kareer logo' },
   },
   {
-    title: 'VI Extra',
-    kind: 'Interactive Map',
-    href: 'https://viextra.com',
-    external: true,
-    slug: 'viextra',
-    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'VI Extra logo, the GTA VI mark over a Vice City sunset' },
-  },
-  {
     title: 'Syllabus Sync',
     kind: 'iOS App',
     href: 'https://github.com/Amro212/Syllabus-Sync',
     external: true,
     slug: 'syllabus-sync',
     media: { type: 'image', src: SYLLABUS_CARD_IMG, alt: 'Syllabus Sync app icon' },
+  },
+  {
+    title: 'VI Extra',
+    kind: 'Interactive Map',
+    href: 'https://viextra.com',
+    external: true,
+    slug: 'viextra',
+    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'VI Extra logo, the GTA VI mark over a Vice City sunset' },
   },
   {
     title: 'Transformer Training Optimization',
