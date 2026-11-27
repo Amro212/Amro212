@@ -118,6 +118,75 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
       { type: 'link', href: 'https://github.com/Amro212/kareer', text: 'github.com/Amro212/kareer' },
     ],
   },
+  viextra: {
+    slug: 'viextra',
+    year: '2026',
+    headline: 'VI Extra: a GTA 6 hub with a verified map, live prices, guides, and news',
+    summary: 'GTA 6 hub at viextra.com: an interactive Leonida map with 771 verified finds, edition prices tracked across keyshops, guides players actually read, and a news page, all kept current by an agent that researches and verifies everything before it goes up. No account, no paywall. Launched November 2026.',
+    details: [
+      { label: 'role', value: 'creator' },
+      { label: 'stack', value: 'react / typescript / vite / leaflet / tailwind' },
+      { label: 'platform', value: 'web' },
+      { label: 'launch', value: 'nov 2026' },
+    ],
+    mediaBase: 'https://viextra.com',
+    story: [
+      { type: 'link', href: 'https://viextra.com', text: 'viextra.com' },
+      { type: 'link', href: 'https://github.com/Amro212/gta6-site', text: 'github.com/Amro212/gta6-site' },
+      { type: 'heading', text: 'Why I built it' },
+      { type: 'p', text: 'GTA 6 is the most anticipated game of the decade, and players deserve one place they can trust for everything around it. I built VI Extra to be that place: a map you can trust, prices you can check, and guides that actually help, all kept up to date so players keep coming back.' },
+      {
+        type: 'snapshots',
+        source: 'One hub, not just a map',
+        cards: [
+          {
+            label: 'The map',
+            title: 'Every find verified before it goes on',
+            text: 'The part players come for first.',
+            groups: [
+              { label: 'What it holds', items: ['771 verified finds with per-pin evidence', '48 curated pins, placed by hand', 'Real-life photos and addresses on every pin'] },
+              { label: 'Progress', items: ['Mark places found as you explore', 'Region guides for every part of Leonida'] },
+            ],
+          },
+          {
+            label: 'Beyond the map',
+            title: 'The rest of the site',
+            text: 'The map is the main thing, but it is not the whole site.',
+            groups: [
+              { label: 'Around the game', items: ['News page, updated as stories break', 'Edition prices tracked across keyshops', 'Guides players actually read, like Strange Totem'] },
+              { label: 'For players', items: ['48 news stories on the news page', 'Submit your own finds with a screenshot', 'No account, no paywall, no backend'] },
+            ],
+          },
+        ],
+      },
+      { type: 'heading', text: 'How a find goes from rumour to pin' },
+      {
+        type: 'journey',
+        steps: [
+          { text: 'Watch for what is new. The agent checks for new finds every 6 hours, and news and price drops every 4 hours.' },
+          { text: 'Research the find. It digs into the source and checks the evidence behind it.' },
+          { text: 'Verify against the map data. Only verified items go up. Anything unconfirmed stays out.' },
+          { text: 'Place the pin precisely. The pin lands exactly on the spot, with the supporting image on it so players can find the place.' },
+        ],
+      },
+      { type: 'glass', text: 'VI Extra alone is a brand nobody searches for. Titles and meta have to carry the searchable phrases, like GTA 6 Map, or the page never gets clicked even when it ranks.' },
+      { type: 'heading', text: 'How it stays current' },
+      { type: 'list', items: ['Leaflet map with clustered pins, built on the same coordinate data as the base map, so every pin lands exactly where the game puts it.', 'An agent keeps the site current: it researches new finds, verifies them, and places the pins itself. It is not a script copying a feed.', 'The editions page tracks prices across keyshops, so players can see the best deal instead of the sticker price.', 'Player submissions at /submit, screenshot required, with no backend, no account, and no paywall anywhere on the site.'] },
+      {
+        type: 'results',
+        label: 'Google Search Console, last 28 days through Nov 23, 2026',
+        stats: [
+          { value: '56', caption: 'clicks, 51 of them from the Strange Totem guide' },
+          { value: '3,049', caption: 'impressions' },
+          { value: '1.8%', caption: 'click-through rate' },
+          { value: '5.1', caption: 'average position' },
+        ],
+        note: 'The Trinity Apartments guide has the most impressions at 2,081 but only 3 clicks at 0.1% CTR, position 3.8. That gap is why titles keep getting reworked to carry the searchable phrases.',
+      },
+      { type: 'heading', text: 'What gets built next' },
+      { type: 'p', text: 'Everything is logged, and the data decides what gets built next. The Strange Totem guide pulling 51 of 56 clicks is why more guides like it are coming, and progress tracking shows which finds players actually chase. The site grows toward whatever players pay attention to.' },
+    ],
+  },
   'syllabus-sync': {
     slug: 'syllabus-sync',
     year: '2025–2026',

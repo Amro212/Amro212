@@ -5,6 +5,7 @@
 
 import {
   KAREER_CARD_IMG,
+  VIEXTRA_CARD_IMG,
   SYLLABUS_CARD_IMG,
   TRANSFORMER_CARD_IMG,
   CURLAI_CARD_IMG,
@@ -99,6 +100,14 @@ export const PROJECTS: CloneProject[] = [
     external: true,
     slug: 'syllabus-sync',
     media: { type: 'image', src: SYLLABUS_CARD_IMG, alt: 'Syllabus Sync app icon' },
+  },
+  {
+    title: 'VI Extra',
+    kind: 'Interactive Map',
+    href: 'https://viextra.com',
+    external: true,
+    slug: 'viextra',
+    media: { type: 'image', src: VIEXTRA_CARD_IMG, alt: 'VI Extra logo, the GTA VI mark over a Vice City sunset' },
   },
   {
     title: 'Transformer Training Optimization',
