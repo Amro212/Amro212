@@ -51,8 +51,6 @@ I build tools that take the boring work off your plate, and I like showing peopl
 
 <img src="https://raw.githubusercontent.com/Amro212/Amro212/main/public/duck-mascot.png" width="44" alt="The duck, the mascot" />
 
-yes, the duck is the mascot. it quacks.
-
 </div>
 
 <div>
