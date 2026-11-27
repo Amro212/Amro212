@@ -21,11 +21,11 @@ export const HERO = {
   name: 'Amro Abed Moosa',
   tagline: 'B.Eng. | Software Builder',
   bio: [
-    { text: 'I ', pill: null },
-    { text: 'automate boring work', pill: 'code' },
-    { text: '. It is a personality trait at this point. I let ', pill: null },
+    { text: "I've never been good at leaving a good (or bad) idea alone. ", pill: null },
+    { text: 'Building things', pill: 'code' },
+    { text: ' is my way of finding out which is which! I let ', pill: null },
     { text: 'AI', pill: 'ai' },
-    { text: ' do the typing. I do the thinking (sometimes).', pill: null },
+    { text: ' do the typing. I do the thinking.', pill: null },
   ] as { text: string; pill: 'design' | 'code' | 'ai' | null }[],
   experienceFooter: '5 companies · since 2024',
 };

@@ -113,6 +113,8 @@ export const PROJECT_DETAILS: Record<string, ProjectDetail> = {
       { type: 'heading', text: 'What I would look at next' },
       { type: 'p', text: 'Autofill you cannot trust is worse than no autofill. The provenance labels are the feature I care most about, and the next work is making more fields resolve as verified instead of guessed, and covering more ATS edge cases with captured fixtures.' },
       { type: 'link', href: 'https://kareer.itsamro.me/', text: 'kareer.itsamro.me' },
+      { type: 'link', href: 'https://chrome.google.com/webstore/detail/gnbkbdbpajlpclicmapjghpodogkgblf', text: 'Chrome Web Store' },
+      { type: 'link', href: 'https://addons.mozilla.org/addon/kareer/', text: 'Firefox Add-ons' },
       { type: 'link', href: 'https://github.com/Amro212/kareer', text: 'github.com/Amro212/kareer' },
     ],
   },
