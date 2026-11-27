@@ -1255,6 +1255,15 @@ html[data-intro="on"] .music-player { visibility: hidden; }
 }
 .pv-head h1 { color: var(--text-strong); font-size: clamp(26px, 4vw, 40px); line-height: 1.15; letter-spacing: -0.02em; margin: 0; font-weight: 600; }
 .pv-summary { color: var(--text); font-size: 19px; line-height: 1.75; margin: 16px 0 0; }
+.pv-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 24px; padding: 12px 22px; border-radius: 999px;
+  background: var(--accent); color: #1a120b;
+  font-size: 15px; font-weight: 600; text-decoration: none;
+  box-shadow: 0 8px 24px -8px #000c;
+}
+.pv-cta:hover { filter: brightness(1.12); }
+.pv-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .pv-details {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   margin: 36px 0 0; padding: 18px 0; border-top: 1px dashed #ffffff1a; border-bottom: 1px dashed #ffffff1a;
