@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import ExternalActionLink from './ExternalActionLink';
 import { clickSound, initAudio } from '../audio';
 import {
   PORTFOLIO_URL,
@@ -457,7 +458,7 @@ export default function ResumeModal({ from, home, onClose }: Props) {
     <span className="rs-actions">
       {zoomControls}
       <a
-        className="rs-action"
+        className="action-control"
         href={RESUME_PDF}
         download={RESUME_PDF_FILENAME}
         aria-label="Download PDF"
@@ -465,21 +466,11 @@ export default function ResumeModal({ from, home, onClose }: Props) {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
         </svg>
-        <span className="rs-action-label">download</span>
+        <span className="action-label">download</span>
       </a>
-      <a
-        className="rs-action"
-        href={RESUME_PDF}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Open PDF"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M7 17 17 7" />
-          <path d="M8.5 7H17v8.5" />
-        </svg>
-        <span className="rs-action-label">open pdf</span>
-      </a>
+      <ExternalActionLink href={RESUME_PDF} aria-label="Open PDF">
+        open pdf
+      </ExternalActionLink>
     </span>
   );
 
@@ -524,7 +515,7 @@ export default function ResumeModal({ from, home, onClose }: Props) {
             <button
               ref={closeBtnRef}
               type="button"
-              className="rs-action rs-close"
+              className="action-control rs-close"
               onClick={close}
               aria-label="Close resume"
             >

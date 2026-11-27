@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+import ExternalActionLink from './ExternalActionLink';
 import type { CloneProject } from '../data/clone';
 import { PROJECT_DETAILS, type StoryBlock } from '../data/projectDetails';
 
@@ -682,10 +683,9 @@ const ProjectDetail = forwardRef<ProjectDetailHandle, Props>(function ProjectDet
             </p>
             <h1 className="pv-reveal">{headline}</h1>
             {summary ? <p className="pv-summary pv-reveal">{summary}</p> : null}
-            <a className="pv-cta pv-reveal" href={project.href} target="_blank" rel="noopener noreferrer">
+            <ExternalActionLink className="pv-cta pv-reveal" href={project.href}>
               {project.href.includes('github.com') ? 'View on GitHub' : `Visit ${project.title}`}
-              <span aria-hidden="true">↗</span>
-            </a>
+            </ExternalActionLink>
           </header>
           {details.length ? (
             <dl className="pv-details pv-reveal">
