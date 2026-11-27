@@ -24,9 +24,9 @@ export const HERO = {
   bio: [
     { text: "I've never been good at leaving a good (or bad) idea alone. ", pill: null },
     { text: 'Building things', pill: 'code' },
-    { text: ' is my way of finding out which is which! I let ', pill: null },
+    { text: ' is my way of finding out which is which! I bring in ', pill: null },
     { text: 'AI', pill: 'ai' },
-    { text: ' do the typing. I do the thinking.', pill: null },
+    { text: ' for the typing, and the testing and decisions stay with me.', pill: null },
   ] as { text: string; pill: 'design' | 'code' | 'ai' | null }[],
   experienceFooter: '5 companies · since 2024',
 };

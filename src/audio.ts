@@ -30,7 +30,7 @@ let musicLoading: Promise<AudioBuffer | null> | null = null;
 let musicSrc: AudioBufferSourceNode | null = null;
 let musicGainNode: GainNode | null = null;
 let musicPlaying = false;
-let musicVolume = 0.06; // target gain 0..0.6, quiet by default (10% on the slider)
+let musicVolume = 0.012; // target gain 0..0.12, quiet by default (10% on the slider)
 let musicStopTimer: number | undefined = undefined;
 /** A start already decoding; concurrent calls share it instead of each
  * creating their own looping source. */
@@ -364,9 +364,9 @@ export function isMusicPlaying(): boolean {
   return musicPlaying;
 }
 
-/** Volume 0..1, mapped to 0..0.6 gain. Applies live while playing. */
+/** Volume 0..1, mapped to 0..0.12 gain. Applies live while playing. */
 export function setMusicVolume(v: number) {
-  musicVolume = clamp(v, 0, 1) * 0.6;
+  musicVolume = clamp(v, 0, 1) * 0.12;
   const t = live();
   if (t && musicGainNode && musicPlaying) {
     musicGainNode.gain.setTargetAtTime(musicVolume, t.currentTime, 0.1);
@@ -374,7 +374,7 @@ export function setMusicVolume(v: number) {
 }
 
 export function getMusicVolume(): number {
-  return musicVolume / 0.6;
+  return musicVolume / 0.12;
 }
 
 /** k() — haptics. */
